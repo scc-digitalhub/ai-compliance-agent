@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ObjectiveCondition",
+  "title": "ObjectiveCondition",
+  "description": "Envelope for compliance objective conditions. Exactly one condition field should be populated.",
+  "type": "object",
+  "properties": {
+    "threshold": {
+      "type": "object",
+      "properties": {
+        "operator": {
+          "type": "string",
+          "enum": [
+            "GEQ",
+            "LEQ",
+            "GT",
+            "LT",
+            "EQ",
+            "NEQ"
+          ]
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "operator",
+        "value"
+      ]
+    },
+    "range": {
+      "type": "object",
+      "properties": {
+        "lower": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        },
+        "inclusive": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "lower",
+        "upper",
+        "inclusive"
+      ]
+    },
+    "categorical": {
+      "type": "object",
+      "properties": {
+        "allowed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "allowed"
+      ]
+    },
+    "statistical": {
+      "type": "object",
+      "properties": {
+        "test": {
+          "type": "string"
+        },
+        "significance": {
+          "type": "number"
+        },
+        "hypothesis": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "test",
+        "significance",
+        "hypothesis"
+      ]
+    },
+    "composite": {
+      "type": "object",
+      "properties": {
+        "operator": {
+          "type": "string",
+          "enum": [
+            "AND",
+            "OR"
+          ]
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "$ref": "ObjectiveCondition.json"
+          }
+        }
+      },
+      "required": [
+        "operator",
+        "conditions"
+      ]
+    }
+  },
+  "minProperties": 1,
+  "maxProperties": 1
+}

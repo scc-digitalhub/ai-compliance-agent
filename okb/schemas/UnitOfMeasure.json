@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/UnitOfMeasure",
+  "title": "UnitOfMeasure",
+  "description": "Physical unit of measurement for a metric value.",
+  "type": "object",
+  "properties": {
+    "symbol": {
+      "type": "string",
+      "description": "e.g. %, ms, tokens/s"
+    },
+    "name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "symbol",
+    "name"
+  ]
+}

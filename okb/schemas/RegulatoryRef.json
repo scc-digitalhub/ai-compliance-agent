@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/RegulatoryRef",
+  "title": "RegulatoryRef",
+  "description": "Normative reference to a regulatory framework article or section.",
+  "type": "object",
+  "properties": {
+    "framework": {
+      "type": "string",
+      "description": "e.g. EU_AI_ACT, NIST_AI_RMF, ISO_42001"
+    },
+    "article": {
+      "type": "string",
+      "description": "e.g. Art. 9, MAP 1.1"
+    },
+    "version": {
+      "type": "string"
+    },
+    "uri": {
+      "type": "string",
+      "format": "uri"
+    }
+  },
+  "required": [
+    "framework"
+  ]
+}

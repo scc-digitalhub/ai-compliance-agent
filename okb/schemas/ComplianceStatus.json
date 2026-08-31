@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ComplianceStatus",
+  "title": "ComplianceStatus",
+  "description": "Assessed compliance status of a project or entity at a point in time.",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "COMPLIANT",
+        "NON_COMPLIANT",
+        "PARTIALLY_COMPLIANT",
+        "PENDING_REVIEW"
+      ]
+    },
+    "assessed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "assessor": {
+      "$ref": "ActorRef.json"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "ComplianceFinding.json"
+      }
+    },
+    "mitigations": {
+      "type": "array",
+      "items": {
+        "$ref": "MitigationAction.json"
+      }
+    }
+  },
+  "required": [
+    "status",
+    "assessed_at",
+    "assessor"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/DataGovernance",
+  "title": "DataGovernance",
+  "description": "Governance metadata for a dataset.",
+  "type": "object",
+  "properties": {
+    "sensitivity": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "PII",
+        "SENSITIVE",
+        "RESTRICTED",
+        "PROHIBITED"
+      ]
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license expression."
+    },
+    "retention": {
+      "$ref": "RetentionPolicy.json"
+    },
+    "consent": {
+      "$ref": "ConsentSpec.json"
+    }
+  },
+  "required": [
+    "sensitivity"
+  ]
+}

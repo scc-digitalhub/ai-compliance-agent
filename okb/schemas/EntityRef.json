@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/EntityRef",
+  "title": "EntityRef",
+  "description": "Opaque cross-entity reference key.",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "key"
+  ]
+}

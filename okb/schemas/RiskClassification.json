@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/RiskClassification",
+  "title": "RiskClassification",
+  "description": "Risk classification of an AI system within a compliance context.",
+  "type": "object",
+  "properties": {
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "PROHIBITED",
+        "HIGH",
+        "LIMITED",
+        "MINIMAL",
+        "UNKNOWN",
+        "OTHER"
+      ]
+    },
+    "risk_level_value": {
+      "type": "string"
+    },
+    "classification_status": {
+      "type": "string",
+      "enum": [
+        "PRELIMINARY",
+        "ASSESSED",
+        "APPROVED",
+        "NEEDS_REVIEW",
+        "SUPERSEDED"
+      ]
+    },
+    "rationale": {
+      "type": "string"
+    },
+    "assessor": {
+      "$ref": "ActorRef.json"
+    },
+    "approver": {
+      "$ref": "ActorRef.json"
+    },
+    "assessed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "review_cadence": {
+      "type": "string",
+      "description": "ISO-8601 duration, e.g. P1Y"
+    }
+  },
+  "required": [
+    "risk_level",
+    "classification_status"
+  ]
+}

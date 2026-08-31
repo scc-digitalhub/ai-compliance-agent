@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ComplianceDocumentation",
+  "title": "ComplianceDocumentation",
+  "description": "Lightweight documentation artifact scoped to the compliance dimension of an entity.",
+  "type": "object",
+  "properties": {
+    "sections": {
+      "type": "array",
+      "items": {
+        "$ref": "DocumentSection.json"
+      }
+    }
+  }
+}

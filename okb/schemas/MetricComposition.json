@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/MetricComposition",
+  "title": "MetricComposition",
+  "description": "Composition specification for a composite metric.",
+  "type": "object",
+  "properties": {
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "Metric.json"
+      },
+      "description": "Constituent metrics (embedded)."
+    },
+    "aggregation": {
+      "type": "string",
+      "enum": [
+        "MEAN",
+        "MIN",
+        "MAX",
+        "SUM",
+        "PRODUCT",
+        "OTHER"
+      ]
+    },
+    "custom_fn": {
+      "type": "string",
+      "description": "Description for OTHER aggregation."
+    }
+  },
+  "required": [
+    "components",
+    "aggregation"
+  ]
+}

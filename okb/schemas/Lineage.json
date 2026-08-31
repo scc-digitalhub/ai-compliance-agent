@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/Lineage",
+  "title": "Lineage",
+  "description": "DAG of derivation relationships tracking how an artifact was produced.",
+  "type": "object",
+  "properties": {
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Upstream artifact identifiers consumed."
+    },
+    "operation": {
+      "type": "string",
+      "description": "Identifier of the operation run that produced this artifact."
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/BaseComplianceObject",
+  "title": "BaseComplianceObject",
+  "description": "Lightweight identity and descriptive base inherited by compliance model objects.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Locally unique identifier."
+    },
+    "namespace": {
+      "type": "string",
+      "description": "Scoping context (org, project, registry)."
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "name"
+  ]
+}

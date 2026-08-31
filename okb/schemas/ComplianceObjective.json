@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ComplianceObjective",
+  "title": "ComplianceObjective",
+  "description": "Normative constraint binding a Metric to a target value or region.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "metric": {
+      "$ref": "Metric.json"
+    },
+    "condition": {
+      "$ref": "ObjectiveCondition.json"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "MANDATORY",
+        "RECOMMENDED",
+        "INFORMATIONAL"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "CRITICAL",
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "INFO"
+      ]
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "name",
+    "metric",
+    "condition",
+    "priority",
+    "severity"
+  ]
+}

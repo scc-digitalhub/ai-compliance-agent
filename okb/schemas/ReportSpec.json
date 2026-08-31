@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ReportSpec",
+  "title": "ReportSpec",
+  "description": "Compliance extension for a report entity (kind: compliance-report). Extends BaseSpec.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "EVALUATION",
+        "TEST",
+        "LOG"
+      ]
+    },
+    "content": {
+      "$ref": "ReportContent.json"
+    },
+    "lineage": {
+      "$ref": "Lineage.json"
+    },
+    "objectives": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Identifiers of the ComplianceObjectives this report addresses."
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/MitigationAction",
+  "title": "MitigationAction",
+  "description": "Action engaged to resolve a compliance objective violation.",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "NOT_REQUIRED",
+        "PROPOSED",
+        "PLANNED",
+        "IN_PROGRESS",
+        "APPLIED",
+        "VERIFIED",
+        "REJECTED",
+        "DEFERRED",
+        "ACCEPTED_RISK"
+      ]
+    },
+    "rationale": {
+      "type": "string"
+    },
+    "owner": {
+      "$ref": "ActorRef.json"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "applied_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "EntityRef.json"
+      }
+    },
+    "verification_report": {
+      "$ref": "EntityRef.json"
+    },
+    "residual_status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "PARTIALLY_RESOLVED",
+        "RESOLVED",
+        "UNRESOLVED",
+        "ACCEPTED_RESIDUAL_RISK",
+        "NEEDS_RETEST"
+      ]
+    }
+  },
+  "required": [
+    "status"
+  ]
+}

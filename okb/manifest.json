@@ -1,0 +1,184 @@
+{
+  "@context": "https://schema.org/",
+  "@type": "Dataset",
+  "name": "AI Compliance Framework — Open Knowledge Bundle",
+  "description": "Machine-readable concept schemas for the AI Compliance Framework reference model, derived from the formal specification and the Java implementation classes.",
+  "version": "1.0.0",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "keywords": [
+    "AI compliance",
+    "EU AI Act",
+    "NIST AI RMF",
+    "ISO 42001",
+    "fairness",
+    "risk management",
+    "model governance"
+  ],
+  "concepts": [
+    {
+      "id": "BaseComplianceObject",
+      "schema": "schemas/BaseComplianceObject.json",
+      "description": "Lightweight identity base inherited by compliance model objects."
+    },
+    {
+      "id": "ActorRef",
+      "schema": "schemas/ActorRef.json",
+      "description": "Reference to a human user, service account, or automated agent."
+    },
+    {
+      "id": "EntityRef",
+      "schema": "schemas/EntityRef.json",
+      "description": "Opaque cross-entity reference key."
+    },
+    {
+      "id": "Lineage",
+      "schema": "schemas/Lineage.json",
+      "description": "DAG of derivation relationships for an artifact."
+    },
+    {
+      "id": "DomainDescriptor",
+      "schema": "schemas/DomainDescriptor.json",
+      "description": "Domain and use-case classification for an entity."
+    },
+    {
+      "id": "RegulatoryRef",
+      "schema": "schemas/RegulatoryRef.json",
+      "description": "Normative reference to a regulatory framework article or section."
+    },
+    {
+      "id": "Requirement",
+      "schema": "schemas/Requirement.json",
+      "description": "A normative compliance requirement derived from a regulatory framework."
+    },
+    {
+      "id": "AttributeRef",
+      "schema": "schemas/AttributeRef.json",
+      "description": "Descriptor of a data attribute with semantic and observability metadata."
+    },
+    {
+      "id": "GroupSpec",
+      "schema": "schemas/GroupSpec.json",
+      "description": "Specification of a population group relevant to a compliance context."
+    },
+    {
+      "id": "RiskClassification",
+      "schema": "schemas/RiskClassification.json",
+      "description": "Risk classification of an AI system within a compliance context."
+    },
+    {
+      "id": "MisuseScenario",
+      "schema": "schemas/MisuseScenario.json",
+      "description": "Description of a foreseeable misuse scenario for an AI system."
+    },
+    {
+      "id": "HumanOversightProfile",
+      "schema": "schemas/HumanOversightProfile.json",
+      "description": "Profile describing the human oversight configuration for an AI deployment."
+    },
+    {
+      "id": "ComplianceContext",
+      "schema": "schemas/ComplianceContext.json",
+      "description": "Contextualizes an AI project's usage with respect to intended purpose and applicable compliance requirements."
+    },
+    {
+      "id": "DataGovernance",
+      "schema": "schemas/DataGovernance.json",
+      "description": "Governance metadata (sensitivity, license, retention, consent) for a dataset."
+    },
+    {
+      "id": "RetentionPolicy",
+      "schema": "schemas/RetentionPolicy.json",
+      "description": "Data retention policy defining how long and why data is kept."
+    },
+    {
+      "id": "ConsentSpec",
+      "schema": "schemas/ConsentSpec.json",
+      "description": "Specification of data subject consent requirements and conditions."
+    },
+    {
+      "id": "FieldSpec",
+      "schema": "schemas/FieldSpec.json",
+      "description": "Schema field descriptor used in tabular data and as model input/output."
+    },
+    {
+      "id": "InferenceSignature",
+      "schema": "schemas/InferenceSignature.json",
+      "description": "Input/output signature of a model's inference function."
+    },
+    {
+      "id": "Metric",
+      "schema": "schemas/Metric.json",
+      "description": "Quantitative or qualitative measure of a defined notion."
+    },
+    {
+      "id": "MetricComposition",
+      "schema": "schemas/MetricComposition.json",
+      "description": "Composition specification for a composite metric."
+    },
+    {
+      "id": "MetricResult",
+      "schema": "schemas/MetricResult.json",
+      "description": "Observed value of a single metric within a report."
+    },
+    {
+      "id": "ConfidenceInterval",
+      "schema": "schemas/ConfidenceInterval.json",
+      "description": "Confidence interval for a metric result."
+    },
+    {
+      "id": "UnitOfMeasure",
+      "schema": "schemas/UnitOfMeasure.json",
+      "description": "Physical unit of measurement for a metric value."
+    },
+    {
+      "id": "ValueRange",
+      "schema": "schemas/ValueRange.json",
+      "description": "Valid value domain for a metric."
+    },
+    {
+      "id": "ObjectiveCondition",
+      "schema": "schemas/ObjectiveCondition.json",
+      "description": "Envelope for compliance objective conditions (threshold, range, categorical, statistical, composite)."
+    },
+    {
+      "id": "ComplianceObjective",
+      "schema": "schemas/ComplianceObjective.json",
+      "description": "Normative constraint binding a Metric to a target value or region."
+    },
+    {
+      "id": "ReportContent",
+      "schema": "schemas/ReportContent.json",
+      "description": "Content envelope for a compliance report (evaluation, test, or log)."
+    },
+    {
+      "id": "ComplianceFinding",
+      "schema": "schemas/ComplianceFinding.json",
+      "description": "A non-conformance finding produced during a compliance assessment."
+    },
+    {
+      "id": "MitigationAction",
+      "schema": "schemas/MitigationAction.json",
+      "description": "Action engaged to resolve a compliance objective violation."
+    },
+    {
+      "id": "ComplianceStatus",
+      "schema": "schemas/ComplianceStatus.json",
+      "description": "Assessed compliance status of a project or entity at a point in time."
+    },
+    {
+      "id": "ComplianceDocumentation",
+      "schema": "schemas/ComplianceDocumentation.json",
+      "description": "Lightweight documentation artifact scoped to the compliance dimension of an entity."
+    },
+    {
+      "id": "DocumentSection",
+      "schema": "schemas/DocumentSection.json",
+      "description": "Structured section within a documentation artifact."
+    },
+    {
+      "id": "ComplianceSpec",
+      "schema": "schemas/ComplianceSpec.json",
+      "description": "Top-level compliance extension spec attached to any first-class entity."
+    }
+  ]
+}

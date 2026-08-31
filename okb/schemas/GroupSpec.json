@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/GroupSpec",
+  "title": "GroupSpec",
+  "description": "Specification of a population group relevant to a compliance context.",
+  "allOf": [
+    {
+      "$ref": "BaseComplianceObject.json"
+    }
+  ],
+  "properties": {
+    "group_kind": {
+      "type": "string",
+      "enum": [
+        "DEMOGRAPHIC",
+        "PROTECTED",
+        "VULNERABLE",
+        "OCCUPATIONAL",
+        "USER_GROUP",
+        "GEOGRAPHIC",
+        "LANGUAGE_GROUP",
+        "SOCIOECONOMIC",
+        "TECHNICAL_ENVIRONMENT",
+        "OTHER"
+      ]
+    },
+    "group_kind_value": {
+      "type": "string"
+    },
+    "group_role": {
+      "type": "string",
+      "enum": [
+        "TARGET_SUBJECT",
+        "DECISION_SUBJECT",
+        "END_USER",
+        "OPERATOR",
+        "BENEFICIARY",
+        "EXCLUDED_POPULATION",
+        "REFERENCE_GROUP",
+        "OTHER"
+      ]
+    },
+    "group_role_value": {
+      "type": "string"
+    },
+    "defining_attributes": {
+      "type": "array",
+      "items": {
+        "$ref": "AttributeRef.json"
+      }
+    },
+    "vulnerability": {
+      "type": "string",
+      "enum": [
+        "AGE",
+        "DISABILITY",
+        "HEALTH_STATUS",
+        "ECONOMIC_DEPENDENCY",
+        "EDUCATIONAL_ACCESS",
+        "DIGITAL_LITERACY",
+        "EMPLOYMENT_DEPENDENCY",
+        "MINORITY_STATUS",
+        "LANGUAGE_ACCESS",
+        "OTHER"
+      ]
+    },
+    "vulnerability_value": {
+      "type": "string"
+    },
+    "rationale": {
+      "type": "string"
+    }
+  }
+}

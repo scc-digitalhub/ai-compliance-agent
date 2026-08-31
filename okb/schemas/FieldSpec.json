@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/FieldSpec",
+  "title": "FieldSpec",
+  "description": "Schema field descriptor used in tabular data and as model input/output.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "dtype": {
+      "type": "string",
+      "enum": [
+        "INT",
+        "FLOAT",
+        "STRING",
+        "BOOL",
+        "STRUCT",
+        "ARRAY",
+        "MAP",
+        "BYTES",
+        "DATE",
+        "DATETIME",
+        "CUSTOM"
+      ]
+    },
+    "nullable": {
+      "type": "boolean"
+    },
+    "description": {
+      "type": "string"
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "PII",
+        "SENSITIVE",
+        "RESTRICTED",
+        "PROHIBITED"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "name",
+    "dtype"
+  ]
+}

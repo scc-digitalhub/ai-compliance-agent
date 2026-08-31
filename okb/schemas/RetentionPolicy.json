@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/RetentionPolicy",
+  "title": "RetentionPolicy",
+  "description": "Data retention policy defining how long and why data is kept.",
+  "type": "object",
+  "properties": {
+    "applies_to": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "RAW_DATA",
+          "TRAINING_DATA",
+          "VALIDATION_DATA",
+          "TEST_DATA",
+          "SYNTHETIC_DATA",
+          "AUGMENTED_DATA",
+          "TEST_REPORTS",
+          "DOCUMENTATION",
+          "OTHER"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "retention_basis": {
+      "type": "string",
+      "enum": [
+        "PURPOSE_NECESSITY",
+        "LEGAL_OBLIGATION",
+        "CONSENT_DEPENDENT",
+        "SECURITY_MONITORING",
+        "OTHER"
+      ]
+    },
+    "retention_basis_value": {
+      "type": "string"
+    },
+    "purposes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "TRAINING",
+          "VALIDATION",
+          "TESTING",
+          "MONITORING",
+          "BIAS_DETECTION",
+          "BIAS_CORRECTION",
+          "ROBUSTNESS_EVALUATION",
+          "LEGAL_COMPLIANCE",
+          "RESEARCH",
+          "ARCHIVING",
+          "OTHER"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "legal_references": {
+      "type": "array",
+      "items": {
+        "$ref": "RegulatoryRef.json"
+      }
+    },
+    "justification": {
+      "type": "string"
+    },
+    "owner": {
+      "$ref": "ActorRef.json"
+    },
+    "approver": {
+      "$ref": "ActorRef.json"
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

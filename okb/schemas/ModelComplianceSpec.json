@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ModelComplianceSpec",
+  "title": "ModelComplianceSpec",
+  "description": "Compliance extension for a model entity (kind: model-compliance, appliesTo: model). Inherits all ComplianceSpec fields.",
+  "allOf": [
+    {
+      "$ref": "ComplianceSpec.json"
+    }
+  ]
+}

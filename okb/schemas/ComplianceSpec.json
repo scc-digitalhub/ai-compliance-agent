@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ComplianceSpec",
+  "title": "ComplianceSpec",
+  "description": "Top-level compliance extension spec attached to any first-class entity (data, model, model service, project).",
+  "type": "object",
+  "properties": {
+    "objectives": {
+      "type": "array",
+      "items": {
+        "$ref": "ComplianceObjective.json"
+      },
+      "uniqueItems": true
+    },
+    "compliance_status": {
+      "$ref": "ComplianceStatus.json"
+    },
+    "documentation": {
+      "$ref": "ComplianceDocumentation.json"
+    }
+  }
+}

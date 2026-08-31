@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/DataComplianceSpec",
+  "title": "DataComplianceSpec",
+  "description": "Compliance extension for a data item or artifact entity (kind: data-compliance, appliesTo: dataitem, artifact).",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "ComplianceSpec.json"
+    }
+  ],
+  "properties": {
+    "scope": {
+      "type": "string",
+      "enum": [
+        "TRAINING",
+        "VALIDATION",
+        "SUPPORT"
+      ]
+    },
+    "governance": {
+      "$ref": "DataGovernance.json"
+    },
+    "attributes": {
+      "type": "array",
+      "items": {
+        "$ref": "AttributeRef.json"
+      },
+      "uniqueItems": true
+    }
+  }
+}

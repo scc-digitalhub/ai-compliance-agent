@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/AttributeRef",
+  "title": "AttributeRef",
+  "description": "Descriptor of a data attribute with semantic and observability metadata.",
+  "allOf": [
+    {
+      "$ref": "BaseComplianceObject.json"
+    }
+  ],
+  "properties": {
+    "semantic_type": {
+      "type": "string",
+      "enum": [
+        "AGE",
+        "SEX",
+        "GENDER",
+        "RACE_ETHNICITY",
+        "NATIONALITY",
+        "LANGUAGE",
+        "RELIGION",
+        "DISABILITY",
+        "HEALTH_STATUS",
+        "LOCATION",
+        "SOCIOECONOMIC_STATUS",
+        "EDUCATION",
+        "EMPLOYMENT_STATUS",
+        "OTHER"
+      ]
+    },
+    "semantic_type_value": {
+      "type": "string"
+    },
+    "attribute_role": {
+      "type": "string",
+      "enum": [
+        "INPUT_FEATURE",
+        "TARGET",
+        "PROTECTED_ATTRIBUTE",
+        "SENSITIVE_ATTRIBUTE",
+        "PROXY_ATTRIBUTE",
+        "GROUP_ATTRIBUTE",
+        "STRATIFICATION_ATTRIBUTE",
+        "TIMESTAMP",
+        "OTHER"
+      ]
+    },
+    "attribute_role_value": {
+      "type": "string"
+    },
+    "proxy_for": {
+      "type": "array",
+      "items": {
+        "$ref": "AttributeRef.json"
+      }
+    },
+    "observability": {
+      "type": "string",
+      "enum": [
+        "DIRECT",
+        "SELF_REPORTED",
+        "INFERRED",
+        "DERIVED",
+        "PROXY",
+        "EXTERNAL",
+        "UNOBSERVED",
+        "UNKNOWN"
+      ]
+    },
+    "use_permissions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "MODEL_INPUT",
+          "TRAINING",
+          "EVALUATION",
+          "FAIRNESS_TESTING",
+          "ROBUSTNESS_SLICING",
+          "MONITORING",
+          "MITIGATION",
+          "REPORTING",
+          "EXCLUDED_FROM_MODEL",
+          "RESTRICTED",
+          "UNKNOWN"
+        ]
+      },
+      "uniqueItems": true
+    }
+  }
+}

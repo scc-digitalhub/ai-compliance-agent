@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ActorRef",
+  "title": "ActorRef",
+  "description": "Reference to a human user, service account, or automated agent that performed an action.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "HUMAN",
+        "SERVICE",
+        "AGENT"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "description": "OIDC subject, service principal, or other identity URI."
+    }
+  },
+  "required": [
+    "kind",
+    "id"
+  ]
+}

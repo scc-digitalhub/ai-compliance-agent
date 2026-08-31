@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/OperationComplianceSpec",
+  "title": "OperationComplianceSpec",
+  "description": "Compliance extension for an operation/function entity (kind: operation-compliance, appliesTo: function). Extends BaseSpec.",
+  "type": "object",
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": [
+        "JOB",
+        "SERVICE"
+      ]
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "VALIDATION",
+        "MITIGATION"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "DATA_PROFILING",
+        "DATA_VALIDATION",
+        "DATA_PREPROCESSING",
+        "DOCUMENTATION_GENERATION",
+        "SYNTHETIC_GENERATION",
+        "AUGMENTATION",
+        "ANONYMIZATION",
+        "FEATURE_EVALUATION",
+        "MODEL_TRAINING",
+        "TRAINING_AUGMENTATION",
+        "MODEL_PROFILING",
+        "RESOURCE_PROFILING",
+        "MODEL_VALIDATION",
+        "GUARDRAIL",
+        "PREPROCESSING",
+        "POSTPROCESSING",
+        "INPUT_TRACING",
+        "OUTPUT_TRACING",
+        "RESOURCE_MONITORING",
+        "DRIFT_DETECTION",
+        "LOG_ANALYSIS"
+      ]
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "DATA_PREPARATION",
+        "MODEL_DEVELOPMENT",
+        "OPERATIONALIZATION"
+      ]
+    },
+    "objectives": {
+      "type": "array",
+      "items": {
+        "$ref": "EntityRef.json"
+      },
+      "uniqueItems": true
+    }
+  }
+}

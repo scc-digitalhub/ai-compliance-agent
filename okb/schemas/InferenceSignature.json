@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/InferenceSignature",
+  "title": "InferenceSignature",
+  "description": "Input/output signature of a model's inference function.",
+  "type": "object",
+  "properties": {
+    "inputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TensorSpec"
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/TensorSpec"
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ParameterSpec"
+      }
+    }
+  },
+  "$defs": {
+    "TensorSpec": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "dtype": {
+          "type": "string",
+          "enum": [
+            "FP16",
+            "FP32",
+            "FP64",
+            "INT8",
+            "INT16",
+            "INT32",
+            "INT64",
+            "UINT8",
+            "UINT16",
+            "UINT32",
+            "UINT64",
+            "BOOL",
+            "BYTES"
+          ]
+        },
+        "shape": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "dtype"
+      ]
+    },
+    "ParameterSpec": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "dtype": {
+          "type": "string",
+          "enum": [
+            "INT",
+            "FLOAT",
+            "STRING",
+            "BOOL",
+            "STRUCT",
+            "ARRAY",
+            "MAP",
+            "BYTES",
+            "DATE",
+            "DATETIME",
+            "CUSTOM"
+          ]
+        },
+        "default_value": {},
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "dtype"
+      ]
+    }
+  }
+}

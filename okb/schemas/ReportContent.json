@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ReportContent",
+  "title": "ReportContent",
+  "description": "Content envelope for a compliance report. Exactly one content field should be populated.",
+  "type": "object",
+  "properties": {
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "MetricResult.json"
+          }
+        },
+        "summary": {
+          "type": "string"
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TestResult"
+          }
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "ERROR"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "verdict"
+      ]
+    },
+    "log": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "INPUT_OUTPUT",
+            "RESOURCE",
+            "EVENT",
+            "AUDIT"
+          ]
+        },
+        "window": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "to": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "window"
+      ]
+    }
+  },
+  "$defs": {
+    "TestResult": {
+      "type": "object",
+      "properties": {
+        "measured": {
+          "type": "string"
+        },
+        "expected": {
+          "$ref": "ObjectiveCondition.json"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "details": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "measured",
+        "expected",
+        "passed"
+      ]
+    }
+  }
+}

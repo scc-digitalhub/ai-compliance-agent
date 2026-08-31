@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/MetricResult",
+  "title": "MetricResult",
+  "description": "Observed value of a single metric within a report.",
+  "type": "object",
+  "properties": {
+    "metric": {
+      "$ref": "Metric.json"
+    },
+    "value": {
+      "description": "Number, String, Boolean, or structured map value."
+    },
+    "confidence": {
+      "$ref": "ConfidenceInterval.json"
+    },
+    "computed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "metric",
+    "value",
+    "computed_at"
+  ]
+}

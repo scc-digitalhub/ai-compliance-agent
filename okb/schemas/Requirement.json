@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/Requirement",
+  "title": "Requirement",
+  "description": "A normative compliance requirement derived from a regulatory framework.",
+  "allOf": [
+    {
+      "$ref": "BaseComplianceObject.json"
+    }
+  ],
+  "properties": {
+    "source": {
+      "$ref": "RegulatoryRef.json"
+    },
+    "requirement_text": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "DESIGN",
+        "TESTING",
+        "DOCUMENTATION",
+        "MONITORING",
+        "DATA_PROTECTION",
+        "TRANSPARENCY",
+        "HUMAN_OVERSIGHT",
+        "DATA_GOVERNANCE",
+        "RISK_MANAGEMENT",
+        "CYBERSECURITY",
+        "QUALITY_MANAGEMENT",
+        "OPERATIONAL_CONTROL",
+        "OTHER"
+      ]
+    },
+    "applicability_status": {
+      "type": "string",
+      "enum": [
+        "APPLICABLE",
+        "NOT_APPLICABLE",
+        "PARTIALLY_APPLICABLE",
+        "UNCERTAIN",
+        "NEEDS_REVIEW"
+      ]
+    },
+    "related_requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "source",
+    "requirement_text",
+    "kind",
+    "applicability_status"
+  ]
+}

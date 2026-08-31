@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ConfidenceInterval",
+  "title": "ConfidenceInterval",
+  "description": "Confidence interval for a metric result.",
+  "type": "object",
+  "properties": {
+    "lower": {
+      "type": "number"
+    },
+    "upper": {
+      "type": "number"
+    },
+    "level": {
+      "type": "number",
+      "description": "e.g. 0.95"
+    }
+  },
+  "required": [
+    "lower",
+    "upper",
+    "level"
+  ]
+}

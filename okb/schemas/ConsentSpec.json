@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ConsentSpec",
+  "title": "ConsentSpec",
+  "description": "Specification of data subject consent requirements and conditions.",
+  "type": "object",
+  "properties": {
+    "consent_required": {
+      "type": "boolean"
+    },
+    "consent_basis": {
+      "type": "string",
+      "enum": [
+        "GDPR_ARTICLE_6_1_A",
+        "GDPR_ARTICLE_9_2_A",
+        "AI_ACT_REAL_WORLD_TESTING",
+        "OTHER"
+      ]
+    },
+    "consent_basis_value": {
+      "type": "string"
+    },
+    "applies_to": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "COLLECTION",
+          "STORAGE",
+          "TRAINING",
+          "VALIDATION",
+          "TESTING",
+          "PROFILING",
+          "AUTOMATED_DECISION_SUPPORT",
+          "BIAS_DETECTION",
+          "BIAS_CORRECTION",
+          "ROBUSTNESS_EVALUATION",
+          "DATA_SHARING",
+          "OTHER"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "data_categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "PERSONAL",
+          "SENSITIVE",
+          "ANONYMIZED",
+          "PSEUDONYMIZED",
+          "SYNTHETIC",
+          "PUBLICLY_AVAILABLE",
+          "PROPRIETARY",
+          "OTHER"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "purposes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "TRAINING",
+          "VALIDATION",
+          "TESTING",
+          "MONITORING",
+          "BIAS_DETECTION",
+          "BIAS_CORRECTION",
+          "ROBUSTNESS_EVALUATION",
+          "LEGAL_COMPLIANCE",
+          "RESEARCH",
+          "ARCHIVING",
+          "OTHER"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "freely_given": {
+      "type": "boolean"
+    },
+    "specific": {
+      "type": "boolean"
+    },
+    "informed": {
+      "type": "boolean"
+    },
+    "unambiguous": {
+      "type": "boolean"
+    },
+    "explicit": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "consent_required"
+  ]
+}

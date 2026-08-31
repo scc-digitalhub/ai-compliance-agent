@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ComplianceContext",
+  "title": "ComplianceContext",
+  "description": "Contextualizes an AI project's usage with respect to intended purpose and applicable compliance requirements.",
+  "type": "object",
+  "properties": {
+    "environment": {
+      "type": "string",
+      "enum": [
+        "PRODUCTION",
+        "SANDBOX",
+        "PILOT"
+      ]
+    },
+    "regulations": {
+      "type": "array",
+      "items": {
+        "$ref": "RegulatoryRef.json"
+      }
+    },
+    "geography": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Jurisdictions of deployment."
+    },
+    "actor_role": {
+      "type": "string",
+      "description": "Role of the organisation/party in this context."
+    },
+    "actor_role_value": {
+      "type": "string"
+    },
+    "affected_groups": {
+      "type": "array",
+      "items": {
+        "$ref": "GroupSpec.json"
+      }
+    },
+    "vulnerable_groups": {
+      "type": "array",
+      "items": {
+        "$ref": "GroupSpec.json"
+      }
+    },
+    "protected_attributes": {
+      "type": "array",
+      "items": {
+        "$ref": "AttributeRef.json"
+      }
+    },
+    "foreseeable_misuse": {
+      "type": "array",
+      "items": {
+        "$ref": "MisuseScenario.json"
+      }
+    },
+    "human_oversight": {
+      "$ref": "HumanOversightProfile.json"
+    },
+    "risk_classification": {
+      "$ref": "RiskClassification.json"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "$ref": "Requirement.json"
+      }
+    }
+  },
+  "required": [
+    "environment"
+  ]
+}

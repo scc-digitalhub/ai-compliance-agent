@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/HumanOversightProfile",
+  "title": "HumanOversightProfile",
+  "description": "Profile describing the human oversight configuration for an AI deployment.",
+  "type": "object",
+  "properties": {
+    "oversight_mode": {
+      "type": "string",
+      "enum": [
+        "HUMAN_IN_THE_LOOP",
+        "HUMAN_IN_COMMAND",
+        "PRE_DEPLOYMENT_APPROVAL",
+        "POST_HOC_REVIEW",
+        "EXCEPTION_BASED_REVIEW",
+        "FULLY_AUTOMATED_WITH_ESCALATION",
+        "MANUAL_OPERATION",
+        "NONE",
+        "OTHER"
+      ]
+    },
+    "oversight_mode_value": {
+      "type": "string"
+    },
+    "overseer_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "intervention_points": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "DATA_APPROVAL",
+          "TRAINING_APPROVAL",
+          "TEST_APPROVAL",
+          "THRESHOLD_APPROVAL",
+          "DEPLOYMENT_APPROVAL",
+          "INPUT_REVIEW",
+          "OUTPUT_REVIEW",
+          "DECISION_APPROVAL",
+          "ABSTENTION_REVIEW",
+          "ESCALATION_REVIEW",
+          "INCIDENT_REVIEW",
+          "OTHER"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "authority": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "VIEW_ONLY",
+          "REQUEST_EXPLANATION",
+          "APPROVE",
+          "REJECT",
+          "OVERRIDE_OUTPUT",
+          "ESCALATE",
+          "SUSPEND_SERVICE",
+          "RETIRE_MODEL",
+          "OTHER"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "availability": {
+      "type": "string",
+      "enum": [
+        "CONTINUOUS",
+        "BUSINESS_HOURS",
+        "ON_CALL",
+        "BATCH_REVIEW",
+        "PERIODIC",
+        "NONE"
+      ]
+    },
+    "escalation_channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "HUMAN_REVIEW",
+          "COMPLIANCE_REVIEW",
+          "TECHNICAL_REVIEW",
+          "LEGAL_REVIEW",
+          "MANAGEMENT_APPROVAL",
+          "OTHER"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rationale": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "oversight_mode"
+  ]
+}

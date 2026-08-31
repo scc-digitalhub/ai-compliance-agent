@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/DomainDescriptor",
+  "title": "DomainDescriptor",
+  "description": "Domain and use-case classification.",
+  "type": "object",
+  "properties": {
+    "domain": {
+      "type": "string",
+      "description": "e.g. healthcare, finance, nlp"
+    },
+    "subdomain": {
+      "type": "string"
+    },
+    "use_case": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "domain"
+  ]
+}

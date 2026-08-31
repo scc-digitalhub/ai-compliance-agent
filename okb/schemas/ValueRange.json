@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ValueRange",
+  "title": "ValueRange",
+  "description": "Valid value domain for a metric.",
+  "type": "object",
+  "properties": {
+    "lower": {
+      "type": "number"
+    },
+    "upper": {
+      "type": "number"
+    },
+    "discrete": {
+      "type": "boolean"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

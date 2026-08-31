@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/DocumentSection",
+  "title": "DocumentSection",
+  "description": "Structured section within a documentation artifact.",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string",
+      "description": "Markdown body."
+    },
+    "format": {
+      "type": "string",
+      "enum": [
+        "MODELCARD",
+        "DATACARD",
+        "SYSTEMCARD",
+        "OTHER"
+      ]
+    },
+    "format_value": {
+      "type": "string"
+    },
+    "subsections": {
+      "type": "array",
+      "items": {
+        "$ref": "DocumentSection.json"
+      }
+    },
+    "specification": {
+      "type": "object",
+      "description": "Structured machine-readable representation."
+    },
+    "reports": {
+      "type": "array",
+      "items": {
+        "$ref": "EntityRef.json"
+      }
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

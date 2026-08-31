@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/Metric",
+  "title": "Metric",
+  "description": "Quantitative or qualitative measure of a defined notion.",
+  "allOf": [
+    {
+      "$ref": "BaseComplianceObject.json"
+    }
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "PRIMITIVE",
+        "COMPOSITE"
+      ]
+    },
+    "scale": {
+      "type": "string",
+      "enum": [
+        "NOMINAL",
+        "ORDINAL",
+        "INTERVAL",
+        "RATIO",
+        "BOOLEAN"
+      ]
+    },
+    "unit": {
+      "$ref": "UnitOfMeasure.json"
+    },
+    "range": {
+      "$ref": "ValueRange.json"
+    },
+    "composition": {
+      "$ref": "MetricComposition.json"
+    }
+  },
+  "required": [
+    "kind",
+    "scale"
+  ]
+}

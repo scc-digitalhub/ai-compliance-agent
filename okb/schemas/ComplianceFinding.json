@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartcommunitylabdhub.it/compliance/schemas/ComplianceFinding",
+  "title": "ComplianceFinding",
+  "description": "A non-conformance finding produced during a compliance assessment.",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string",
+      "description": "Identifier of the violated ComplianceObjective."
+    },
+    "report": {
+      "$ref": "EntityRef.json"
+    }
+  },
+  "required": [
+    "description",
+    "objective",
+    "report"
+  ]
+}
