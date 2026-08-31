@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +15,9 @@ from agent.schemas import (
     DataComplianceResponse,
     ModelComplianceResponse,
 )
-from api.models import DatasetInput, ErrorResponse, ModelInput, ProjectInput
+from api.crud import router as crud_router
+from api.models import ErrorResponse
+import stores
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +49,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(crud_router)
+
 
 # ── Exception handler ─────────────────────────────────────────────────────────
 
@@ -65,19 +70,22 @@ async def health():
 # ── Task 1: Compliance Context ────────────────────────────────────────────────
 
 @app.post(
-    "/compliance/context",
+    "/compliance/context/{project_id}",
     response_model=ComplianceContextResponse,
     tags=["compliance"],
-    summary="Build a ComplianceContext for an AI project",
+    summary="Build a ComplianceContext for a stored project",
     description=(
-        "Given project metadata (domain, AI task, goal, deployment, …), the agent "
-        "navigates the OKF bundle to identify applicable regulations, requirements, "
-        "affected groups, protected attributes, misuse scenarios, and risk level."
+        "Loads the project by ID from storage, then navigates the OKF bundle to "
+        "identify applicable regulations, requirements, affected groups, protected "
+        "attributes, misuse scenarios, and risk level."
     ),
 )
-async def build_compliance_context(project: ProjectInput) -> ComplianceContextResponse:
+async def build_compliance_context(project_id: str) -> ComplianceContextResponse:
+    entity = stores.projects.get(project_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found")
     try:
-        return ComplianceAgent.get().build_compliance_context(project.model_dump())
+        return ComplianceAgent.get().build_compliance_context(entity)
     except Exception as exc:
         logger.error("Error analyzing context: %s", exc, exc_info=True, stack_info=True)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -86,19 +94,21 @@ async def build_compliance_context(project: ProjectInput) -> ComplianceContextRe
 # ── Task 2: Dataset Compliance ────────────────────────────────────────────────
 
 @app.post(
-    "/compliance/dataset",
+    "/compliance/dataset/{dataset_id}",
     response_model=DataComplianceResponse,
     tags=["compliance"],
-    summary="Analyse dataset compliance and suggest ComplianceObjectives",
+    summary="Analyse compliance for a stored dataset",
     description=(
-        "Given dataset metadata, schema fields, and optional sample records, the agent "
-        "identifies protected attributes, data quality issues, and proposes concrete "
-        "ComplianceObjective instances with metric thresholds."
+        "Loads the dataset by ID from storage, then identifies protected attributes, "
+        "data quality issues, and proposes ComplianceObjective instances with metric thresholds."
     ),
 )
-async def analyze_dataset(dataset: DatasetInput) -> DataComplianceResponse:
+async def analyze_dataset(dataset_id: str) -> DataComplianceResponse:
+    entity = stores.datasets.get(dataset_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Dataset '{dataset_id}' not found")
     try:
-        return ComplianceAgent.get().analyze_dataset(dataset.model_dump())
+        return ComplianceAgent.get().analyze_dataset(entity)
     except Exception as exc:
         logger.error("Error analyzing dataset: %s", exc, exc_info=True, stack_info=True)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -107,20 +117,30 @@ async def analyze_dataset(dataset: DatasetInput) -> DataComplianceResponse:
 # ── Task 3: Model Compliance ──────────────────────────────────────────────────
 
 @app.post(
-    "/compliance/model",
+    "/compliance/model/{model_id}",
     response_model=ModelComplianceResponse,
     tags=["compliance"],
-    summary="Analyse model compliance and suggest ComplianceObjectives",
+    summary="Analyse compliance for a stored model",
     description=(
-        "Given model metadata (AI task, framework, output type, …) and optional prior "
-        "requirements, the agent proposes compliance objectives covering fairness, "
-        "robustness, transparency, calibration, and privacy."
+        "Loads the model by ID from storage. Pass an optional `project_id` query "
+        "parameter to load the corresponding project and include it as context for "
+        "the compliance analysis."
     ),
 )
-async def analyze_model(model: ModelInput) -> ModelComplianceResponse:
+async def analyze_model(
+    model_id: str, project_id: Optional[str] = None
+) -> ModelComplianceResponse:
+    entity = stores.models.get(model_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Model '{model_id}' not found")
+    prior = entity.pop("prior_requirements", [])
+    if project_id:
+        project = stores.projects.get(project_id)
+        if project is None:
+            raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found")
+        entity["project"] = project
     try:
-        prior = model.prior_requirements or []
-        return ComplianceAgent.get().analyze_model(model.model_dump(), prior)
+        return ComplianceAgent.get().analyze_model(entity, prior)
     except Exception as exc:
         logger.error("Error analyzing model: %s", exc, exc_info=True, stack_info=True)
         raise HTTPException(status_code=500, detail=str(exc)) from exc

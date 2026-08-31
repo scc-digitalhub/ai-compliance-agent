@@ -241,3 +241,34 @@ def mock_agent(monkeypatch):
     monkeypatch.setattr(ag, "_build_graph", lambda: MagicMock())
     ag.ComplianceAgent._instance = None  # reset singleton
     return responses
+
+
+@pytest.fixture()
+def populated_stores(tmp_path, project_loan, dataset_loans, model_credit, monkeypatch):
+    """Pre-populate temp EntityStores and patch the shared stores module."""
+    from store import EntityStore
+    import stores as st
+
+    proj_store = EntityStore(tmp_path, "projects")
+    ds_store   = EntityStore(tmp_path, "datasets")
+    mdl_store  = EntityStore(tmp_path, "models")
+
+    proj = proj_store.create(project_loan)
+    ds   = ds_store.create(dataset_loans)
+    mdl  = mdl_store.create(model_credit)
+
+    monkeypatch.setattr(st, "projects", proj_store)
+    monkeypatch.setattr(st, "datasets", ds_store)
+    monkeypatch.setattr(st, "models",   mdl_store)
+
+    # Also patch the references already imported into crud/main modules
+    import api.crud as crud
+    monkeypatch.setattr(crud, "_projects", proj_store)
+    monkeypatch.setattr(crud, "_datasets", ds_store)
+    monkeypatch.setattr(crud, "_models",   mdl_store)
+
+    return {
+        "project_id": proj["id"],
+        "dataset_id": ds["id"],
+        "model_id":   mdl["id"],
+    }

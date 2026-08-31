@@ -1,0 +1,34 @@
+{
+  "id": "22222222-2222-2222-2222-222222222222",
+  "name": "loan_applications_2023",
+  "description": "Historical retail loan application records with applicant demographics and credit outcomes.",
+  "scope": "TRAINING",
+  "domain": "finance",
+  "sensitivity": "PII",
+  "n_records": 120000,
+  "schema_fields": [
+    {"name": "applicant_id",   "dtype": "STRING", "sensitivity": "NONE",      "nullable": false},
+    {"name": "age",            "dtype": "INT",    "sensitivity": "PII",       "nullable": false},
+    {"name": "gender",         "dtype": "STRING", "sensitivity": "SENSITIVE", "nullable": true},
+    {"name": "nationality",    "dtype": "STRING", "sensitivity": "SENSITIVE", "nullable": true},
+    {"name": "marital_status", "dtype": "STRING", "sensitivity": "PII",       "nullable": true},
+    {"name": "income_annual",  "dtype": "FLOAT",  "sensitivity": "PII",       "nullable": false},
+    {"name": "credit_score",   "dtype": "INT",    "sensitivity": "PII",       "nullable": false},
+    {"name": "loan_amount",    "dtype": "FLOAT",  "sensitivity": "NONE",      "nullable": false},
+    {"name": "loan_purpose",   "dtype": "STRING", "sensitivity": "NONE",      "nullable": true},
+    {"name": "outcome",        "dtype": "INT",    "sensitivity": "NONE",      "nullable": false}
+  ],
+  "sample_records": [
+    {
+      "applicant_id": "X001",
+      "age": 34,
+      "gender": "F",
+      "nationality": "IT",
+      "income_annual": 38000,
+      "credit_score": 680,
+      "outcome": 1
+    }
+  ],
+  "known_protected_attributes": ["gender", "nationality", "age", "marital_status"],
+  "project": null
+}

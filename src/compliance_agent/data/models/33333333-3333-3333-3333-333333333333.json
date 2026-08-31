@@ -1,0 +1,14 @@
+{
+  "id": "33333333-3333-3333-3333-333333333333",
+  "name": "credit_xgboost_v2",
+  "description": "XGBoost binary classifier predicting loan approval probability from applicant financial profile.",
+  "ai_task": "CLASSIFICATION",
+  "domain": "finance",
+  "framework": "XGBOOST",
+  "output_type": "BINARY_CLASSIFICATION",
+  "produces_probabilities": true,
+  "trained_on_sensitive_data": true,
+  "known_affected_groups": ["retail banking customers", "loan applicants"],
+  "prior_requirements": [],
+  "project": null
+}

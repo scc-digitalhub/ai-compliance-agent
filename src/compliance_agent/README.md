@@ -7,12 +7,15 @@ AI projects, datasets, and models.
 ## Features
 
 | Task | Endpoint | Description |
-|------|----------|-------------|
-| **Compliance Context** | `POST /compliance/context` | Given project metadata, identifies applicable regulations, requirements, affected groups, protected attributes, misuse scenarios, and EU AI Act risk level |
-| **Dataset Compliance** | `POST /compliance/dataset` | Given dataset metadata and schema, identifies protected attributes and proposes `ComplianceObjective` instances with metric thresholds |
-| **Model Compliance** | `POST /compliance/model` | Given model metadata, proposes compliance objectives covering fairness, robustness, transparency, calibration, and privacy |
+|------|----------|-----------|
+| **Compliance Context** | `POST /compliance/context/{project_id}` | Loads a stored project and identifies applicable regulations, requirements, affected groups, protected attributes, misuse scenarios, and EU AI Act risk level |
+| **Dataset Compliance** | `POST /compliance/dataset/{dataset_id}` | Loads a stored dataset and identifies protected attributes, proposes `ComplianceObjective` instances with metric thresholds |
+| **Model Compliance** | `POST /compliance/model/{model_id}` | Loads a stored model and proposes compliance objectives covering fairness, robustness, transparency, calibration, and privacy |
+| **Entity CRUD** | `GET\|POST\|PUT\|DELETE /entities/{projects\|datasets\|models}` | Manage projects, datasets, and models stored as JSON files |
 
-All endpoints return both a **narrative analysis** and **schema-compliant structured data** (matching the OKB JSON Schema definitions).
+All compliance endpoints return both a **narrative analysis** and **schema-compliant structured data** (matching the OKB JSON Schema definitions).
+
+Entity data is stored as JSON files under `data/` (configurable via `DATA_PATH`). Seed data for the loan approval scenario is included in `data/projects/`, `data/datasets/`, and `data/models/`.
 
 ---
 
@@ -21,14 +24,21 @@ All endpoints return both a **narrative analysis** and **schema-compliant struct
 ```
 src/compliance_agent/
 ├── config.py            # Settings (env / .env file via Pydantic Settings)
+├── store.py             # Generic JSON file EntityStore
+├── stores.py            # Shared EntityStore singletons (projects, datasets, models)
 ├── requirements.txt     # Python dependencies
 ├── .env.example         # Configuration template
+├── data/
+│   ├── projects/        # Stored project JSON files
+│   ├── datasets/        # Stored dataset JSON files
+│   └── models/          # Stored model JSON files
 ├── agent/
 │   ├── tools.py         # 9 LangChain @tool functions for OKF bundle navigation
 │   ├── schemas.py       # Pydantic output schemas matching OKB definitions
 │   └── agent.py         # ComplianceAgent class with 3 analysis tasks
 ├── api/
-│   ├── models.py        # FastAPI request models (ProjectInput, DatasetInput, ModelInput)
+│   ├── models.py        # FastAPI request/entity models
+│   ├── crud.py          # CRUD router for entity management
 │   └── main.py          # FastAPI application
 └── ui/
     └── app.py           # Streamlit 3-tab demonstration UI
@@ -164,32 +174,17 @@ OPENAI_BASE_URL=https://api.githubcopilot.com
 OPENAI_MODEL=gpt-4o
 ```
 
-To create a GitHub PAT with `models:read` scope:  
-`GitHub → Settings → Developer Settings → Personal Access Tokens → Fine-grained tokens`
+To create a PAT: `GitHub → Settings → Developer Settings → Personal Access Tokens → Fine-grained tokens`
 
 ---
 
 ## API Reference
 
-### `POST /compliance/context`
+Compliance analysis endpoints read entity data from storage by ID. Create entities first via the CRUD endpoints or by placing JSON files in `data/{projects,datasets,models}/`.
 
-Build a `ComplianceContext` for an AI project.
+### `POST /compliance/context/{project_id}`
 
-**Request body** (`ProjectInput`):
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Project name |
-| `domain` | string | Application domain, e.g. `healthcare`, `finance` |
-| `ai_task` | enum | `CLASSIFICATION` · `REGRESSION` · `GENERATION` · `DETECTION` · `RANKING` · `RECOMMENDATION` · `FORECASTING` · `DECISION_SUPPORT` |
-| `goal` | string | High-level goal of the AI application |
-| `purpose` | string? | Intended function or business capability |
-| `audience` | string? | Target users |
-| `scope_in` | string[] | In-scope capabilities |
-| `scope_out` | string[] | Out-of-scope capabilities |
-| `deployment` | enum | `CLOUD` · `EDGE` · `EMBEDDED` · `PREMISE` |
-| `environment` | enum | `PRODUCTION` · `SANDBOX` · `PILOT` |
-| `geography` | string[] | Deployment jurisdictions (default `["EU"]`) |
+Build a `ComplianceContext` for a stored project.
 
 **Response** (`ComplianceContextResponse`):
 
@@ -215,23 +210,9 @@ Build a `ComplianceContext` for an AI project.
 
 ---
 
-### `POST /compliance/dataset`
+### `POST /compliance/dataset/{dataset_id}`
 
 Analyse dataset compliance and suggest `ComplianceObjective` instances.
-
-**Request body** (`DatasetInput`):
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Dataset name |
-| `scope` | enum | `TRAINING` · `VALIDATION` · `SUPPORT` |
-| `domain` | string? | Application domain |
-| `sensitivity` | enum? | `NONE` · `PII` · `SENSITIVE` · `RESTRICTED` · `PROHIBITED` |
-| `n_records` | int? | Number of records |
-| `schema_fields` | FieldSpec[] | Column definitions with `name`, `dtype`, `sensitivity` |
-| `sample_records` | dict[] | Up to 3 representative rows |
-| `known_protected_attributes` | string[] | Field names known to be sensitive |
-| `project` | ProjectInput? | Parent project metadata |
 
 **Response** (`DataComplianceResponse`):
 
@@ -258,24 +239,39 @@ Analyse dataset compliance and suggest `ComplianceObjective` instances.
 
 ---
 
-### `POST /compliance/model`
+### `POST /compliance/model/{model_id}?project_id={project_id}`
 
 Analyse model compliance and suggest `ComplianceObjective` instances.
 
-**Request body** (`ModelInput`):
+The optional `project_id` query parameter loads the corresponding project from storage and passes it as additional context to the agent.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Model name |
-| `ai_task` | enum | Same values as `ProjectInput.ai_task` |
-| `domain` | string? | Application domain |
-| `framework` | enum? | `SKLEARN` · `PYTORCH` · `TENSORFLOW` · `XGBOOST` · `HUGGINGFACE` · `OTHER` |
-| `output_type` | enum | `BINARY_CLASSIFICATION` · `MULTI_CLASS` · `REGRESSION` · `GENERATION` · `RANKING` |
-| `produces_probabilities` | bool | Whether the model outputs calibrated scores |
-| `trained_on_sensitive_data` | bool | Whether training data contained personal/sensitive data |
-| `known_affected_groups` | string[] | Groups affected by model decisions |
-| `prior_requirements` | dict[] | Requirements from a prior `/compliance/context` call |
-| `project` | ProjectInput? | Parent project metadata |
+**Response** (`ModelComplianceResponse`):
+
+```json
+{
+  "narrative_summary": "...",
+  "fairness_analysis": "...",
+  "robustness_analysis": "...",
+  "transparency_analysis": "...",
+  "objectives": [...]
+}
+```
+
+---
+
+### CRUD endpoints — `GET|POST|PUT|DELETE /entities/{projects|datasets|models}`
+
+Full CRUD for entity management. See the interactive docs at <http://localhost:8000/docs>.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/entities/projects` | List all projects |
+| `POST` | `/entities/projects` | Create a project (returns `id`) |
+| `GET` | `/entities/projects/{id}` | Get a project |
+| `PUT` | `/entities/projects/{id}` | Replace a project |
+| `DELETE` | `/entities/projects/{id}` | Delete a project |
+
+Same pattern for `/entities/datasets` and `/entities/models`.
 
 ---
 

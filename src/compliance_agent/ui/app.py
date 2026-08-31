@@ -2,12 +2,11 @@
 AI Compliance Agent — Streamlit UI
 
 Run with:
-    streamlit run src/main/python/compliance_agent/ui/app.py
+    streamlit run src/compliance_agent/ui/app.py
 """
 from __future__ import annotations
 
 import json
-import textwrap
 from typing import Any
 
 import httpx
@@ -26,32 +25,35 @@ with st.sidebar:
     st.title("⚖️ AI Compliance Agent")
     st.markdown("---")
     api_url = st.text_input("API Base URL", value="http://localhost:8000")
-    with st.expander("⚙️ LLM Provider", expanded=False):
-        st.caption(
-            "Set the provider on the API server via `.env`. "
-            "This panel shows the current selection read from the API."
-        )
-        try:
-            import httpx as _hx
-            cfg = _hx.get(f"{api_url.rstrip('/')}/health", timeout=2).json()
-            st.success(f"API reachable — {cfg.get('status', '?')}")
-        except Exception:
-            st.warning("API unreachable")
+    try:
+        cfg = httpx.get(f"{api_url.rstrip('/')}/health", timeout=2).json()
+        st.success(f"API reachable — {cfg.get('status', '?')}")
+    except Exception:
+        st.warning("API unreachable")
     st.markdown("---")
     st.markdown(
         "**About**\n\n"
         "This agent navigates the OKF compliance bundle to help you:\n\n"
         "1. Define a **ComplianceContext** for your project\n"
         "2. Analyse **dataset** compliance\n"
-        "3. Analyse **model** compliance"
+        "3. Analyse **model** compliance\n\n"
+        "Manage entities via the [Swagger UI](%s/docs)." % api_url.rstrip("/")
     )
 
 
-# ── HTTP helper ───────────────────────────────────────────────────────────────
-def post(endpoint: str, payload: dict) -> dict:
+# ── HTTP helpers ──────────────────────────────────────────────────────────────
+def _get(endpoint: str) -> Any:
+    url = f"{api_url.rstrip('/')}{endpoint}"
+    with httpx.Client(timeout=30.0) as client:
+        resp = client.get(url)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _post(endpoint: str) -> dict:
     url = f"{api_url.rstrip('/')}{endpoint}"
     with httpx.Client(timeout=300.0) as client:
-        resp = client.post(url, json=payload)
+        resp = client.post(url)
     resp.raise_for_status()
     return resp.json()
 
@@ -122,16 +124,15 @@ def _render_objectives(objectives: list[dict]) -> None:
         return
     st.subheader("🎯 Compliance Objectives")
     for obj in objectives:
-        metric = obj.get("metric", {})
-        cond   = obj.get("condition", {})
+        metric  = obj.get("metric", {})
+        cond    = obj.get("condition", {})
         cond_str = ""
         if cond.get("threshold"):
             t = cond["threshold"]
-            cond_str = f"{t.get('operator', '?')} {t.get('value', '?')} {metric.get('unit', {}).get('symbol', '')}"
+            cond_str = f"{t.get('operator', '?')} {t.get('value', '?')} {(metric.get('unit') or {}).get('symbol', '')}"
         elif cond.get("range"):
             r = cond["range"]
             cond_str = f"[{r.get('lower', '?')}, {r.get('upper', '?')}]"
-
         with st.expander(
             f"**{obj.get('name', '?')}** — "
             f"`{obj.get('priority', '?')}` | `{obj.get('severity', '?')}`"
@@ -144,6 +145,26 @@ def _render_objectives(objectives: list[dict]) -> None:
                 st.caption(obj["rationale"])
             if obj.get("requirements"):
                 st.caption("Linked requirements: " + ", ".join(f"`{r}`" for r in obj["requirements"]))
+
+
+def _entity_selector(kind: str, label: str) -> dict | None:
+    """Fetch entities of *kind* from the API and return the selected one, or None."""
+    try:
+        entities = _get(f"/entities/{kind}")
+    except Exception as exc:
+        st.error(f"Could not load {kind}: {exc}")
+        return None
+    if not entities:
+        st.info(
+            f"No {kind} found. Add JSON files to `data/{kind}/` or use the "
+            f"[Swagger UI]({api_url.rstrip('/')}/docs) to create one."
+        )
+        return None
+    options = {f"{e['name']}  ({e['id'][:8]}…)": e for e in entities}
+    choice = st.selectbox(f"Select {label}", list(options.keys()), key=f"sel_{kind}")
+    entity = options[choice]
+    _json_expander(f"{label} details", entity)
+    return entity
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -162,51 +183,18 @@ tab1, tab2, tab3 = st.tabs([
 with tab1:
     st.header("Project Compliance Context Builder")
     st.markdown(
-        "Fill in the project details and the agent will identify the applicable "
-        "regulations, requirements, affected groups, protected attributes, and risk level."
+        "Select a project and the agent will identify the applicable regulations, "
+        "requirements, affected groups, protected attributes, and risk level."
     )
 
-    with st.form("project_form"):
-        col1, col2 = st.columns(2)
-        with col1:
-            p_name   = st.text_input("Project Name", value="AI Loan Approval System")
-            p_domain = st.text_input("Domain", value="finance")
-            p_task   = st.selectbox(
-                "AI Task",
-                ["CLASSIFICATION", "REGRESSION", "GENERATION", "DETECTION",
-                 "RANKING", "RECOMMENDATION", "FORECASTING", "DECISION_SUPPORT"],
-                index=0,
-            )
-            p_goal = st.text_area(
-                "Goal",
-                value="Automate creditworthiness assessment for retail loan applications.",
-                height=80,
-            )
-        with col2:
-            p_purpose  = st.text_input("Purpose", value="Streamline credit decision-making for loan officers")
-            p_audience = st.text_input("Audience", value="Retail banking customers and loan officers")
-            p_deploy   = st.selectbox("Deployment", ["CLOUD", "EDGE", "EMBEDDED", "PREMISE"], index=0)
-            p_env      = st.selectbox("Environment", ["PRODUCTION", "SANDBOX", "PILOT"], index=0)
-            p_geo      = st.text_input("Geographies (comma-separated)", value="IT, EU")
+    project = _entity_selector("projects", "Project")
 
-        p_scope_in  = st.text_area("In-scope capabilities", value="Credit scoring, application screening", height=60)
-        p_scope_out = st.text_area("Out-of-scope capabilities", value="Final lending decision, fraud investigation", height=60)
-
-        submitted = st.form_submit_button("🔍 Analyse Compliance Context", type="primary")
-
-    if submitted:
-        payload = {
-            "name": p_name, "domain": p_domain, "ai_task": p_task,
-            "goal": p_goal, "purpose": p_purpose, "audience": p_audience,
-            "deployment": p_deploy, "environment": p_env,
-            "geography": [g.strip() for g in p_geo.split(",") if g.strip()],
-            "scope_in":  [s.strip() for s in p_scope_in.split(",") if s.strip()],
-            "scope_out": [s.strip() for s in p_scope_out.split(",") if s.strip()],
-        }
+    if project and st.button("🔍 Analyse Compliance Context", type="primary", key="btn_ctx"):
         with st.spinner("🔎 Agent is navigating the OKF bundle…"):
             try:
-                result = post("/compliance/context", payload)
+                result = _post(f"/compliance/context/{project['id']}")
                 st.session_state["ctx_result"] = result
+                st.session_state["ctx_project_id"] = project["id"]
             except Exception as e:
                 st.error(f"API error: {e}")
 
@@ -242,7 +230,10 @@ with tab1:
         if misuse:
             st.subheader("🚨 Foreseeable Misuse Scenarios")
             for m in misuse:
-                with st.expander(f"**{m.get('name', '?')}** — Likelihood: `{m.get('likelihood', '?')}` Impact: `{m.get('impact', '?')}`"):
+                with st.expander(
+                    f"**{m.get('name', '?')}** — "
+                    f"Likelihood: `{m.get('likelihood', '?')}` Impact: `{m.get('impact', '?')}`"
+                ):
                     st.write(m.get("rationale", ""))
 
         _json_expander("Full ComplianceContext", ctx)
@@ -254,89 +245,16 @@ with tab1:
 with tab2:
     st.header("Dataset Compliance Analyser")
     st.markdown(
-        "Describe your dataset and the agent will identify protected attributes "
+        "Select a dataset and the agent will identify protected attributes "
         "and propose concrete compliance objectives with metric thresholds."
     )
 
-    with st.form("dataset_form"):
-        col1, col2 = st.columns(2)
-        with col1:
-            d_name   = st.text_input("Dataset Name", value="loan_applications_2023")
-            d_scope  = st.selectbox("Dataset Scope", ["TRAINING", "VALIDATION", "SUPPORT"], index=0)
-            d_domain = st.text_input("Domain", value="finance")
-            d_sens   = st.selectbox(
-                "Sensitivity",
-                ["NONE", "PII", "SENSITIVE", "RESTRICTED", "PROHIBITED"],
-                index=1,
-            )
-            d_n      = st.number_input("Number of Records", value=120000, step=1000)
-        with col2:
-            d_desc = st.text_area(
-                "Description",
-                value="Historical retail loan application records with applicant demographics and credit outcomes.",
-                height=80,
-            )
-            d_known_attrs = st.text_input(
-                "Known Protected Attribute Fields (comma-separated)",
-                value="gender, nationality, age, marital_status",
-            )
+    dataset = _entity_selector("datasets", "Dataset")
 
-        st.markdown("**Schema Fields** (name, dtype, sensitivity — one per line, tab/comma-separated)")
-        d_schema_raw = st.text_area(
-            "Schema",
-            value=textwrap.dedent("""\
-                applicant_id, STRING, NONE
-                age, INT, PII
-                gender, STRING, SENSITIVE
-                nationality, STRING, SENSITIVE
-                marital_status, STRING, PII
-                income_annual, FLOAT, PII
-                credit_score, INT, PII
-                loan_amount, FLOAT, NONE
-                loan_purpose, STRING, NONE
-                outcome, INT, NONE
-            """),
-            height=160,
-        )
-
-        d_sample_raw = st.text_area(
-            "Sample Records (JSON array of objects, optional)",
-            value=json.dumps([
-                {"applicant_id": "X001", "age": 34, "gender": "F", "nationality": "IT",
-                 "income_annual": 38000, "credit_score": 680, "outcome": 1},
-            ], indent=2),
-            height=80,
-        )
-
-        submitted2 = st.form_submit_button("🔍 Analyse Dataset Compliance", type="primary")
-
-    if submitted2:
-        # Parse schema
-        fields = []
-        for line in d_schema_raw.strip().splitlines():
-            parts = [p.strip() for p in line.replace("\t", ",").split(",")]
-            if len(parts) >= 2:
-                fields.append({
-                    "name": parts[0], "dtype": parts[1],
-                    "sensitivity": parts[2] if len(parts) > 2 else "NONE",
-                    "nullable": True,
-                })
-        try:
-            samples = json.loads(d_sample_raw) if d_sample_raw.strip() else []
-        except Exception:
-            samples = []
-
-        payload = {
-            "name": d_name, "description": d_desc, "scope": d_scope,
-            "domain": d_domain, "sensitivity": d_sens, "n_records": int(d_n),
-            "schema_fields": fields, "sample_records": samples,
-            "known_protected_attributes": [
-                a.strip() for a in d_known_attrs.split(",") if a.strip()
-            ],
-        }
+    if dataset and st.button("🔍 Analyse Dataset Compliance", type="primary", key="btn_ds"):
         with st.spinner("🔎 Agent is analysing dataset compliance…"):
             try:
-                result2 = post("/compliance/dataset", payload)
+                result2 = _post(f"/compliance/dataset/{dataset['id']}")
                 st.session_state["ds_result"] = result2
             except Exception as e:
                 st.error(f"API error: {e}")
@@ -361,67 +279,36 @@ with tab2:
 with tab3:
     st.header("Model Compliance Analyser")
     st.markdown(
-        "Describe your model and the agent will propose compliance objectives "
+        "Select a model and the agent will propose compliance objectives "
         "covering fairness, robustness, transparency, calibration, and privacy."
     )
 
-    with st.form("model_form"):
-        col1, col2 = st.columns(2)
-        with col1:
-            m_name    = st.text_input("Model Name", value="credit_xgboost_v2")
-            m_task    = st.selectbox(
-                "AI Task",
-                ["CLASSIFICATION", "REGRESSION", "GENERATION", "DETECTION",
-                 "RANKING", "RECOMMENDATION", "DECISION_SUPPORT"],
-                index=0,
-            )
-            m_fw      = st.selectbox(
-                "Framework",
-                ["SKLEARN", "PYTORCH", "TENSORFLOW", "XGBOOST", "HUGGINGFACE", "OTHER"],
-                index=0,
-            )
-            m_domain  = st.text_input("Domain", value="finance")
-        with col2:
-            m_output  = st.selectbox(
-                "Output Type",
-                ["BINARY_CLASSIFICATION", "MULTI_CLASS", "REGRESSION",
-                 "GENERATION", "RANKING"],
-                index=0,
-            )
-            m_prob = st.checkbox("Produces Probabilities / Scores", value=True)
-            m_sens = st.checkbox("Trained on Sensitive / Personal Data", value=True)
-            m_groups = st.text_input(
-                "Affected Groups (comma-separated)",
-                value="retail banking customers, loan applicants",
-            )
+    model = _entity_selector("models", "Model")
 
-        m_desc = st.text_area(
-            "Model Description",
-            value="XGBoost binary classifier predicting loan approval probability from applicant financial profile.",
-            height=80,
-        )
+    st.markdown("**Optional: link a project** to provide prior regulatory context.")
+    use_project = st.checkbox("Use project context from Tab 1", value=True, key="chk_proj")
+    project_id_for_model: str | None = None
+    if use_project and "ctx_project_id" in st.session_state:
+        project_id_for_model = st.session_state["ctx_project_id"]
+        st.caption(f"Will use project `{project_id_for_model[:8]}…` from Tab 1 analysis.")
+    elif use_project:
+        st.caption("Run Tab 1 first to load project context, or select a project below.")
+        try:
+            projs = _get("/entities/projects")
+        except Exception:
+            projs = []
+        if projs:
+            proj_opts = {"(none)": None} | {f"{p['name']}  ({p['id'][:8]}…)": p["id"] for p in projs}
+            proj_choice = st.selectbox("Project for context", list(proj_opts.keys()), key="sel_proj_mdl")
+            project_id_for_model = proj_opts[proj_choice]
 
-        use_ctx = st.checkbox("Import requirements from Tab 1 analysis", value=True)
-        submitted3 = st.form_submit_button("🔍 Analyse Model Compliance", type="primary")
-
-    if submitted3:
-        prior_reqs: list[dict] = []
-        if use_ctx and "ctx_result" in st.session_state:
-            ctx = st.session_state["ctx_result"].get("compliance_context", {})
-            prior_reqs = ctx.get("requirements", [])
-
-        payload = {
-            "name": m_name, "description": m_desc,
-            "ai_task": m_task, "domain": m_domain,
-            "framework": m_fw, "output_type": m_output,
-            "produces_probabilities": m_prob,
-            "trained_on_sensitive_data": m_sens,
-            "known_affected_groups": [g.strip() for g in m_groups.split(",") if g.strip()],
-            "prior_requirements": prior_reqs,
-        }
+    if model and st.button("🔍 Analyse Model Compliance", type="primary", key="btn_mdl"):
+        endpoint = f"/compliance/model/{model['id']}"
+        if project_id_for_model:
+            endpoint += f"?project_id={project_id_for_model}"
         with st.spinner("🔎 Agent is analysing model compliance…"):
             try:
-                result3 = post("/compliance/model", payload)
+                result3 = _post(endpoint)
                 st.session_state["mdl_result"] = result3
             except Exception as e:
                 st.error(f"API error: {e}")

@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # Streamlit backend URL (used by UI)
     api_base_url: str = "http://localhost:8000"
 
+    # Local JSON data store
+    data_path: Path = Path(__file__).parent / "data"
+
     # Logging
     log_level: str = "INFO"
 

@@ -1,0 +1,15 @@
+{
+  "id": "11111111-1111-1111-1111-111111111111",
+  "name": "AI Loan Approval System",
+  "domain": "finance",
+  "subdomain": "retail banking",
+  "ai_task": "CLASSIFICATION",
+  "goal": "Automate creditworthiness assessment for retail loan applications.",
+  "purpose": "Streamline credit decision-making for loan officers",
+  "audience": "Retail banking customers and loan officers",
+  "scope_in": ["Credit scoring", "Application screening"],
+  "scope_out": ["Final lending decision", "Fraud investigation"],
+  "deployment": "CLOUD",
+  "geography": ["IT", "EU"],
+  "environment": "PRODUCTION"
+}

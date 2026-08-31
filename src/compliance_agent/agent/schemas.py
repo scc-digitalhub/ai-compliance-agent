@@ -1,20 +1,26 @@
 """Pydantic output schemas matching the OKB JSON Schema definitions."""
 from __future__ import annotations
 
-from typing import Any, Optional
-from pydantic import BaseModel, Field
+from typing import Optional
+from pydantic import BaseModel, ConfigDict, Field
+
+
+# All schema models use extra="forbid" so OpenAI strict-mode structured output
+# receives additionalProperties: false on every object in the JSON schema.
+class _Base(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
 
 # ── Foundations ───────────────────────────────────────────────────────────────
 
-class RegulatoryRefOut(BaseModel):
+class RegulatoryRefOut(_Base):
     framework: str = Field(description="Framework id, e.g. EU_AI_ACT, GDPR")
     article: Optional[str] = None
     version: Optional[str] = None
     uri: Optional[str] = None
 
 
-class RequirementOut(BaseModel):
+class RequirementOut(_Base):
     id: str
     name: str
     description: Optional[str] = None
@@ -26,7 +32,7 @@ class RequirementOut(BaseModel):
     related_requirements: list[str] = []
 
 
-class AttributeRefOut(BaseModel):
+class AttributeRefOut(_Base):
     id: str
     name: str
     semantic_type: str
@@ -38,7 +44,7 @@ class AttributeRefOut(BaseModel):
     rationale: Optional[str] = None
 
 
-class GroupSpecOut(BaseModel):
+class GroupSpecOut(_Base):
     id: str
     name: str
     description: Optional[str] = None
@@ -49,14 +55,14 @@ class GroupSpecOut(BaseModel):
     rationale: Optional[str] = None
 
 
-class RiskClassificationOut(BaseModel):
+class RiskClassificationOut(_Base):
     risk_level: str = Field(description="PROHIBITED|HIGH|LIMITED|MINIMAL|UNKNOWN|OTHER")
     risk_level_value: Optional[str] = None
     classification_status: str = "PRELIMINARY"
     rationale: Optional[str] = None
 
 
-class HumanOversightOut(BaseModel):
+class HumanOversightOut(_Base):
     oversight_mode: str
     overseer_roles: list[str] = []
     intervention_points: list[str] = []
@@ -66,7 +72,7 @@ class HumanOversightOut(BaseModel):
     rationale: Optional[str] = None
 
 
-class MisuseScenarioOut(BaseModel):
+class MisuseScenarioOut(_Base):
     id: str
     name: str
     misuse_kind: str
@@ -78,7 +84,7 @@ class MisuseScenarioOut(BaseModel):
 
 # ── Compliance Context ─────────────────────────────────────────────────────────
 
-class ComplianceContextOut(BaseModel):
+class ComplianceContextOut(_Base):
     """Schema-compliant ComplianceContext output."""
     environment: str = "PRODUCTION"
     regulations: list[RegulatoryRefOut] = []
@@ -96,19 +102,19 @@ class ComplianceContextOut(BaseModel):
 
 # ── Objectives & Metrics ───────────────────────────────────────────────────────
 
-class UnitOfMeasureOut(BaseModel):
+class UnitOfMeasureOut(_Base):
     symbol: str
     name: str
 
 
-class ValueRangeOut(BaseModel):
+class ValueRangeOut(_Base):
     lower: Optional[float] = None
     upper: Optional[float] = None
     discrete: bool = False
     categories: Optional[list[str]] = None
 
 
-class MetricOut(BaseModel):
+class MetricOut(_Base):
     id: str
     name: str
     description: Optional[str] = None
@@ -118,25 +124,23 @@ class MetricOut(BaseModel):
     range: Optional[ValueRangeOut] = None
 
 
-class ThresholdConditionOut(BaseModel):
+class ThresholdConditionOut(_Base):
     operator: str = Field(description="GEQ|LEQ|GT|LT|EQ|NEQ")
     value: float
 
 
-class RangeConditionOut(BaseModel):
+class RangeConditionOut(_Base):
     lower: float
     upper: float
     inclusive: bool = True
 
 
-class ObjectiveConditionOut(BaseModel):
+class ObjectiveConditionOut(_Base):
     threshold: Optional[ThresholdConditionOut] = None
     range: Optional[RangeConditionOut] = None
-    categorical: Optional[dict[str, Any]] = None
-    statistical: Optional[dict[str, Any]] = None
 
 
-class ComplianceObjectiveOut(BaseModel):
+class ComplianceObjectiveOut(_Base):
     name: str
     description: str
     metric: MetricOut
@@ -149,7 +153,7 @@ class ComplianceObjectiveOut(BaseModel):
 
 # ── Top-level responses ────────────────────────────────────────────────────────
 
-class ComplianceContextResponse(BaseModel):
+class ComplianceContextResponse(_Base):
     """Full response for the compliance context task."""
     narrative_summary: str
     regulatory_analysis: str
@@ -158,7 +162,7 @@ class ComplianceContextResponse(BaseModel):
     compliance_context: ComplianceContextOut
 
 
-class DataComplianceResponse(BaseModel):
+class DataComplianceResponse(_Base):
     """Full response for the dataset compliance task."""
     narrative_summary: str
     data_quality_analysis: str
@@ -169,7 +173,7 @@ class DataComplianceResponse(BaseModel):
     objectives: list[ComplianceObjectiveOut]
 
 
-class ModelComplianceResponse(BaseModel):
+class ModelComplianceResponse(_Base):
     """Full response for the model compliance task."""
     narrative_summary: str
     fairness_analysis: str
