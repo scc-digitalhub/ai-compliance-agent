@@ -1,0 +1,36 @@
+import { useState } from "react";
+import { Autocomplete, Chip, TextField } from "@mui/material";
+import { useTranslation } from "react-i18next";
+
+interface TagsFieldProps {
+  label: string;
+  value: string[];
+  onChange: (value: string[]) => void;
+  helperText?: string;
+}
+
+/** Free-form multi-value text input (chips), used for plain `string[]` schema properties. */
+export default function TagsField({ label, value, onChange, helperText }: TagsFieldProps) {
+  const { t } = useTranslation();
+  const [inputValue, setInputValue] = useState("");
+  return (
+    <Autocomplete
+      multiple
+      freeSolo
+      options={[]}
+      value={value}
+      inputValue={inputValue}
+      onInputChange={(_e, newInput) => setInputValue(newInput)}
+      onChange={(_e, newValue) => onChange(newValue as string[])}
+      renderTags={(tagValue, getTagProps) =>
+        tagValue.map((option, index) => {
+          const { key, ...rest } = getTagProps({ index });
+          return <Chip variant="outlined" size="small" label={option} key={key} {...rest} />;
+        })
+      }
+      renderInput={(params) => (
+        <TextField {...params} label={label} helperText={helperText} placeholder={t("common.add") as string} size="small" />
+      )}
+    />
+  );
+}
