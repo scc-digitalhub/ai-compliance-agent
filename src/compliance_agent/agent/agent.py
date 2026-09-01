@@ -8,6 +8,8 @@ Architecture:
 from __future__ import annotations
 
 import json
+import logging
+import re
 from typing import Any
 
 from langgraph.prebuilt import create_react_agent
@@ -20,6 +22,8 @@ from agent.schemas import (
     DataComplianceResponse,
     ModelComplianceResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ── LLM factory ───────────────────────────────────────────────────────────────
@@ -67,16 +71,33 @@ def _build_graph():
 # ── Structured extraction ──────────────────────────────────────────────────────
 
 def _extract_structured(narrative: str, schema_cls, task_hint: str) -> Any:
-    """Run a second LLM call to extract validated Pydantic output from narrative."""
+    """Run a second LLM call to extract validated Pydantic output from narrative.
+
+    Tries with_structured_output first (works for OpenAI); falls back to
+    explicit JSON prompting + manual parse for models that ignore tool schemas
+    (e.g. Claude via LiteLLM proxy).
+    """
     llm = _make_llm(temperature=0.0)
-    structured_llm = llm.with_structured_output(schema_cls)
+    schema_json = json.dumps(schema_cls.model_json_schema(), indent=2)
     prompt = (
-        f"Based on the following compliance analysis, populate the {schema_cls.__name__} "
-        f"schema with all the information gathered.\n\n"
+        f"Based on the following compliance analysis, extract all relevant information "
+        f"and return it as a valid JSON object that exactly matches the "
+        f"{schema_cls.__name__} schema below.\n\n"
         f"Task context: {task_hint}\n\n"
-        f"Analysis:\n{narrative}"
+        f"Required JSON Schema:\n{schema_json}\n\n"
+        f"Analysis:\n{narrative}\n\n"
+        f"Return ONLY the JSON object — no markdown, no prose, no code fences."
     )
-    return structured_llm.invoke(prompt)
+    try:
+        return llm.with_structured_output(schema_cls).invoke(prompt)
+    except Exception as exc:
+        # Fallback for models that return plain text instead of a tool call
+        logger.warning("with_structured_output failed (%s); retrying with raw JSON parse", exc)
+        raw = llm.invoke(prompt).content
+        # Strip markdown code fences if the model wrapped the JSON anyway
+        m = re.search(r"```(?:json)?\s*([\s\S]+?)```", raw)
+        text = m.group(1).strip() if m else raw.strip()
+        return schema_cls.model_validate_json(text)
 
 
 # ── Public agent class ─────────────────────────────────────────────────────────
