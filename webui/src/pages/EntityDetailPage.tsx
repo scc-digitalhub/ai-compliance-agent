@@ -1,45 +1,43 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  Alert, Box, Button, CircularProgress, Divider, Snackbar, Stack, Tab, Tabs, Typography,
-} from "@mui/material";
+import { Alert, Box, Button, CircularProgress, Snackbar, Stack, Tab, Tabs, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import { useTranslation } from "react-i18next";
-import type { EntityKind, JsonRecord } from "@/types/domain";
-import { createEntity, getEntity, updateEntity } from "@/services/entityApi";
-import { getComplianceSpec, saveComplianceSpec } from "@/services/complianceApi";
-import EntityForm from "@/components/entity/EntityForm";
-import ProjectComplianceEditor from "@/components/compliance/ProjectComplianceEditor";
-import DatasetComplianceEditor from "@/components/compliance/DatasetComplianceEditor";
-import ModelComplianceEditor from "@/components/compliance/ModelComplianceEditor";
-import AgentAssistPanel from "@/components/compliance/AgentAssistPanel";
+import {
+  DatasetComplianceWidget, EntityForm, ModelComplianceWidget, ProjectComplianceWidget,
+  useComplianceServices, type EntityKind, type JsonRecord,
+} from "@/compliance-widgets";
 
 interface EntityDetailPageProps {
   kind: EntityKind;
 }
+
+const COMPLIANCE_WIDGETS: Record<EntityKind, typeof ProjectComplianceWidget> = {
+  project: ProjectComplianceWidget,
+  dataset: DatasetComplianceWidget,
+  model: ModelComplianceWidget,
+};
 
 export default function EntityDetailPage({ kind }: EntityDetailPageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams();
   const isNew = id === "new";
+  const { entityService } = useComplianceServices();
 
   const [topTab, setTopTab] = useState(0);
   const [loading, setLoading] = useState(!isNew);
   const [entity, setEntity] = useState<JsonRecord>({});
   const [entityId, setEntityId] = useState<string | undefined>(isNew ? undefined : id);
-  const [spec, setSpec] = useState<JsonRecord>({});
   const [savingEntity, setSavingEntity] = useState(false);
-  const [savingSpec, setSavingSpec] = useState(false);
   const [snackbar, setSnackbar] = useState<string | null>(null);
 
   useEffect(() => {
     if (isNew) return;
     setLoading(true);
-    Promise.all([getEntity(kind, id as string), getComplianceSpec(kind, id as string)]).then(([e, s]) => {
+    entityService.getEntity(kind, id as string).then((e) => {
       setEntity(e ?? {});
-      setSpec(s ?? {});
       setLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,13 +47,13 @@ export default function EntityDetailPage({ kind }: EntityDetailPageProps) {
     setSavingEntity(true);
     try {
       if (isNew || !entityId) {
-        const created = await createEntity(kind, entity);
+        const created = await entityService.createEntity(kind, entity);
         setEntity(created);
         setEntityId(created.id as string);
         setSnackbar(t("common.savedSuccessfully") as string);
         navigate(`/${kind}s/${created.id}`, { replace: true });
       } else {
-        const updated = await updateEntity(kind, entityId, entity);
+        const updated = await entityService.updateEntity(kind, entityId, entity);
         setEntity(updated);
         setSnackbar(t("common.savedSuccessfully") as string);
       }
@@ -64,20 +62,11 @@ export default function EntityDetailPage({ kind }: EntityDetailPageProps) {
     }
   };
 
-  const saveSpec = async () => {
-    if (!entityId) return;
-    setSavingSpec(true);
-    try {
-      await saveComplianceSpec(kind, entityId, spec);
-      setSnackbar(t("common.savedSuccessfully") as string);
-    } finally {
-      setSavingSpec(false);
-    }
-  };
-
   if (loading) {
     return <CircularProgress />;
   }
+
+  const ComplianceWidget = COMPLIANCE_WIDGETS[kind];
 
   return (
     <Box>
@@ -115,21 +104,7 @@ export default function EntityDetailPage({ kind }: EntityDetailPageProps) {
       )}
 
       {topTab === 1 && entityId && (
-        <Stack spacing={3}>
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
-            <AgentAssistPanel kind={kind} entity={entity} currentSpec={spec} onApply={setSpec} />
-            <Button variant="contained" startIcon={<SaveIcon />} onClick={saveSpec} disabled={savingSpec}>
-              {t("common.save")}
-            </Button>
-          </Stack>
-          <Divider />
-          {Object.keys(spec).length === 0 && (
-            <Alert severity="info">{t("agent.generateCta")}</Alert>
-          )}
-          {kind === "project" && <ProjectComplianceEditor spec={spec} onChange={setSpec} />}
-          {kind === "dataset" && <DatasetComplianceEditor spec={spec} onChange={setSpec} />}
-          {kind === "model" && <ModelComplianceEditor spec={spec} onChange={setSpec} />}
-        </Stack>
+        <ComplianceWidget entityId={entityId} onSaved={() => setSnackbar(t("common.savedSuccessfully") as string)} />
       )}
 
       <Snackbar open={!!snackbar} autoHideDuration={3000} onClose={() => setSnackbar(null)} message={snackbar} />

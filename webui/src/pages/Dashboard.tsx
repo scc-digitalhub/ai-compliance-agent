@@ -5,8 +5,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import DatasetIcon from "@mui/icons-material/Dataset";
 import ModelTrainingIcon from "@mui/icons-material/ModelTraining";
 import { useTranslation } from "react-i18next";
-import type { EntityKind } from "@/types/domain";
-import { listEntities } from "@/services/entityApi";
+import { useComplianceServices, type EntityKind } from "@/compliance-widgets";
 
 const CARDS: { kind: EntityKind; icon: JSX.Element }[] = [
   { kind: "project", icon: <FolderIcon fontSize="large" color="primary" /> },
@@ -17,13 +16,14 @@ const CARDS: { kind: EntityKind; icon: JSX.Element }[] = [
 export default function Dashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { entityService } = useComplianceServices();
   const [counts, setCounts] = useState<Record<EntityKind, number>>({ project: 0, dataset: 0, model: 0 });
 
   useEffect(() => {
-    Promise.all(CARDS.map((c) => listEntities(c.kind))).then((results) => {
+    Promise.all(CARDS.map((c) => entityService.listEntities(c.kind))).then((results) => {
       setCounts({ project: results[0].length, dataset: results[1].length, model: results[2].length });
     });
-  }, []);
+  }, [entityService]);
 
   return (
     <Box>

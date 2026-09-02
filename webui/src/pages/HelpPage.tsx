@@ -78,22 +78,27 @@ export default function HelpPage() {
         </List>
         <Typography variant="body2">
           Suggestions are always shown in a preview dialog together with the agent's rationale, and must
-          be explicitly applied. This currently calls a mocked, in-browser heuristic (see{" "}
-          <code>src/services/agentApi.ts</code>) standing in for the real LangChain-based agent exposed
-          by <code>POST /compliance/{"{context|dataset|model}"}/{"{id}"}</code> in the Python backend.
+          be explicitly applied. This currently calls the bundled mock <code>AgentService</code> (see{" "}
+          <code>src/compliance-widgets/services/mock/agentService.ts</code>) standing in for the real
+          LangChain-based agent exposed by{" "}
+          <code>POST /compliance/{"{context|dataset|model}"}/{"{id}"}</code> in the Python backend.
         </Typography>
       </Paper>
 
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6" gutterBottom>
-          Mock backend
+          Standalone module &amp; mock services
         </Typography>
-        <Typography variant="body2">
-          All data is served by an in-browser mock API backed by <code>localStorage</code> (see{" "}
-          <code>src/services/entityApi.ts</code>, <code>complianceApi.ts</code> and{" "}
-          <code>agentApi.ts</code>). Function signatures mirror the REST resources the real FastAPI
-          backend is expected to expose, so swapping in real <code>fetch</code> calls later should not
-          require any changes to the pages or components.
+        <Typography variant="body2" paragraph>
+          The Project/Dataset/Model compliance widgets live in{" "}
+          <code>src/compliance-widgets/</code>, a self-contained module with no dependency on this
+          demo app: it exposes <code>EntityService</code>, <code>ComplianceService</code> and{" "}
+          <code>AgentService</code> interfaces, a <code>ComplianceServicesProvider</code> to inject
+          implementations of them, and a bundled in-browser mock (backed by <code>localStorage</code>)
+          implementing all three so the widgets work out of the box. Function signatures mirror the
+          REST resources a real FastAPI backend is expected to expose, so swapping in real{" "}
+          <code>fetch</code>-based implementations later requires no changes to the widgets
+          themselves — only to the services passed to the provider.
         </Typography>
       </Paper>
 

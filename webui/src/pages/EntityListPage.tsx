@@ -6,9 +6,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useTranslation } from "react-i18next";
-import type { EntityKind, JsonRecord } from "@/types/domain";
-import { deleteEntity, listEntities } from "@/services/entityApi";
-import { deleteComplianceSpec } from "@/services/complianceApi";
+import { useComplianceServices, type EntityKind, type JsonRecord } from "@/compliance-widgets";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 interface EntityListPageProps {
@@ -18,13 +16,14 @@ interface EntityListPageProps {
 export default function EntityListPage({ kind }: EntityListPageProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { entityService, complianceService } = useComplianceServices();
   const [entities, setEntities] = useState<JsonRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState<JsonRecord | null>(null);
 
   const load = async () => {
     setLoading(true);
-    const data = await listEntities(kind);
+    const data = await entityService.listEntities(kind);
     setEntities(data);
     setLoading(false);
   };
@@ -36,8 +35,8 @@ export default function EntityListPage({ kind }: EntityListPageProps) {
 
   const confirmDelete = async () => {
     if (!pendingDelete) return;
-    await deleteEntity(kind, pendingDelete.id as string);
-    await deleteComplianceSpec(kind, pendingDelete.id as string);
+    await entityService.deleteEntity(kind, pendingDelete.id as string);
+    await complianceService.deleteComplianceSpec(kind, pendingDelete.id as string);
     setPendingDelete(null);
     load();
   };

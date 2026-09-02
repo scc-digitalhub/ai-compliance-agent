@@ -1,5 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { registerComplianceWidgetsI18n } from "@/compliance-widgets";
 import { en } from "./locales/en";
 import { it } from "./locales/it";
 
@@ -17,8 +18,12 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+// Merge the compliance-widgets module's own translations into this same, shared i18next instance.
+registerComplianceWidgetsI18n(i18n);
+
 i18n.on("languageChanged", (lng) => {
   localStorage.setItem(STORAGE_KEY, lng);
 });
 
 export default i18n;
+
