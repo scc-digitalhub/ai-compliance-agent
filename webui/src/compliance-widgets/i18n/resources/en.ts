@@ -1,5 +1,5 @@
 /** English translations bundled for a React Admin i18n provider. */
-export const en = {
+const compliance = {
   common: {
     add: "Add",
     cancel: "Cancel",
@@ -303,3 +303,5 @@ export const en = {
     statistical: "Statistical test",
   },
 };
+
+export const en = { compliance };

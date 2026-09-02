@@ -68,33 +68,33 @@ export default function AgentAssistPanel({ kind, entity, currentSpec, onApply }:
     <Box>
       <Stack direction="row" spacing={1}>
         <Button variant="outlined" size="small" startIcon={<AutoAwesomeIcon />} onClick={() => runAgent("generate")}>
-          {t("agent.generate")}
+          {t("compliance.agent.generate")}
         </Button>
         <Button variant="outlined" size="small" startIcon={<AutoAwesomeIcon />} onClick={() => runAgent("extend")}>
-          {t("agent.extend")}
+          {t("compliance.agent.extend")}
         </Button>
       </Stack>
 
       <Dialog open={mode !== null} onClose={close} maxWidth="md" fullWidth>
-        <DialogTitle>{mode === "generate" ? t("agent.dialogTitleGenerate") : t("agent.dialogTitleExtend")}</DialogTitle>
+        <DialogTitle>{mode === "generate" ? t("compliance.agent.dialogTitleGenerate") : t("compliance.agent.dialogTitleExtend")}</DialogTitle>
         <DialogContent dividers>
           {loading && (
             <Stack alignItems="center" spacing={2} sx={{ py: 4 }}>
               <CircularProgress size={32} />
-              <Typography color="text.secondary">{mode === "generate" ? t("agent.generating") : t("agent.extending")}</Typography>
+              <Typography color="text.secondary">{mode === "generate" ? t("compliance.agent.generating") : t("compliance.agent.extending")}</Typography>
             </Stack>
           )}
-          {!loading && error && <Alert severity="error">{t("agent.errorNotice")}</Alert>}
+          {!loading && error && <Alert severity="error">{t("compliance.agent.errorNotice")}</Alert>}
           {!loading && result && (
             <Stack spacing={2}>
               <Alert severity="info" icon={<AutoAwesomeIcon fontSize="inherit" />}>
                 <Typography variant="subtitle2" gutterBottom>
-                  {t("agent.narrative")}
+                  {t("compliance.agent.narrative")}
                 </Typography>
                 <Typography variant="body2">{result.narrative}</Typography>
               </Alert>
               <Typography variant="caption" color="text.secondary">
-                {t("agent.previewHint")}
+                {t("compliance.agent.previewHint")}
               </Typography>
               <Box
                 component="pre"
@@ -114,9 +114,9 @@ export default function AgentAssistPanel({ kind, entity, currentSpec, onApply }:
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={close}>{t("common.discard")}</Button>
+          <Button onClick={close}>{t("compliance.common.discard")}</Button>
           <Button variant="contained" onClick={apply} disabled={loading || !result}>
-            {t("agent.applyAndMerge")}
+            {t("compliance.agent.applyAndMerge")}
           </Button>
         </DialogActions>
       </Dialog>

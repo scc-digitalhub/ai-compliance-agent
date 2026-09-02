@@ -194,7 +194,8 @@ labels, form chrome, schema field labels and enum values. The public
 `complianceWidgetMessages` object exposes both catalogs for merging into a React Admin
 `i18nProvider`. This app's `src/admin/i18nProvider.ts` combines React Admin's base messages, app
 messages, and widget messages with `ra-i18n-polyglot`; locale selection and persistence are owned
-by React Admin.
+by React Admin. Every widget message is namespaced under `compliance.*`, so merging the catalogs
+cannot overwrite generic host keys such as `common.*`, `form.*`, or `fields.*`.
 
 Components use React Admin's `useTranslate()` hook. Dynamic schema field and enum helpers receive
 that translate function explicitly and provide humanized fallback labels, so the UI never shows

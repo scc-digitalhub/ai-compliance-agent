@@ -36,21 +36,21 @@ export default function ProjectComplianceEditor({ spec, onChange }: ProjectCompl
   return (
     <Box>
       <Tabs value={tab} onChange={(_e, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
-        <Tab label={t("complianceTabs.general")} />
-        <Tab label={t("complianceTabs.status")} />
-        <Tab label={t("complianceTabs.requirements")} />
-        <Tab label={t("complianceTabs.documentation")} />
+        <Tab label={t("compliance.complianceTabs.general")} />
+        <Tab label={t("compliance.complianceTabs.status")} />
+        <Tab label={t("compliance.complianceTabs.requirements")} />
+        <Tab label={t("compliance.complianceTabs.documentation")} />
       </Tabs>
 
       {tab === 0 && (
         <Stack spacing={1.5}>
-          <SectionAccordion title={`${t("fields.domain")} & ${t("fields.ai_task")}`}>
+          <SectionAccordion title={`${t("compliance.fields.domain")} & ${t("compliance.fields.ai_task")}`}>
             <SchemaForm schemaName="ProjectComplianceSpec" only={["domain", "ai_task", "ai_task_value", "goal"]} value={spec} onChange={onChange} />
           </SectionAccordion>
-          <SectionAccordion title={`${t("fields.purpose")} & ${t("fields.audience")}`}>
+          <SectionAccordion title={`${t("compliance.fields.purpose")} & ${t("compliance.fields.audience")}`}>
             <SchemaForm schemaName="ProjectComplianceSpec" only={["purpose", "audience"]} value={spec} onChange={onChange} />
           </SectionAccordion>
-          <SectionAccordion title={`${t("fields.scope")} & ${t("fields.deployment")}`}>
+          <SectionAccordion title={`${t("compliance.fields.scope")} & ${t("compliance.fields.deployment")}`}>
             <SchemaForm schemaName="ProjectComplianceSpec" only={["scope", "deployment"]} value={spec} onChange={onChange} />
           </SectionAccordion>
         </Stack>
@@ -60,34 +60,34 @@ export default function ProjectComplianceEditor({ spec, onChange }: ProjectCompl
 
       {tab === 2 && (
         <Stack spacing={1.5}>
-          <SectionAccordion title={`${t("fields.environment")} & ${t("fields.geography")}`}>
+          <SectionAccordion title={`${t("compliance.fields.environment")} & ${t("compliance.fields.geography")}`}>
             <SchemaForm schemaName="ComplianceContext" only={["environment", "geography"]} value={context} onChange={setContext} />
           </SectionAccordion>
-          <SectionAccordion title={t("fields.regulations")}>
+          <SectionAccordion title={t("compliance.fields.regulations")}>
             <SchemaForm schemaName="ComplianceContext" only={["regulations"]} value={context} onChange={setContext} />
           </SectionAccordion>
-          <SectionAccordion title={t("fields.requirements")}>
+          <SectionAccordion title={t("compliance.fields.requirements")}>
             <SchemaForm schemaName="ComplianceContext" only={["requirements"]} value={context} onChange={setContext} />
           </SectionAccordion>
-          <SectionAccordion title={t("fields.risk_classification")}>
+          <SectionAccordion title={t("compliance.fields.risk_classification")}>
             <SchemaForm schemaName="ComplianceContext" only={["risk_classification"]} value={context} onChange={setContext} />
           </SectionAccordion>
-          <SectionAccordion title={t("fields.actor_role")}>
+          <SectionAccordion title={t("compliance.fields.actor_role")}>
             <SchemaForm schemaName="ComplianceContext" only={["actor_role", "actor_role_value"]} value={context} onChange={setContext} />
           </SectionAccordion>
-          <SectionAccordion title={`${t("fields.affected_groups")} / ${t("fields.vulnerable_groups")}`}>
+          <SectionAccordion title={`${t("compliance.fields.affected_groups")} / ${t("compliance.fields.vulnerable_groups")}`}>
             <SchemaForm schemaName="ComplianceContext" only={["affected_groups", "vulnerable_groups"]} value={context} onChange={setContext} />
           </SectionAccordion>
-          <SectionAccordion title={t("fields.protected_attributes")}>
+          <SectionAccordion title={t("compliance.fields.protected_attributes")}>
             <SchemaForm schemaName="ComplianceContext" only={["protected_attributes"]} value={context} onChange={setContext} />
           </SectionAccordion>
-          <SectionAccordion title={t("fields.foreseeable_misuse")}>
+          <SectionAccordion title={t("compliance.fields.foreseeable_misuse")}>
             <SchemaForm schemaName="ComplianceContext" only={["foreseeable_misuse"]} value={context} onChange={setContext} />
           </SectionAccordion>
-          <SectionAccordion title={t("fields.human_oversight")}>
+          <SectionAccordion title={t("compliance.fields.human_oversight")}>
             <SchemaForm schemaName="ComplianceContext" only={["human_oversight"]} value={context} onChange={setContext} />
           </SectionAccordion>
-          <SectionAccordion title={t("fields.objectives")} subtitle={t("common.readOnly")} defaultExpanded={false}>
+          <SectionAccordion title={t("compliance.fields.objectives")} subtitle={t("compliance.common.readOnly")} defaultExpanded={false}>
             <ReadOnlyObjectives objectives={objectives} />
           </SectionAccordion>
         </Stack>

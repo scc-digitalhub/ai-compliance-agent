@@ -26,10 +26,10 @@ export default function ModelComplianceEditor({ spec, onChange }: ModelComplianc
   return (
     <Box>
       <Tabs value={tab} onChange={(_e, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
-        <Tab label={t("complianceTabs.general")} />
-        <Tab label={t("complianceTabs.status")} />
-        <Tab label={t("complianceTabs.objectives")} />
-        <Tab label={t("complianceTabs.documentation")} />
+        <Tab label={t("compliance.complianceTabs.general")} />
+        <Tab label={t("compliance.complianceTabs.status")} />
+        <Tab label={t("compliance.complianceTabs.objectives")} />
+        <Tab label={t("compliance.complianceTabs.documentation")} />
       </Tabs>
 
       {tab === 0 && (
@@ -44,7 +44,7 @@ export default function ModelComplianceEditor({ spec, onChange }: ModelComplianc
       {tab === 1 && <ComplianceStatusTab status={status} setStatus={setStatus} />}
 
       {tab === 2 && (
-        <SectionAccordion title={t("fields.objectives")}>
+        <SectionAccordion title={t("compliance.fields.objectives")}>
           <SchemaForm schemaName="ModelComplianceSpec" only={["objectives"]} value={spec} onChange={onChange} />
         </SectionAccordion>
       )}

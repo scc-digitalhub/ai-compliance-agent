@@ -14,13 +14,13 @@ export default function ComplianceStatusTab({ status, setStatus }: ComplianceSta
   const t = useTranslate();
   return (
     <Stack spacing={1.5}>
-      <SectionAccordion title={t("fields.compliance_status")}>
+      <SectionAccordion title={t("compliance.fields.compliance_status")}>
         <SchemaForm schemaName="ComplianceStatus" only={["status", "assessed_at", "assessor"]} value={status} onChange={setStatus} />
       </SectionAccordion>
-      <SectionAccordion title={t("fields.findings")}>
+      <SectionAccordion title={t("compliance.fields.findings")}>
         <SchemaForm schemaName="ComplianceStatus" only={["findings"]} value={status} onChange={setStatus} />
       </SectionAccordion>
-      <SectionAccordion title={t("fields.mitigations")}>
+      <SectionAccordion title={t("compliance.fields.mitigations")}>
         <SchemaForm schemaName="ComplianceStatus" only={["mitigations"]} value={status} onChange={setStatus} />
       </SectionAccordion>
     </Stack>

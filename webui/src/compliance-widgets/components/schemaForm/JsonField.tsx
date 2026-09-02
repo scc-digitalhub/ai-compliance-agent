@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, TextField, Typography } from "@mui/material";
 import { useTranslate } from "react-admin";
 import type { JsonRecord } from "../../types";
+import { useSchemaReadOnly } from "./SchemaReadOnlyContext";
 
 interface JsonFieldProps {
   label: string;
@@ -12,6 +13,7 @@ interface JsonFieldProps {
 /** Free-form JSON editor for schema-less `object` properties (e.g. DocumentSection.specification). */
 export default function JsonField({ label, value, onChange }: JsonFieldProps) {
   const t = useTranslate();
+  const readOnly = useSchemaReadOnly();
   const [text, setText] = useState(() => JSON.stringify(value ?? {}, null, 2));
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +27,7 @@ export default function JsonField({ label, value, onChange }: JsonFieldProps) {
         multiline
         minRows={4}
         size="small"
+        disabled={readOnly}
         value={text}
         error={!!error}
         helperText={error ?? " "}
@@ -35,7 +38,7 @@ export default function JsonField({ label, value, onChange }: JsonFieldProps) {
             setError(null);
             onChange(parsed);
           } catch {
-            setError(t("form.invalidJson") as string);
+            setError(t("compliance.form.invalidJson") as string);
           }
         }}
         sx={{ fontFamily: "monospace" }}

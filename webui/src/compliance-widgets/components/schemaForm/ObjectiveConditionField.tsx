@@ -10,6 +10,7 @@ import type { JsonRecord } from "../../types";
 import type { JSONSchemaNode } from "../../schema/types";
 import { createDefaultForInlineSchema, resolveSchema } from "../../schema/resolver";
 import SchemaField from "./SchemaField";
+import { useSchemaReadOnly } from "./SchemaReadOnlyContext";
 
 const CONDITION_TYPES = ["threshold", "range", "categorical", "statistical"] as const;
 type ConditionType = (typeof CONDITION_TYPES)[number];
@@ -28,21 +29,22 @@ interface ObjectiveConditionFieldProps {
  */
 export default function ObjectiveConditionField({ label, value, onChange, required }: ObjectiveConditionFieldProps) {
   const t = useTranslate();
+  const readOnly = useSchemaReadOnly();
   const { properties } = resolveSchema("ObjectiveCondition");
   const currentType = CONDITION_TYPES.find((type) => value?.[type] !== undefined);
 
   useEffect(() => {
-    if (required && !value) {
+    if (!readOnly && required && !value) {
       onChange({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [required, value]);
+  }, [readOnly, required, value]);
 
   if (!value) {
     if (required) return null;
-    return (
+    return readOnly ? null : (
       <Button size="small" startIcon={<AddIcon />} onClick={() => onChange({})} sx={{ alignSelf: "flex-start" }}>
-        {t("form.addSubsection", { label })}
+        {t("compliance.form.addSubsection", { label })}
       </Button>
     );
   }
@@ -60,11 +62,11 @@ export default function ObjectiveConditionField({ label, value, onChange, requir
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: "100%", pr: 1 }}>
           <Typography variant="subtitle2">{label}</Typography>
-          {!required && (
+          {!readOnly && !required && (
             <IconButton
               component="span"
               size="small"
-              aria-label={t("form.removeSubsection", { label }) as string}
+              aria-label={t("compliance.form.removeSubsection", { label }) as string}
               onClick={(e) => {
                 e.stopPropagation();
                 onChange(undefined);
@@ -81,13 +83,14 @@ export default function ObjectiveConditionField({ label, value, onChange, requir
             select
             fullWidth
             size="small"
-            label={t("objectiveCondition.typeLabel")}
+            disabled={readOnly}
+            label={t("compliance.objectiveCondition.typeLabel")}
             value={currentType ?? ""}
             onChange={(e) => selectType(e.target.value as ConditionType)}
           >
             {CONDITION_TYPES.map((type) => (
               <MenuItem key={type} value={type}>
-                {t(`objectiveCondition.${type}`)}
+                {t(`compliance.objectiveCondition.${type}`)}
               </MenuItem>
             ))}
           </TextField>

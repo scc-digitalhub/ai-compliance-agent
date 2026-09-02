@@ -13,9 +13,9 @@ export function isLongTextKey(key: string): boolean {
 }
 
 export function fieldLabel(key: string, translate: Translate): string {
-  return translate(`fields.${key}`, { _: humanize(key) });
+  return translate(`compliance.fields.${key}`, { _: humanize(key) });
 }
 
 export function enumLabel(value: string, translate: Translate): string {
-  return translate(`enumValues.${value}`, { _: humanizeEnumValue(value) });
+  return translate(`compliance.enumValues.${value}`, { _: humanizeEnumValue(value) });
 }

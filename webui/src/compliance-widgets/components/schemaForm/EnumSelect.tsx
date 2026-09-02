@@ -1,6 +1,7 @@
 import { Autocomplete, Chip, MenuItem, TextField } from "@mui/material";
 import { useTranslate } from "react-admin";
 import { enumLabel } from "./fieldHelpers";
+import { useSchemaReadOnly } from "./SchemaReadOnlyContext";
 
 interface EnumSelectProps {
   label: string;
@@ -13,11 +14,13 @@ interface EnumSelectProps {
 
 export function EnumSelect({ label, options, value, onChange, required, helperText }: EnumSelectProps) {
   const translate = useTranslate();
+  const readOnly = useSchemaReadOnly();
   return (
     <TextField
       select
       fullWidth
       size="small"
+      disabled={readOnly}
       label={label}
       required={required}
       value={value ?? ""}
@@ -43,10 +46,12 @@ interface MultiEnumSelectProps {
 
 export function MultiEnumSelect({ label, options, value, onChange, helperText }: MultiEnumSelectProps) {
   const translate = useTranslate();
+  const readOnly = useSchemaReadOnly();
   return (
     <Autocomplete
       multiple
       size="small"
+      disabled={readOnly}
       options={options}
       value={value}
       getOptionLabel={(option) => enumLabel(option, translate)}

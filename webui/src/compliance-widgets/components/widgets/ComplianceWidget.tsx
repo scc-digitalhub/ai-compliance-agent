@@ -7,6 +7,7 @@ import { useTranslate } from "react-admin";
 import type { EntityKind, JsonRecord } from "../../types";
 import { useComplianceServices } from "../../services/context";
 import AgentAssistPanel from "../compliance/AgentAssistPanel";
+import { SchemaReadOnlyProvider } from "../schemaForm/SchemaReadOnlyContext";
 
 export interface ComplianceWidgetProps {
   /** ID of the project/dataset/model entity whose compliance specification this widget edits. */
@@ -89,10 +90,10 @@ export function createComplianceWidget(kind: EntityKind, Editor: ComponentType<C
                   }}
                   disabled={saving}
                 >
-                  {t("common.cancel")}
+                  {t("compliance.common.cancel")}
                 </Button>
                 <Button variant="contained" startIcon={<SaveIcon />} onClick={save} disabled={saving}>
-                  {t("common.save")}
+                  {t("compliance.common.save")}
                 </Button>
               </Stack>
             </Stack>
@@ -101,17 +102,15 @@ export function createComplianceWidget(kind: EntityKind, Editor: ComponentType<C
         ) : (
           <Stack direction="row" justifyContent="flex-end">
             <Button variant="contained" startIcon={<EditIcon />} onClick={() => setEditing(true)}>
-              {t("widget.edit")}
+              {t("compliance.widget.edit")}
             </Button>
           </Stack>
         )}
-        {Object.keys(spec).length === 0 && <Alert severity="info">{t("agent.generateCta")}</Alert>}
-        <Box
-          component="fieldset"
-          disabled={!editing}
-          sx={{ border: 0, m: 0, p: 0, minWidth: 0, width: "100%" }}
-        >
+        {Object.keys(spec).length === 0 && <Alert severity="info">{t("compliance.agent.generateCta")}</Alert>}
+        <Box sx={{ minWidth: 0, width: "100%" }}>
+          <SchemaReadOnlyProvider readOnly={!editing}>
           <Editor spec={spec} onChange={setSpec} />
+          </SchemaReadOnlyProvider>
         </Box>
       </Stack>
     );

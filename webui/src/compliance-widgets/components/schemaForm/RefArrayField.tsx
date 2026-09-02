@@ -6,6 +6,7 @@ import { useTranslate } from "react-admin";
 import type { JsonRecord } from "../../types";
 import { createDefaultForSchema } from "../../schema/resolver";
 import SchemaForm from "./SchemaForm";
+import { useSchemaReadOnly } from "./SchemaReadOnlyContext";
 
 interface RefArrayFieldProps {
   label: string;
@@ -21,6 +22,7 @@ function itemTitle(item: JsonRecord, index: number): string {
 /** Renders an array of `$ref` objects as a list of add/remove-able accordions ("subsections"). */
 export default function RefArrayField({ label, itemSchemaName, value, onChange }: RefArrayFieldProps) {
   const t = useTranslate();
+  const readOnly = useSchemaReadOnly();
 
   const updateItem = (index: number, next: JsonRecord) => {
     const copy = [...value];
@@ -43,7 +45,7 @@ export default function RefArrayField({ label, itemSchemaName, value, onChange }
       </Typography>
       {value.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          {t("form.emptyArray")}
+          {t("compliance.form.emptyArray")}
         </Typography>
       )}
       <Stack spacing={1}>
@@ -52,17 +54,17 @@ export default function RefArrayField({ label, itemSchemaName, value, onChange }
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ width: "100%", pr: 1 }}>
                 <Typography variant="body2">{itemTitle(item, index)}</Typography>
-                <IconButton
+                {!readOnly && <IconButton
                   component="span"
                   size="small"
-                  aria-label={t("form.removeItem") as string}
+                  aria-label={t("compliance.form.removeItem") as string}
                   onClick={(e) => {
                     e.stopPropagation();
                     removeItem(index);
                   }}
                 >
                   <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
+                </IconButton>}
               </Stack>
             </AccordionSummary>
             <AccordionDetails>
@@ -71,9 +73,11 @@ export default function RefArrayField({ label, itemSchemaName, value, onChange }
           </Accordion>
         ))}
       </Stack>
-      <Button size="small" startIcon={<AddIcon />} onClick={addItem} sx={{ mt: 1 }}>
-        {t("form.addItem", { label })}
-      </Button>
+      {!readOnly && (
+        <Button size="small" startIcon={<AddIcon />} onClick={addItem} sx={{ mt: 1 }}>
+          {t("compliance.form.addItem", { label })}
+        </Button>
+      )}
     </Box>
   );
 }

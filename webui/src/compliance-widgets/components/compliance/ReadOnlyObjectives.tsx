@@ -15,7 +15,7 @@ export default function ReadOnlyObjectives({ objectives }: ReadOnlyObjectivesPro
   if (objectives.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary">
-        {t("form.emptyArray")}
+        {t("compliance.form.emptyArray")}
       </Typography>
     );
   }

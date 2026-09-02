@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Autocomplete, Chip, TextField } from "@mui/material";
 import { useTranslate } from "react-admin";
+import { useSchemaReadOnly } from "./SchemaReadOnlyContext";
 
 interface TagsFieldProps {
   label: string;
@@ -12,11 +13,13 @@ interface TagsFieldProps {
 /** Free-form multi-value text input (chips), used for plain `string[]` schema properties. */
 export default function TagsField({ label, value, onChange, helperText }: TagsFieldProps) {
   const t = useTranslate();
+  const readOnly = useSchemaReadOnly();
   const [inputValue, setInputValue] = useState("");
   return (
     <Autocomplete
       multiple
       freeSolo
+      disabled={readOnly}
       options={[]}
       value={value}
       inputValue={inputValue}
@@ -29,7 +32,7 @@ export default function TagsField({ label, value, onChange, helperText }: TagsFi
         })
       }
       renderInput={(params) => (
-        <TextField {...params} label={label} helperText={helperText} placeholder={t("common.add") as string} size="small" />
+        <TextField {...params} label={label} helperText={helperText} placeholder={t("compliance.common.add") as string} size="small" />
       )}
     />
   );

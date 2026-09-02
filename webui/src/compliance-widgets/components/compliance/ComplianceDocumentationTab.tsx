@@ -12,7 +12,7 @@ interface ComplianceDocumentationTabProps {
 export default function ComplianceDocumentationTab({ documentation, setDocumentation }: ComplianceDocumentationTabProps) {
   const t = useTranslate();
   return (
-    <SectionAccordion title={t("fields.sections")}>
+    <SectionAccordion title={t("compliance.fields.sections")}>
       <SchemaForm schemaName="ComplianceDocumentation" only={["sections"]} value={documentation} onChange={setDocumentation} />
     </SectionAccordion>
   );

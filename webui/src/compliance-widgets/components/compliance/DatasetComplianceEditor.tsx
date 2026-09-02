@@ -26,21 +26,21 @@ export default function DatasetComplianceEditor({ spec, onChange }: DatasetCompl
   return (
     <Box>
       <Tabs value={tab} onChange={(_e, v) => setTab(v)} sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
-        <Tab label={t("complianceTabs.general")} />
-        <Tab label={t("complianceTabs.status")} />
-        <Tab label={t("complianceTabs.objectives")} />
-        <Tab label={t("complianceTabs.documentation")} />
+        <Tab label={t("compliance.complianceTabs.general")} />
+        <Tab label={t("compliance.complianceTabs.status")} />
+        <Tab label={t("compliance.complianceTabs.objectives")} />
+        <Tab label={t("compliance.complianceTabs.documentation")} />
       </Tabs>
 
       {tab === 0 && (
         <Stack spacing={1.5}>
-          <SectionAccordion title={t("fields.scope")}>
+          <SectionAccordion title={t("compliance.fields.scope")}>
             <SchemaForm schemaName="DataComplianceSpec" only={["scope"]} value={spec} onChange={onChange} />
           </SectionAccordion>
-          <SectionAccordion title={t("fields.governance")}>
+          <SectionAccordion title={t("compliance.fields.governance")}>
             <SchemaForm schemaName="DataComplianceSpec" only={["governance"]} value={spec} onChange={onChange} />
           </SectionAccordion>
-          <SectionAccordion title={t("fields.attributes")}>
+          <SectionAccordion title={t("compliance.fields.attributes")}>
             <SchemaForm schemaName="DataComplianceSpec" only={["attributes"]} value={spec} onChange={onChange} />
           </SectionAccordion>
         </Stack>
@@ -49,7 +49,7 @@ export default function DatasetComplianceEditor({ spec, onChange }: DatasetCompl
       {tab === 1 && <ComplianceStatusTab status={status} setStatus={setStatus} />}
 
       {tab === 2 && (
-        <SectionAccordion title={t("fields.objectives")}>
+        <SectionAccordion title={t("compliance.fields.objectives")}>
           <SchemaForm schemaName="DataComplianceSpec" only={["objectives"]} value={spec} onChange={onChange} />
         </SectionAccordion>
       )}

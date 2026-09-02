@@ -7,6 +7,7 @@ import { useTranslate } from "react-admin";
 import type { JsonRecord } from "../../types";
 import { createDefaultForSchema } from "../../schema/resolver";
 import SchemaForm from "./SchemaForm";
+import { useSchemaReadOnly } from "./SchemaReadOnlyContext";
 
 interface RefObjectFieldProps {
   label: string;
@@ -20,22 +21,23 @@ interface RefObjectFieldProps {
 /** Renders a single nested `$ref` object property as a collapsible "subsection" accordion. */
 export default function RefObjectField({ label, schemaName, value, onChange, required, description }: RefObjectFieldProps) {
   const t = useTranslate();
+  const readOnly = useSchemaReadOnly();
 
   // Required nested objects are always materialized so the user can fill them in immediately.
   useEffect(() => {
-    if (required && !value) {
+    if (!readOnly && required && !value) {
       onChange(createDefaultForSchema(schemaName));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [required, value, schemaName]);
+  }, [readOnly, required, value, schemaName]);
 
   if (!value) {
     if (required) {
       return null;
     }
-    return (
+    return readOnly ? null : (
       <Button size="small" startIcon={<AddIcon />} onClick={() => onChange(createDefaultForSchema(schemaName))} sx={{ alignSelf: "flex-start" }}>
-        {t("form.addSubsection", { label })}
+        {t("compliance.form.addSubsection", { label })}
       </Button>
     );
   }
@@ -52,11 +54,11 @@ export default function RefObjectField({ label, schemaName, value, onChange, req
               </Typography>
             )}
           </Box>
-          {!required && (
+          {!readOnly && !required && (
             <IconButton
               component="span"
               size="small"
-              aria-label={t("form.removeSubsection", { label }) as string}
+              aria-label={t("compliance.form.removeSubsection", { label }) as string}
               onClick={(e) => {
                 e.stopPropagation();
                 onChange(undefined);

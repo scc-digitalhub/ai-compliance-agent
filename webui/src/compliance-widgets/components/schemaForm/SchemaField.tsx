@@ -11,6 +11,7 @@ import RefObjectField from "./RefObjectField";
 import RefArrayField from "./RefArrayField";
 import InlineObjectField from "./InlineObjectField";
 import ObjectiveConditionField from "./ObjectiveConditionField";
+import { useSchemaReadOnly } from "./SchemaReadOnlyContext";
 
 interface SchemaFieldProps {
   fieldKey: string;
@@ -28,6 +29,7 @@ interface SchemaFieldProps {
  */
 export default function SchemaField({ fieldKey, prop, value, onChange, required }: SchemaFieldProps) {
   const translate = useTranslate();
+  const readOnly = useSchemaReadOnly();
   const label = fieldLabel(fieldKey, translate);
 
   if (isSchemaRef(prop)) {
@@ -110,7 +112,7 @@ export default function SchemaField({ fieldKey, prop, value, onChange, required 
   if (prop.type === "boolean") {
     return (
       <FormControlLabel
-        control={<Switch checked={!!value} onChange={(e) => onChange(e.target.checked)} />}
+        control={<Switch checked={!!value} disabled={readOnly} onChange={(e) => onChange(e.target.checked)} />}
         label={label}
       />
     );
@@ -123,6 +125,7 @@ export default function SchemaField({ fieldKey, prop, value, onChange, required 
         type="number"
         size="small"
         fullWidth
+        disabled={readOnly}
         required={required}
         helperText={prop.description}
         value={value === undefined || value === null ? "" : (value as number)}
@@ -138,6 +141,7 @@ export default function SchemaField({ fieldKey, prop, value, onChange, required 
         type="datetime-local"
         size="small"
         fullWidth
+        disabled={readOnly}
         required={required}
         InputLabelProps={{ shrink: true }}
         value={value ? String(value).slice(0, 16) : ""}
@@ -151,6 +155,7 @@ export default function SchemaField({ fieldKey, prop, value, onChange, required 
       label={label}
       size="small"
       fullWidth
+      disabled={readOnly}
       required={required}
       multiline={isLongTextKey(fieldKey)}
       minRows={isLongTextKey(fieldKey) ? 2 : undefined}
