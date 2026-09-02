@@ -1,4 +1,4 @@
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 import type { JsonRecord } from "../../types";
 import SchemaForm from "../schemaForm/SchemaForm";
 import SectionAccordion from "../common/SectionAccordion";
@@ -10,7 +10,7 @@ interface ComplianceDocumentationTabProps {
 
 /** Shared "Documentation" tab content (ComplianceDocumentation), identical across all specs. */
 export default function ComplianceDocumentationTab({ documentation, setDocumentation }: ComplianceDocumentationTabProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   return (
     <SectionAccordion title={t("fields.sections")}>
       <SchemaForm schemaName="ComplianceDocumentation" only={["sections"]} value={documentation} onChange={setDocumentation} />

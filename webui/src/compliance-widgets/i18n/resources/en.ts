@@ -1,12 +1,15 @@
-/** English translations bundled with the compliance widgets. Merge into your app's i18next
- * instance with `registerComplianceWidgetsI18n` (see ../register.ts). */
+/** English translations bundled for a React Admin i18n provider. */
 export const en = {
   common: {
     add: "Add",
+    cancel: "Cancel",
     discard: "Discard",
     readOnly: "Read-only",
     save: "Save",
     savedSuccessfully: "Saved successfully",
+  },
+  widget: {
+    edit: "Edit compliance",
   },
   complianceTabs: {
     general: "General",

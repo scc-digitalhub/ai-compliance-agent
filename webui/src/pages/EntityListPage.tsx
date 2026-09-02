@@ -5,7 +5,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 import { useComplianceServices, type EntityKind, type JsonRecord } from "@/compliance-widgets";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 
@@ -14,7 +14,7 @@ interface EntityListPageProps {
 }
 
 export default function EntityListPage({ kind }: EntityListPageProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   const navigate = useNavigate();
   const { entityService, complianceService } = useComplianceServices();
   const [entities, setEntities] = useState<JsonRecord[]>([]);

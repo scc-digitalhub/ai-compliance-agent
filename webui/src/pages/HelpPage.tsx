@@ -1,8 +1,8 @@
 import { Box, Divider, List, ListItem, ListItemText, Paper, Typography } from "@mui/material";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 
 export default function HelpPage() {
-  const { t } = useTranslation();
+  const t = useTranslate();
   return (
     <Box sx={{ maxWidth: 900 }}>
       <Typography variant="h5" gutterBottom>

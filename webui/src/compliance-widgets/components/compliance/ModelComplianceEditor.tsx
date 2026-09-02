@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Alert, Box, Tab, Tabs } from "@mui/material";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 import type { JsonRecord } from "../../types";
 import SchemaForm from "../schemaForm/SchemaForm";
 import SectionAccordion from "../common/SectionAccordion";
@@ -14,7 +14,7 @@ export interface ModelComplianceEditorProps {
 
 /** Compliance spec editor for models (ModelComplianceSpec): General / Status / Objectives / Documentation tabs. */
 export default function ModelComplianceEditor({ spec, onChange }: ModelComplianceEditorProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   const [tab, setTab] = useState(0);
 
   const status = (spec.compliance_status as JsonRecord) ?? {};

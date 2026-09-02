@@ -3,7 +3,7 @@ import { Accordion, AccordionDetails, AccordionSummary, Box, Button, IconButton,
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 import type { JsonRecord } from "../../types";
 import { createDefaultForSchema } from "../../schema/resolver";
 import SchemaForm from "./SchemaForm";
@@ -19,7 +19,7 @@ interface RefObjectFieldProps {
 
 /** Renders a single nested `$ref` object property as a collapsible "subsection" accordion. */
 export default function RefObjectField({ label, schemaName, value, onChange, required, description }: RefObjectFieldProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
 
   // Required nested objects are always materialized so the user can fill them in immediately.
   useEffect(() => {

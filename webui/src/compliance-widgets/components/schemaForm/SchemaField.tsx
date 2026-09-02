@@ -1,4 +1,5 @@
 import { Switch, FormControlLabel, TextField } from "@mui/material";
+import { useTranslate } from "react-admin";
 import type { JSONSchemaNode, SchemaRef } from "../../schema/types";
 import { isSchemaRef } from "../../schema/types";
 import type { JsonRecord } from "../../types";
@@ -26,7 +27,8 @@ interface SchemaFieldProps {
  * hand-composed tab/accordion layouts that cherry-pick individual fields (see components/compliance).
  */
 export default function SchemaField({ fieldKey, prop, value, onChange, required }: SchemaFieldProps) {
-  const label = fieldLabel(fieldKey);
+  const translate = useTranslate();
+  const label = fieldLabel(fieldKey, translate);
 
   if (isSchemaRef(prop)) {
     // ObjectiveCondition is a discriminated union (exactly one of threshold/range/categorical/

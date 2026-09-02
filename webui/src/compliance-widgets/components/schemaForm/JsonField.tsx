@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Box, TextField, Typography } from "@mui/material";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 import type { JsonRecord } from "../../types";
 
 interface JsonFieldProps {
@@ -11,7 +11,7 @@ interface JsonFieldProps {
 
 /** Free-form JSON editor for schema-less `object` properties (e.g. DocumentSection.specification). */
 export default function JsonField({ label, value, onChange }: JsonFieldProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   const [text, setText] = useState(() => JSON.stringify(value ?? {}, null, 2));
   const [error, setError] = useState<string | null>(null);
 

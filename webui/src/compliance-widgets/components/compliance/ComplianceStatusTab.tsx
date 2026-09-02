@@ -1,5 +1,5 @@
 import { Stack } from "@mui/material";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 import type { JsonRecord } from "../../types";
 import SchemaForm from "../schemaForm/SchemaForm";
 import SectionAccordion from "../common/SectionAccordion";
@@ -11,7 +11,7 @@ interface ComplianceStatusTabProps {
 
 /** Shared "Status" tab content (ComplianceStatus), identical across project/dataset/model specs. */
 export default function ComplianceStatusTab({ status, setStatus }: ComplianceStatusTabProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   return (
     <Stack spacing={1.5}>
       <SectionAccordion title={t("fields.compliance_status")}>

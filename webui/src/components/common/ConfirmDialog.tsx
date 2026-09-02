@@ -1,5 +1,5 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -10,7 +10,7 @@ interface ConfirmDialogProps {
 }
 
 export default function ConfirmDialog({ open, title, message, onConfirm, onCancel }: ConfirmDialogProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   return (
     <Dialog open={open} onClose={onCancel}>
       <DialogTitle>{title}</DialogTitle>

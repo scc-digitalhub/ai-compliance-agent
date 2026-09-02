@@ -1,31 +1,50 @@
-import { Route, BrowserRouter, Routes } from "react-router-dom";
-import AppLayout from "@/components/layout/AppLayout";
+import { Admin, Resource } from "react-admin";
+import FolderIcon from "@mui/icons-material/Folder";
+import DatasetIcon from "@mui/icons-material/Dataset";
+import ModelTrainingIcon from "@mui/icons-material/ModelTraining";
+import { useComplianceServices } from "@/compliance-widgets";
+import { createComplianceDataProvider } from "@/admin/dataProvider";
+import { adminI18nProvider } from "@/admin/i18nProvider";
+import { EntityCreate, EntityEdit, EntityList, EntityShow } from "@/admin/EntityResources";
 import Dashboard from "@/pages/Dashboard";
-import EntityListPage from "@/pages/EntityListPage";
-import EntityDetailPage from "@/pages/EntityDetailPage";
-import HelpPage from "@/pages/HelpPage";
-import NotFound from "@/pages/NotFound";
+import { theme } from "@/theme";
 
 export default function App() {
+  const services = useComplianceServices();
+  const dataProvider = createComplianceDataProvider(services);
+
   return (
-    <BrowserRouter>
-      <AppLayout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-
-          <Route path="/projects" element={<EntityListPage kind="project" />} />
-          <Route path="/projects/:id" element={<EntityDetailPage kind="project" />} />
-
-          <Route path="/datasets" element={<EntityListPage kind="dataset" />} />
-          <Route path="/datasets/:id" element={<EntityDetailPage kind="dataset" />} />
-
-          <Route path="/models" element={<EntityListPage kind="model" />} />
-          <Route path="/models/:id" element={<EntityDetailPage kind="model" />} />
-
-          <Route path="/help" element={<HelpPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AppLayout>
-    </BrowserRouter>
+    <Admin
+      dataProvider={dataProvider}
+      i18nProvider={adminI18nProvider}
+      dashboard={Dashboard}
+      theme={theme}
+      title="AI Compliance Console"
+    >
+      <Resource
+        name="projects"
+        icon={FolderIcon}
+        list={EntityList}
+        show={() => <EntityShow kind="project" />}
+        edit={() => <EntityEdit kind="project" />}
+        create={() => <EntityCreate kind="project" />}
+      />
+      <Resource
+        name="datasets"
+        icon={DatasetIcon}
+        list={EntityList}
+        show={() => <EntityShow kind="dataset" />}
+        edit={() => <EntityEdit kind="dataset" />}
+        create={() => <EntityCreate kind="dataset" />}
+      />
+      <Resource
+        name="models"
+        icon={ModelTrainingIcon}
+        list={EntityList}
+        show={() => <EntityShow kind="model" />}
+        edit={() => <EntityEdit kind="model" />}
+        create={() => <EntityCreate kind="model" />}
+      />
+    </Admin>
   );
 }

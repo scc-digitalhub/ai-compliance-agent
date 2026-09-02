@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Autocomplete, Chip, TextField } from "@mui/material";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 
 interface TagsFieldProps {
   label: string;
@@ -11,7 +11,7 @@ interface TagsFieldProps {
 
 /** Free-form multi-value text input (chips), used for plain `string[]` schema properties. */
 export default function TagsField({ label, value, onChange, helperText }: TagsFieldProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   const [inputValue, setInputValue] = useState("");
   return (
     <Autocomplete

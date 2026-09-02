@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Alert, Box, Button, CircularProgress, Snackbar, Stack, Tab, Tabs, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 import {
   DatasetComplianceWidget, EntityForm, ModelComplianceWidget, ProjectComplianceWidget,
   useComplianceServices, type EntityKind, type JsonRecord,
@@ -20,7 +20,7 @@ const COMPLIANCE_WIDGETS: Record<EntityKind, typeof ProjectComplianceWidget> = {
 };
 
 export default function EntityDetailPage({ kind }: EntityDetailPageProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   const navigate = useNavigate();
   const { id } = useParams();
   const isNew = id === "new";

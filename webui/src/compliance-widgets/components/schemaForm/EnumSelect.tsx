@@ -1,4 +1,5 @@
 import { Autocomplete, Chip, MenuItem, TextField } from "@mui/material";
+import { useTranslate } from "react-admin";
 import { enumLabel } from "./fieldHelpers";
 
 interface EnumSelectProps {
@@ -11,6 +12,7 @@ interface EnumSelectProps {
 }
 
 export function EnumSelect({ label, options, value, onChange, required, helperText }: EnumSelectProps) {
+  const translate = useTranslate();
   return (
     <TextField
       select
@@ -24,7 +26,7 @@ export function EnumSelect({ label, options, value, onChange, required, helperTe
     >
       {options.map((option) => (
         <MenuItem key={option} value={option}>
-          {enumLabel(option)}
+          {enumLabel(option, translate)}
         </MenuItem>
       ))}
     </TextField>
@@ -40,18 +42,19 @@ interface MultiEnumSelectProps {
 }
 
 export function MultiEnumSelect({ label, options, value, onChange, helperText }: MultiEnumSelectProps) {
+  const translate = useTranslate();
   return (
     <Autocomplete
       multiple
       size="small"
       options={options}
       value={value}
-      getOptionLabel={(option) => enumLabel(option)}
+      getOptionLabel={(option) => enumLabel(option, translate)}
       onChange={(_e, newValue) => onChange(newValue)}
       renderTags={(tagValue, getTagProps) =>
         tagValue.map((option, index) => {
           const { key, ...rest } = getTagProps({ index });
-          return <Chip size="small" label={enumLabel(option)} key={key} {...rest} />;
+          return <Chip size="small" label={enumLabel(option, translate)} key={key} {...rest} />;
         })
       }
       renderInput={(params) => <TextField {...params} label={label} helperText={helperText} />}

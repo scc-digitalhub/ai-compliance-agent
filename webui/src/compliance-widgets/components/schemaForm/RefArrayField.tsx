@@ -2,7 +2,7 @@ import { Accordion, AccordionDetails, AccordionSummary, Box, Button, IconButton,
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 import type { JsonRecord } from "../../types";
 import { createDefaultForSchema } from "../../schema/resolver";
 import SchemaForm from "./SchemaForm";
@@ -20,7 +20,7 @@ function itemTitle(item: JsonRecord, index: number): string {
 
 /** Renders an array of `$ref` objects as a list of add/remove-able accordions ("subsections"). */
 export default function RefArrayField({ label, itemSchemaName, value, onChange }: RefArrayFieldProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
 
   const updateItem = (index: number, next: JsonRecord) => {
     const copy = [...value];

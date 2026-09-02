@@ -11,6 +11,11 @@ export const en = {
       models: "Models",
       documentation: "Help",
     },
+    resources: {
+      projects: { name: "Projects" },
+      datasets: { name: "Datasets" },
+      models: { name: "Models" },
+    },
     common: {
       save: "Save",
       cancel: "Cancel",
@@ -18,6 +23,7 @@ export const en = {
       remove: "Remove",
       delete: "Delete",
       edit: "Edit",
+      view: "View",
       create: "Create",
       close: "Close",
       apply: "Apply",

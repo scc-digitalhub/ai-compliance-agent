@@ -1,12 +1,15 @@
-/** Italian translations bundled with the compliance widgets. Merge into your app's i18next
- * instance with `registerComplianceWidgetsI18n` (see ../register.ts). */
+/** Italian translations bundled for a React Admin i18n provider. */
 export const it = {
   common: {
     add: "Aggiungi",
+    cancel: "Annulla",
     discard: "Scarta",
     readOnly: "Sola lettura",
     save: "Salva",
     savedSuccessfully: "Salvato con successo",
+  },
+  widget: {
+    edit: "Modifica conformità",
   },
   complianceTabs: {
     general: "Generale",

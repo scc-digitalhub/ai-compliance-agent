@@ -6,11 +6,8 @@
  *
  * ```tsx
  * import {
- *   ComplianceServicesProvider, ProjectComplianceWidget, registerComplianceWidgetsI18n,
+ *   ComplianceServicesProvider, ProjectComplianceWidget, complianceWidgetMessages,
  * } from "@/compliance-widgets";
- * import i18n from "i18next"; // your app's existing, already-initialized instance
- *
- * registerComplianceWidgetsI18n(i18n);
  *
  * function App() {
  *   return (
@@ -52,8 +49,8 @@ export {
   createMockServices, createMockEntityService, createMockComplianceService, createMockAgentService,
 } from "./services/mock";
 
-// i18n: bundled English/Italian resources + a helper to merge them into your i18next instance.
-export { registerComplianceWidgetsI18n } from "./i18n/register";
+// i18n: bundled English/Italian resources for the host's React Admin i18n provider.
+export { complianceWidgetMessages } from "./i18n/register";
 
 // Domain types and the schema-name lookup tables used by the editors/EntityForm.
 export type { EntityKind, JsonRecord, EntityRecord } from "./types";

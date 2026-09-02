@@ -10,7 +10,7 @@ import DatasetIcon from "@mui/icons-material/Dataset";
 import ModelTrainingIcon from "@mui/icons-material/ModelTraining";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import GavelIcon from "@mui/icons-material/Gavel";
-import { useTranslation } from "react-i18next";
+import { useLocaleState, useTranslate } from "react-admin";
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/i18n";
 
 const DRAWER_WIDTH = 240;
@@ -24,7 +24,8 @@ const NAV_ITEMS = [
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  const { t, i18n } = useTranslation();
+  const t = useTranslate();
+  const [locale, setLocale] = useLocaleState();
   const location = useLocation();
 
   return (
@@ -37,8 +38,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </Typography>
           <Select
             size="small"
-            value={i18n.language}
-            onChange={(e) => i18n.changeLanguage(e.target.value as SupportedLanguage)}
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as SupportedLanguage)}
             sx={{ color: "inherit", ".MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.4)" } }}
           >
             {SUPPORTED_LANGUAGES.map((lang) => (

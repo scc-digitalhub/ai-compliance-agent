@@ -5,7 +5,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 import type { JsonRecord } from "../../types";
 import type { JSONSchemaNode } from "../../schema/types";
 import { createDefaultForInlineSchema, resolveSchema } from "../../schema/resolver";
@@ -27,7 +27,7 @@ interface ObjectiveConditionFieldProps {
  * condition type, then only the relevant sub-fields are shown; switching type clears the others.
  */
 export default function ObjectiveConditionField({ label, value, onChange, required }: ObjectiveConditionFieldProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   const { properties } = resolveSchema("ObjectiveCondition");
   const currentType = CONDITION_TYPES.find((type) => value?.[type] !== undefined);
 

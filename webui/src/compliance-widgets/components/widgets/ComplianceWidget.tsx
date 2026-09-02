@@ -1,7 +1,9 @@
 import { useEffect, useState, type ComponentType } from "react";
-import { Alert, Button, CircularProgress, Divider, Stack } from "@mui/material";
+import { Alert, Box, Button, CircularProgress, Divider, Stack } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
-import { useTranslation } from "react-i18next";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import { useTranslate } from "react-admin";
 import type { EntityKind, JsonRecord } from "../../types";
 import { useComplianceServices } from "../../services/context";
 import AgentAssistPanel from "../compliance/AgentAssistPanel";
@@ -27,10 +29,12 @@ interface ComplianceEditorProps {
  */
 export function createComplianceWidget(kind: EntityKind, Editor: ComponentType<ComplianceEditorProps>) {
   return function ComplianceWidget({ entityId, onSaved }: ComplianceWidgetProps) {
-    const { t } = useTranslation();
+    const t = useTranslate();
     const { entityService, complianceService } = useComplianceServices();
     const [entity, setEntity] = useState<JsonRecord>({});
     const [spec, setSpec] = useState<JsonRecord>({});
+    const [savedSpec, setSavedSpec] = useState<JsonRecord>({});
+    const [editing, setEditing] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -42,6 +46,8 @@ export function createComplianceWidget(kind: EntityKind, Editor: ComponentType<C
           if (cancelled) return;
           setEntity(fetchedEntity ?? {});
           setSpec(fetchedSpec ?? {});
+          setSavedSpec(fetchedSpec ?? {});
+          setEditing(false);
           setLoading(false);
         },
       );
@@ -55,6 +61,9 @@ export function createComplianceWidget(kind: EntityKind, Editor: ComponentType<C
       setSaving(true);
       try {
         const saved = await complianceService.saveComplianceSpec(kind, entityId, spec);
+        setSpec(saved);
+        setSavedSpec(saved);
+        setEditing(false);
         onSaved?.(saved);
       } finally {
         setSaving(false);
@@ -67,15 +76,43 @@ export function createComplianceWidget(kind: EntityKind, Editor: ComponentType<C
 
     return (
       <Stack spacing={3}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
-          <AgentAssistPanel kind={kind} entity={entity} currentSpec={spec} onApply={setSpec} />
-          <Button variant="contained" startIcon={<SaveIcon />} onClick={save} disabled={saving}>
-            {t("common.save")}
-          </Button>
-        </Stack>
-        <Divider />
+        {editing ? (
+          <>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
+              <AgentAssistPanel kind={kind} entity={entity} currentSpec={spec} onApply={setSpec} />
+              <Stack direction="row" spacing={1}>
+                <Button
+                  startIcon={<VisibilityIcon />}
+                  onClick={() => {
+                    setSpec(savedSpec);
+                    setEditing(false);
+                  }}
+                  disabled={saving}
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button variant="contained" startIcon={<SaveIcon />} onClick={save} disabled={saving}>
+                  {t("common.save")}
+                </Button>
+              </Stack>
+            </Stack>
+            <Divider />
+          </>
+        ) : (
+          <Stack direction="row" justifyContent="flex-end">
+            <Button variant="contained" startIcon={<EditIcon />} onClick={() => setEditing(true)}>
+              {t("widget.edit")}
+            </Button>
+          </Stack>
+        )}
         {Object.keys(spec).length === 0 && <Alert severity="info">{t("agent.generateCta")}</Alert>}
-        <Editor spec={spec} onChange={setSpec} />
+        <Box
+          component="fieldset"
+          disabled={!editing}
+          sx={{ border: 0, m: 0, p: 0, minWidth: 0, width: "100%" }}
+        >
+          <Editor spec={spec} onChange={setSpec} />
+        </Box>
       </Stack>
     );
   };

@@ -4,7 +4,7 @@ import {
   Stack, Typography,
 } from "@mui/material";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 import type { EntityKind, JsonRecord } from "../../types";
 import { useComplianceServices } from "../../services/context";
 import type { AgentResult } from "../../services/types";
@@ -26,7 +26,7 @@ type Mode = "generate" | "extend" | null;
  * rationale) before being applied.
  */
 export default function AgentAssistPanel({ kind, entity, currentSpec, onApply }: AgentAssistPanelProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   const { agentService } = useComplianceServices();
   const [mode, setMode] = useState<Mode>(null);
   const [loading, setLoading] = useState(false);

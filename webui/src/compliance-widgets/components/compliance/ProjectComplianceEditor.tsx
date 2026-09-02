@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Box, Stack, Tab, Tabs } from "@mui/material";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 import type { JsonRecord } from "../../types";
 import SchemaForm from "../schemaForm/SchemaForm";
 import SectionAccordion from "../common/SectionAccordion";
@@ -19,7 +19,7 @@ export interface ProjectComplianceEditorProps {
  * owned/edited at the dataset and model level, not directly on the project.
  */
 export default function ProjectComplianceEditor({ spec, onChange }: ProjectComplianceEditorProps) {
-  const { t } = useTranslation();
+  const t = useTranslate();
   const [tab, setTab] = useState(0);
 
   const context = (spec.context as JsonRecord) ?? {};

@@ -63,7 +63,7 @@ thin demo host application around that module.
   rationale and the proposed JSON patch before applying.
 - **Internationalization**: English and Italian. The module ships its own translations
   ([`src/compliance-widgets/i18n/`](./src/compliance-widgets/i18n/)); this demo app merges them
-  into its own i18next instance (see [Internationalization](#internationalization)).
+  into its React Admin i18n provider (see [Internationalization](#internationalization)).
 
 ## Getting started
 
@@ -104,38 +104,32 @@ webui/
 │   │   │   ├── widgets/        # createComplianceWidget() factory + the 3 "smart" widgets
 │   │   │   ├── entity/         # EntityForm (thin wrapper around SchemaForm)
 │   │   │   └── common/         # SectionAccordion
-│   │   └── i18n/                # Bundled en/it translations + registerComplianceWidgetsI18n()
-│   ├── components/
-│   │   ├── common/ConfirmDialog.tsx  # app-only (used by EntityListPage)
-│   │   └── layout/AppLayout.tsx      # app-only (drawer nav + language switch)
-│   ├── pages/                  # Dashboard, EntityListPage, EntityDetailPage, HelpPage, NotFound
-│   │                           # — thin consumers of the compliance-widgets module
-│   └── i18n/                    # App-only translations (nav, dashboard, entity list/detail chrome)
+│   │   └── i18n/                # Bundled en/it React Admin message catalogs
+│   ├── admin/                  # React Admin resources, data provider, and i18n provider
+│   ├── pages/Dashboard.tsx     # React Admin dashboard
+│   └── i18n/                   # App-only en/it message catalogs
 ```
 
 ## Standalone module
 
 `src/compliance-widgets/` has no imports outside itself (everything is relative — no `@/...`
-alias), so the whole folder can be copied into another React + MUI + react-i18next project as-is.
-Minimal integration:
+alias), so the whole folder can be copied into another React Admin project. Merge its message
+catalog into the host's React Admin i18n provider, then render a widget below `<Admin>`:
 
 ```tsx
-import i18n from "i18next"; // your app's existing, already-initialized instance
 import {
-  ComplianceServicesProvider, ProjectComplianceWidget, registerComplianceWidgetsI18n,
+  ComplianceServicesProvider, ProjectComplianceWidget, complianceWidgetMessages,
 } from "./compliance-widgets";
+import polyglotI18nProvider from "ra-i18n-polyglot";
 
-registerComplianceWidgetsI18n(i18n); // merges the module's en/it resources into your instance
+const i18nProvider = polyglotI18nProvider(
+  locale => complianceWidgetMessages[locale as "en" | "it"],
+  "en",
+  [{ locale: "en", name: "EN" }, { locale: "it", name: "IT" }],
+);
 
-function App() {
-  return (
-    // Omit `services` to use the bundled in-browser mock; pass your own EntityService/
-    // ComplianceService/AgentService implementations to connect a real backend.
-    <ComplianceServicesProvider>
-      <ProjectComplianceWidget entityId="11111111-1111-1111-1111-111111111111" />
-    </ComplianceServicesProvider>
-  );
-}
+// Inside <Admin i18nProvider={i18nProvider}> and ComplianceServicesProvider:
+<ProjectComplianceWidget entityId="11111111-1111-1111-1111-111111111111" />
 ```
 
 The module exports two levels of components (see `index.ts`):
@@ -148,7 +142,9 @@ The module exports two levels of components (see `index.ts`):
   underlying fully-controlled `<Editor spec={...} onChange={...} />` components, for consumers who
   want to manage data fetching/saving themselves.
 
-This demo app (`src/pages/EntityDetailPage.tsx`) uses the widgets directly.
+This demo app places each widget in a Compliance tab on its React Admin Show resource in
+`src/admin/EntityResources.tsx`. Entity Edit changes only the entity definition. Each compliance
+widget owns its separate read-only/edit state, Save action, and Cancel rollback.
 
 ## Services & mock backend
 
@@ -194,15 +190,12 @@ updating `schema/registry.ts`; no component code needs to change.
 
 The module bundles its own English/Italian resources
 ([`compliance-widgets/i18n/resources/`](./src/compliance-widgets/i18n/resources/)) covering tab
-labels, form chrome, schema field labels and enum values. `registerComplianceWidgetsI18n(i18n)`
-merges them into an existing, already-initialized i18next instance (under its default namespace by
-default). This app's own `src/i18n/index.ts` initializes i18next with its own (app-chrome-only)
-resources and then calls `registerComplianceWidgetsI18n` to merge the module's resources in, so
-both live side by side in one shared instance.
+labels, form chrome, schema field labels and enum values. The public
+`complianceWidgetMessages` object exposes both catalogs for merging into a React Admin
+`i18nProvider`. This app's `src/admin/i18nProvider.ts` combines React Admin's base messages, app
+messages, and widget messages with `ra-i18n-polyglot`; locale selection and persistence are owned
+by React Admin.
 
-Components inside the module use `useTranslation()` as usual; the couple of non-hook helper
-functions (`fieldLabel`/`enumLabel`, used for dynamically-computed schema field/enum labels) call
-the default `i18next` package singleton directly, which resolves correctly as long as the host app
-registers the module's resources into that same default instance (as described above). Any leaf
-field or enum value without an explicit translation gracefully falls back to a humanized (Title
-Case) version of its schema key/value, so the UI never shows raw `SNAKE_CASE` tokens.
+Components use React Admin's `useTranslate()` hook. Dynamic schema field and enum helpers receive
+that translate function explicitly and provide humanized fallback labels, so the UI never shows
+raw `SNAKE_CASE` tokens. Neither `i18next` nor `react-i18next` is required.

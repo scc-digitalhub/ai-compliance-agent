@@ -1,8 +1,8 @@
 import { Box, Typography } from "@mui/material";
-import { useTranslation } from "react-i18next";
+import { useTranslate } from "react-admin";
 
 export default function NotFound() {
-  const { t } = useTranslation();
+  const t = useTranslate();
   return (
     <Box>
       <Typography variant="h5">404</Typography>
