@@ -87,17 +87,16 @@ class MisuseScenarioOut(_Base):
 class ComplianceContextOut(_Base):
     """Schema-compliant ComplianceContext output."""
     environment: str = "PRODUCTION"
-    regulations: list[RegulatoryRefOut] = []
+    regulations: list[RegulatoryRefOut]
     geography: list[str] = []
     actor_role: str = "PROVIDER"
-    actor_role_value: Optional[str] = None
-    requirements: list[RequirementOut] = []
+    requirements: list[RequirementOut]
     affected_groups: list[GroupSpecOut] = []
     vulnerable_groups: list[GroupSpecOut] = []
     protected_attributes: list[AttributeRefOut] = []
-    foreseeable_misuse: list[MisuseScenarioOut] = []
-    risk_classification: Optional[RiskClassificationOut] = None
-    human_oversight: Optional[HumanOversightOut] = None
+    foreseeable_misuse: list[MisuseScenarioOut]
+    risk_classification: RiskClassificationOut
+    human_oversight: HumanOversightOut
 
 
 # ── Objectives & Metrics ───────────────────────────────────────────────────────
