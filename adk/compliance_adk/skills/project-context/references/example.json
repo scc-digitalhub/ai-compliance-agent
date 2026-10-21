@@ -1,0 +1,90 @@
+{
+  "result": {
+    "environment": "PRODUCTION",
+    "regulations": [
+      {
+        "framework": "EU_AI_ACT",
+        "article": "Art. 14",
+        "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689",
+        "version": "2024/1689"
+      }
+    ],
+    "geography": ["EU"],
+    "actor_role": "PROVIDER",
+    "requirements": [
+      {
+        "id": "req-euai-art-14",
+        "name": "EU AI Act Art. 14 - Human Oversight",
+        "description": "High-risk AI systems must be designed so that natural persons can oversee them effectively.",
+        "source": {
+          "framework": "EU_AI_ACT",
+          "article": "Art. 14",
+          "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689",
+          "version": "2024/1689"
+        },
+        "requirement_text": "High-risk AI systems shall be designed and developed so that they can be effectively overseen by natural persons during the period in which they are in use.",
+        "kind": "HUMAN_OVERSIGHT",
+        "applicability_status": "APPLICABLE",
+        "related_requirements": ["req-euai-art-9"]
+      }
+    ],
+    "affected_groups": [
+      {
+        "id": "group-affected_persons",
+        "name": "Affected Persons (Non-users)",
+        "description": "Natural persons subject to decisions of the AI system without interacting with it.",
+        "group_kind": "DEMOGRAPHIC",
+        "group_role": "DECISION_SUBJECT",
+        "rationale": "Applicants are assessed by the system and its output influences access to credit."
+      }
+    ],
+    "vulnerable_groups": [
+      {
+        "id": "group-persons_with_disabilities",
+        "name": "Persons with Disabilities",
+        "description": "Persons with physical, mental, intellectual or sensory impairments.",
+        "group_kind": "VULNERABLE",
+        "group_role": "TARGET_SUBJECT",
+        "vulnerability": "DISABILITY",
+        "rationale": "Proxy discrimination and accessibility barriers may create unequal outcomes."
+      }
+    ],
+    "protected_attributes": [
+      {
+        "id": "attr-disability_status",
+        "name": "Disability Status",
+        "semantic_type": "DISABILITY",
+        "attribute_role": "PROTECTED_ATTRIBUTE",
+        "observability": "SELF_REPORTED",
+        "use_permissions": ["FAIRNESS_TESTING", "EXCLUDED_FROM_MODEL"],
+        "rationale": "Monitor for direct and proxy discrimination while excluding it from model inputs."
+      }
+    ],
+    "foreseeable_misuse": [
+      {
+        "id": "misuse-automation_bias_high_stakes",
+        "name": "Automation Bias in High-stakes Decisions",
+        "misuse_kind": "AUTOMATION_BIAS",
+        "intentionality": "NEGLIGENT",
+        "likelihood": "LIKELY",
+        "impact": "HIGH",
+        "rationale": "Operators may treat model recommendations as final decisions."
+      }
+    ],
+    "risk_classification": {
+      "risk_level": "HIGH",
+      "classification_status": "PRELIMINARY",
+      "rationale": "Creditworthiness assessment of natural persons is a high-risk use case (Annex III)."
+    },
+    "human_oversight": {
+      "oversight_mode": "HUMAN_IN_THE_LOOP",
+      "overseer_roles": ["Compliance Officer", "Qualified Case Reviewer"],
+      "intervention_points": ["DECISION_APPROVAL", "ESCALATION_REVIEW"],
+      "authority": ["OVERRIDE_OUTPUT", "SUSPEND_SERVICE", "ESCALATE"],
+      "availability": "BUSINESS_HOURS",
+      "escalation_channels": ["COMPLIANCE_REVIEW", "HUMAN_REVIEW"],
+      "rationale": "Meaningful review is required before adverse decisions."
+    }
+  },
+  "assumptions": ["The organisation acts as provider of the AI system."]
+}

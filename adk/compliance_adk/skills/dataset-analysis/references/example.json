@@ -1,0 +1,51 @@
+{
+  "result": {
+    "scope": "TRAINING",
+    "attributes": [
+      {
+        "id": "attr-age",
+        "name": "age",
+        "semantic_type": "AGE",
+        "attribute_role": "STRATIFICATION_ATTRIBUTE",
+        "observability": "DIRECT",
+        "use_permissions": ["MODEL_INPUT", "FAIRNESS_TESTING"],
+        "rationale": "Age is present in the dataset and must be monitored for disparate outcomes."
+      }
+    ],
+    "objectives": [
+      {
+        "name": "Dataset completeness",
+        "description": "Required training records must contain sufficiently complete values.",
+        "metric": {
+          "id": "metric-data-completeness",
+          "name": "Dataset Completeness",
+          "kind": "PRIMITIVE",
+          "scale": "RATIO",
+          "unit": { "symbol": "%", "name": "percent" },
+          "range": { "lower": 0.0, "upper": 1.0, "discrete": false, "categories": null }
+        },
+        "condition": { "threshold": { "operator": "GEQ", "value": 0.95 } },
+        "priority": "MANDATORY",
+        "severity": "HIGH",
+        "requirements": ["req-euai-art-10", "req-gdpr-art-5"],
+        "rationale": "Incomplete required fields reduce reliability and create uneven error rates."
+      },
+      {
+        "name": "Representativeness across age groups",
+        "description": "The dataset must not under-represent evaluated age groups.",
+        "metric": {
+          "id": "metric-representativeness-gap",
+          "name": "Representativeness Gap",
+          "kind": "PRIMITIVE",
+          "scale": "RATIO"
+        },
+        "condition": { "range": { "lower": 0.0, "upper": 0.1, "inclusive": true } },
+        "priority": "RECOMMENDED",
+        "severity": "MEDIUM",
+        "requirements": ["req-euai-art-10"],
+        "rationale": "Adequate representation supports reliable fairness evaluation across age groups."
+      }
+    ]
+  },
+  "assumptions": ["The tolerated representativeness gap of 10% is an assumption to be confirmed by the data owner."]
+}
