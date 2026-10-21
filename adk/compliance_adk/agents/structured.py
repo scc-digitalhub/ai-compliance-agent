@@ -47,5 +47,9 @@ def build_structured_agent(
         disallow_transfer_to_parent=True,
         disallow_transfer_to_peers=True,
         planner=build_planner(settings.structured_thinking_budget),
-        generate_content_config=types.GenerateContentConfig(temperature=settings.structured_temperature),
+        generate_content_config=(
+            types.GenerateContentConfig(temperature=settings.structured_temperature)
+            if settings.structured_temperature is not None
+            else None
+        ),
     )

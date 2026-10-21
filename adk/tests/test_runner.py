@@ -7,12 +7,25 @@ import pytest
 
 from compliance_adk.contracts import DatasetAnalysisRequest, ProjectInput
 from compliance_adk.errors import OutputValidationError, UpstreamModelError, UpstreamRateLimited
+from compliance_adk.agents.specs import PROJECT_CONTEXT
+from compliance_adk.agents.structured import build_structured_agent
 
-from .conftest import DATASET, PROJECT, example
+from .conftest import DATASET, PROJECT, ScriptedLlm, example
 
 
 def run(coro):
     return asyncio.run(coro)
+
+
+def test_structured_agent_omits_temperature_by_default(settings):
+    agent = build_structured_agent(PROJECT_CONTEXT, settings, model=ScriptedLlm())
+    assert agent.generate_content_config.temperature is None
+
+
+def test_structured_agent_allows_temperature_opt_in(settings):
+    settings.structured_temperature = 0.2
+    agent = build_structured_agent(PROJECT_CONTEXT, settings, model=ScriptedLlm())
+    assert agent.generate_content_config.temperature == 0.2
 
 
 def test_project_context_with_grounding_and_usage(make_registry):

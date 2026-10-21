@@ -39,7 +39,9 @@ class Settings(BaseSettings):
     llm_api_base: Optional[str] = Field(None, validation_alias=AliasChoices("LLM_API_BASE"))
     llm_api_key: Optional[SecretStr] = Field(None, validation_alias=AliasChoices("LLM_API_KEY"))
 
-    structured_temperature: float = Field(0.2, validation_alias=AliasChoices("STRUCTURED_TEMPERATURE"))
+    structured_temperature: Optional[float] = Field(
+        None, validation_alias=AliasChoices("STRUCTURED_TEMPERATURE")
+    )
     # Gemini-only; leave unset for providers that do not support a thinking budget.
     structured_thinking_budget: Optional[int] = Field(
         None, validation_alias=AliasChoices("STRUCTURED_THINKING_BUDGET")
