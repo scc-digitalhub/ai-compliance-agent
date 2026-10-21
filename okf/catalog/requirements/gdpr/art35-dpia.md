@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2016/679",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679"
   }},
-  "requirement_text": "Where a type of processing is likely to result in a high risk to the rights and freedoms of natural persons, the control...",
+  "requirement_text": "Where a type of processing is likely to result in a high risk to the rights and freedoms of natural persons, the controller shall, prior to the processing, carry out an assessment of the impact of the envisaged processing operations on the protection of personal data. A single assessment may address a set of similar processing operations. The assessment is mandatory for systematic and extensive evaluation of personal aspects through automated processing including profiling; for processing special categories of personal data at large scale; and for systematic monitoring of publicly accessible areas on a large scale.",
   "summary": "Requires a DPIA before deploying AI systems that systematically profile individuals, process sensitive data at scale, or monitor public spaces.",
   "kind": "RISK_MANAGEMENT",
   "applicability_status": "APPLICABLE"

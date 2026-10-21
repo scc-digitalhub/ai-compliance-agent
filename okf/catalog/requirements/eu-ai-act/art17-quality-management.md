@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2024/1689",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"
   }},
-  "requirement_text": "Providers of high-risk AI systems shall put a quality management system in place that ensures compliance with this Regul...",
+  "requirement_text": "Providers of high-risk AI systems shall put a quality management system in place that ensures compliance with this Regulation. The system shall cover all phases of the AI lifecycle, including strategy and accountability, design and development controls, data governance procedures, post-market monitoring, incident reporting, and documentation retention.",
   "summary": "Mandates a documented quality management system covering the full AI lifecycle.",
   "kind": "QUALITY_MANAGEMENT",
   "applicability_status": "APPLICABLE"

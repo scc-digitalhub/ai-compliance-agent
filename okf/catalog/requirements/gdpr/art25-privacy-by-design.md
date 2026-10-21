@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2016/679",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679"
   }},
-  "requirement_text": "Taking into account the state of the art, cost of implementation, and the nature, scope, context and purposes of process...",
+  "requirement_text": "Taking into account the state of the art, cost of implementation, and the nature, scope, context and purposes of processing, the controller shall implement appropriate technical and organisational measures to implement data-protection principles effectively and integrate the necessary safeguards into the processing in order to meet the requirements of this Regulation. By default, only personal data which are necessary for each specific purpose of the processing are processed.",
   "summary": "Mandates privacy by design architecture and data-minimising default configurations for AI systems processing personal data.",
   "kind": "DESIGN",
   "applicability_status": "APPLICABLE"

@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2021",
     "uri": "https://unesdoc.unesco.org/ark:/48223/pf0000381137"
   }},
-  "requirement_text": "AI actors should ensure that AI systems are technically robust, secure and safe. AI systems should perform reliably as i...",
+  "requirement_text": "AI actors should ensure that AI systems are technically robust, secure and safe. AI systems should perform reliably as intended and be resistant to manipulation and adversarial attacks. Testing, verification and validation protocols should be implemented across the AI lifecycle. Potential unintended effects and uses should be identified, assessed and mitigated in advance.",
   "summary": "Requires technical robustness, adversarial resistance, and lifecycle-spanning safety testing for AI systems.",
   "kind": "CYBERSECURITY",
   "applicability_status": "APPLICABLE"

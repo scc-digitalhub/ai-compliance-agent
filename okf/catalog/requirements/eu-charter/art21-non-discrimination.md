@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2000/C 364/01",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:12012P/TXT"
   }},
-  "requirement_text": "Any discrimination based on any ground such as sex, race, colour, ethnic or social origin, genetic features, language, r...",
+  "requirement_text": "Any discrimination based on any ground such as sex, race, colour, ethnic or social origin, genetic features, language, religion or belief, political or any other opinion, membership of a national minority, property, birth, disability, age or sexual orientation shall be prohibited. Within the scope of the Treaties and without prejudice to any of their specific provisions, any discrimination on grounds of nationality shall be prohibited.",
   "summary": "Prohibits AI-driven discrimination on 18 grounds including national minority membership, language, and genetic features — extending beyond GDPR Art. 9 special categories.",
   "kind": "DESIGN",
   "applicability_status": "APPLICABLE"

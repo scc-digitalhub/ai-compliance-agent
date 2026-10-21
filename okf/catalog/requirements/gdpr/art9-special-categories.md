@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2016/679",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679"
   }},
-  "requirement_text": "Processing of personal data revealing racial or ethnic origin, political opinions, religious or philosophical beliefs, o...",
+  "requirement_text": "Processing of personal data revealing racial or ethnic origin, political opinions, religious or philosophical beliefs, or trade union membership, and the processing of genetic data, biometric data for the purpose of uniquely identifying a natural person, data concerning health or data concerning a natural person's sex life or sexual orientation shall be prohibited, unless one of the specific exemptions in Art. 9(2) applies (e.g. explicit consent, vital interests, substantial public interest, medical purposes).",
   "summary": "Prohibits processing special-category sensitive data without an explicit GDPR Art. 9(2) exemption.",
   "kind": "DATA_PROTECTION",
   "applicability_status": "APPLICABLE"

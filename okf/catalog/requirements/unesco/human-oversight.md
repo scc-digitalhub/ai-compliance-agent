@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2021",
     "uri": "https://unesdoc.unesco.org/ark:/48223/pf0000381137"
   }},
-  "requirement_text": "Human oversight is necessary to ensure that AI systems do not undermine or threaten human dignity, rights and freedoms, ...",
+  "requirement_text": "Human oversight is necessary to ensure that AI systems do not undermine or threaten human dignity, rights and freedoms, or democratic values. Humans should retain the right to override decisions made by AI systems, particularly in high-stakes contexts. The degree of human oversight should be commensurate with the level of risk and the impact of the AI system on individuals, communities, and societies.",
   "summary": "Humans must retain the capacity to override AI decisions; oversight level must be proportionate to risk and impact.",
   "kind": "HUMAN_OVERSIGHT",
   "applicability_status": "APPLICABLE"

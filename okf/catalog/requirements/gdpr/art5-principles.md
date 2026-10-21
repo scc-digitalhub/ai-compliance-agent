@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2016/679",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679"
   }},
-  "requirement_text": "Personal data shall be processed lawfully, fairly and in a transparent manner (lawfulness, fairness, transparency); coll...",
+  "requirement_text": "Personal data shall be processed lawfully, fairly and in a transparent manner (lawfulness, fairness, transparency); collected for specified, explicit and legitimate purposes and not further processed in incompatible ways (purpose limitation); adequate, relevant and limited to what is necessary (data minimisation); accurate and kept up to date (accuracy); kept in a form permitting identification no longer than necessary (storage limitation); and processed with appropriate security (integrity and confidentiality).",
   "summary": "Establishes the six core data processing principles: lawfulness, purpose limitation, minimisation, accuracy, storage limitation, and security.",
   "kind": "DATA_GOVERNANCE",
   "applicability_status": "APPLICABLE"

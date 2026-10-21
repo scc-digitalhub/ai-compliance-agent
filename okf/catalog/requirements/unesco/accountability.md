@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2021",
     "uri": "https://unesdoc.unesco.org/ark:/48223/pf0000381137"
   }},
-  "requirement_text": "AI actors should be accountable for the proper functioning of AI systems and for the respect of the ethical principles a...",
+  "requirement_text": "AI actors should be accountable for the proper functioning of AI systems and for the respect of the ethical principles at all stages of the AI lifecycle. Mechanisms to ensure accountability and responsibility for the outcome of AI systems should be in place. When AI systems cause harm, responsibility should be assigned to the appropriate AI actor, and effective remedies should be provided to affected parties.",
   "summary": "Requires lifecycle-spanning accountability frameworks, designated responsible actors, and effective remedies for AI-caused harm.",
   "kind": "OPERATIONAL_CONTROL",
   "applicability_status": "APPLICABLE"

@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2021",
     "uri": "https://unesdoc.unesco.org/ark:/48223/pf0000381137"
   }},
-  "requirement_text": "AI actors should promote social justice, protect the interests of vulnerable or marginalised groups, and ensure AI syste...",
+  "requirement_text": "AI actors should promote social justice, protect the interests of vulnerable or marginalised groups, and ensure AI systems do not discriminate on the basis of age, disability, gender, national or ethnic origin, religion, race, colour, sex, sexual orientation, linguistic identity, political opinion, socioeconomic status, geographic location or other grounds. Special attention should be given to fostering access to AI benefits for vulnerable populations.",
   "summary": "AI systems must not discriminate on 16 grounds and must actively ensure equitable access and benefit for vulnerable and marginalised populations.",
   "kind": "DESIGN",
   "applicability_status": "APPLICABLE"

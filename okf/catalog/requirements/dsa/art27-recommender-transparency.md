@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2022/2065",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022R2065"
   }},
-  "requirement_text": "Providers of online platforms that use recommender systems shall set out in their terms and conditions, in plain and int...",
+  "requirement_text": "Providers of online platforms that use recommender systems shall set out in their terms and conditions, in plain and intelligible language, the main parameters used in their recommender systems, as well as any options for the recipients of the service to modify or influence those parameters. They shall ensure that at least one option is available which is not based on profiling.",
   "summary": "Requires plain-language explanation of recommender system parameters and a profiling-free alternative.",
   "kind": "TRANSPARENCY",
   "applicability_status": "APPLICABLE"

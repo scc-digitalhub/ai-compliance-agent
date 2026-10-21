@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2021",
     "uri": "https://unesdoc.unesco.org/ark:/48223/pf0000381137"
   }},
-  "requirement_text": "The transparency and explainability of AI systems is necessary — in varying degrees — to enable trust, meaningful oversi...",
+  "requirement_text": "The transparency and explainability of AI systems is necessary — in varying degrees — to enable trust, meaningful oversight and effective accountability. AI actors should commit to openness and transparency in sharing information about AI systems, as appropriate and feasible. Explainability must be appropriate to the context, the user's needs and the potential impact on those affected.",
   "summary": "Requires context-appropriate transparency and explainability for AI processes and outcomes, calibrated to user needs and impact severity.",
   "kind": "TRANSPARENCY",
   "applicability_status": "APPLICABLE"

@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2023",
     "uri": "https://www.iso.org/standard/81230.html"
   }},
-  "requirement_text": "The organisation shall establish processes for acquiring data for AI systems that ensure: data is fit for its intended p...",
+  "requirement_text": "The organisation shall establish processes for acquiring data for AI systems that ensure: data is fit for its intended purpose; appropriate rights and permissions exist for the intended use; data quality requirements are defined and verified; data provenance and lineage are documented; and privacy and data protection requirements are met throughout the data lifecycle.",
   "summary": "Mandates governed data acquisition with quality verification, provenance documentation, rights confirmation, and privacy compliance.",
   "kind": "DATA_GOVERNANCE",
   "applicability_status": "APPLICABLE"

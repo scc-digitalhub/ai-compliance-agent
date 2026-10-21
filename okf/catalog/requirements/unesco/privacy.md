@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2021",
     "uri": "https://unesdoc.unesco.org/ark:/48223/pf0000381137"
   }},
-  "requirement_text": "AI systems must guarantee privacy and data protection throughout the AI lifecycle. AI actors should ensure that appropri...",
+  "requirement_text": "AI systems must guarantee privacy and data protection throughout the AI lifecycle. AI actors should ensure that appropriate institutional and technical frameworks are put in place to respect privacy and data protection from the outset. Data subjects should have access to their personal data, the right to deletion, and the right to know how their data will be used. Privacy by design and privacy by default should be standard AI development practice.",
   "summary": "Requires privacy by design and default, full data subject rights including deletion, and institutional frameworks protecting privacy throughout the AI lifecycle.",
   "kind": "DATA_PROTECTION",
   "applicability_status": "APPLICABLE"

@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2016/679",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679"
   }},
-  "requirement_text": "Processing of personal data shall be lawful only if at least one of the following applies: the data subject has given co...",
+  "requirement_text": "Processing of personal data shall be lawful only if at least one of the following applies: the data subject has given consent; processing is necessary for the performance of a contract; processing is necessary for compliance with a legal obligation; processing is necessary to protect vital interests; processing is necessary for a task carried out in the public interest or in exercise of official authority; or processing is necessary for the legitimate interests of the controller, except where overridden by the data subject's fundamental rights.",
   "summary": "Requires a documented legal basis for any personal data processing by the AI system.",
   "kind": "DATA_GOVERNANCE",
   "applicability_status": "APPLICABLE"

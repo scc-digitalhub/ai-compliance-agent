@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2023",
     "uri": "https://www.iso.org/standard/81230.html"
   }},
-  "requirement_text": "The organisation shall maintain documentation that enables appropriate transparency of AI systems to relevant stakeholde...",
+  "requirement_text": "The organisation shall maintain documentation that enables appropriate transparency of AI systems to relevant stakeholders. Documentation shall include: description of the AI system's intended purpose and scope; summary of the AI system's capabilities and limitations; description of the data used for development and testing; information about the AI system's decision-making process appropriate to the stakeholder; and information enabling users to correctly interpret AI system outputs.",
   "summary": "Requires stakeholder-appropriate documentation of AI system purpose, capabilities, limitations, data, and decision process to enable correct interpretation.",
   "kind": "DOCUMENTATION",
   "applicability_status": "APPLICABLE"

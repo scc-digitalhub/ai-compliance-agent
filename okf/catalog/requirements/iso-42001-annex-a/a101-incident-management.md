@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2023",
     "uri": "https://www.iso.org/standard/81230.html"
   }},
-  "requirement_text": "The organisation shall establish and maintain processes for managing incidents and errors related to AI systems. These s...",
+  "requirement_text": "The organisation shall establish and maintain processes for managing incidents and errors related to AI systems. These shall include: mechanisms for detecting and reporting AI incidents and errors; processes for investigating root causes; corrective and preventive actions; communication of incidents to relevant stakeholders; and learning from incidents to improve AI system performance and governance.",
   "summary": "Requires end-to-end AI incident management covering detection, investigation, root cause analysis, corrective actions, and systemic learning.",
   "kind": "MONITORING",
   "applicability_status": "APPLICABLE"

@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2024/1689",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"
   }},
-  "requirement_text": "Before placing a high-risk AI system on the market or putting it into service, providers shall draw up technical documen...",
+  "requirement_text": "Before placing a high-risk AI system on the market or putting it into service, providers shall draw up technical documentation containing at minimum the information required by Annex IV, in a manner to demonstrate compliance with the requirements of Chapter III Section 2 and provide national competent authorities and notified bodies with the necessary information to assess compliance.",
   "summary": "Requires comprehensive pre-market technical documentation per Annex IV.",
   "kind": "DOCUMENTATION",
   "applicability_status": "APPLICABLE"

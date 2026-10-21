@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2022/2065",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022R2065"
   }},
-  "requirement_text": "Providers of very large online platforms and very large online search engines shall diligently identify, analyse and ass...",
+  "requirement_text": "Providers of very large online platforms and very large online search engines shall diligently identify, analyse and assess any systemic risks in the Union stemming from the design or functioning of their service and its related systems, including algorithmic systems, or from the use made of their services. The assessment shall include risks to: fundamental rights; civic discourse and electoral processes; public security; actual or foreseeable negative effects on users' mental and physical health.",
   "summary": "Mandates annual systemic risk assessment covering fundamental rights, elections, public security, and mental health for VLOP/VLOSE AI systems.",
   "kind": "RISK_MANAGEMENT",
   "applicability_status": "APPLICABLE"

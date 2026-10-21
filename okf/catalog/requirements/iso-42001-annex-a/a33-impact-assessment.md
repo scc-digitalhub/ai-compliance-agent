@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2023",
     "uri": "https://www.iso.org/standard/81230.html"
   }},
-  "requirement_text": "The organisation shall perform an AI system impact assessment to systematically identify, evaluate and document the pote...",
+  "requirement_text": "The organisation shall perform an AI system impact assessment to systematically identify, evaluate and document the potential impacts of the AI system on individuals, groups of individuals and society. The assessment shall include: identification of intended users and affected persons; assessment of potential positive and negative impacts; consideration of impacts on vulnerable groups; and documentation of mitigation measures adopted.",
   "summary": "Mandates a documented AI impact assessment covering positive and negative effects on individuals, groups, and vulnerable populations before deployment.",
   "kind": "RISK_MANAGEMENT",
   "applicability_status": "APPLICABLE"

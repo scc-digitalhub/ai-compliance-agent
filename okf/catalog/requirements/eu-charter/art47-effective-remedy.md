@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2000/C 364/01",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:12012P/TXT"
   }},
-  "requirement_text": "Everyone whose rights and freedoms guaranteed by the law of the Union are violated has the right to an effective remedy ...",
+  "requirement_text": "Everyone whose rights and freedoms guaranteed by the law of the Union are violated has the right to an effective remedy before a tribunal in compliance with the conditions laid down in this Article. Everyone is entitled to a fair and public hearing within a reasonable time by an independent and impartial tribunal previously established by law. Everyone shall have the possibility of being advised, defended and represented.",
   "summary": "Requires that persons subject to AI-driven decisions that affect their EU law rights have access to effective judicial redress — operationalised through explainability and contestation mechanisms.",
   "kind": "TRANSPARENCY",
   "applicability_status": "APPLICABLE"

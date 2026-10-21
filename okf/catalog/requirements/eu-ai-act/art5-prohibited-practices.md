@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2024/1689",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"
   }},
-  "requirement_text": "AI systems that deploy subliminal, manipulative, or deceptive techniques, exploit vulnerabilities of specific groups, pe...",
+  "requirement_text": "AI systems that deploy subliminal, manipulative, or deceptive techniques, exploit vulnerabilities of specific groups, perform social scoring, real-time biometric identification in public spaces for law enforcement (outside narrow exceptions), infer emotions in workplaces or educational institutions, or compile facial recognition databases through untargeted scraping are prohibited.",
   "summary": "Prohibits AI systems that manipulate, exploit, or surveil individuals in ways incompatible with fundamental rights.",
   "kind": "DESIGN",
   "applicability_status": "APPLICABLE"

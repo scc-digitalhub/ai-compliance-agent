@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2022/2555",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022L2555"
   }},
-  "requirement_text": "Member States shall ensure that essential and important entities notify, without undue delay, their CSIRT or, where appl...",
+  "requirement_text": "Member States shall ensure that essential and important entities notify, without undue delay, their CSIRT or, where applicable, their competent authority of any incident having a significant impact on the provision of their services. Entities shall submit: without undue delay and in any event within 24 hours of becoming aware of the significant incident, an early warning; without undue delay and in any event within 72 hours of becoming aware of the significant incident, an incident notification; on request, an intermediate report; within one month, a final report.",
   "summary": "Requires 24-hour early warning, 72-hour incident notification, and 1-month final report for significant cybersecurity incidents affecting AI-powered services.",
   "kind": "MONITORING",
   "applicability_status": "APPLICABLE"

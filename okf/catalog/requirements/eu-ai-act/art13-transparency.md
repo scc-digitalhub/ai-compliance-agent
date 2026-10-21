@@ -21,7 +21,7 @@ generated: { by: human:ai-compliance-team, at: 2026-08-28T00:00:00Z }
     "version": "2024/1689",
     "uri": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"
   }},
-  "requirement_text": "High-risk AI systems shall be designed and developed in such a way to ensure that their operation is sufficiently transp...",
+  "requirement_text": "High-risk AI systems shall be designed and developed in such a way to ensure that their operation is sufficiently transparent to enable deployers to interpret the system's output and use it appropriately. Providers shall ensure that high-risk AI systems are accompanied by instructions for use in appropriate digital format including information on the intended purpose, level of accuracy and performance, known limitations, and circumstances in which the AI system may lead to errors.",
   "summary": "Requires transparent AI output interpretation and complete instructions for use for high-risk AI.",
   "kind": "TRANSPARENCY",
   "applicability_status": "APPLICABLE"
