@@ -6,14 +6,15 @@ from __future__ import annotations
 
 import logging
 import re
+import secrets
 import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from google.adk.cli.fast_api import get_fast_api_app
 
-from ..config import Settings, get_settings
+from ..config import ADK_DIR, Settings, get_settings
 from ..contracts import ErrorResponse
 from ..errors import ComplianceAdkError
 from ..runtime import RunnerRegistry, get_registry
@@ -21,6 +22,7 @@ from .routers import analysis, health
 
 logger = logging.getLogger(__name__)
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+_PUBLIC_PATHS = {"/health", "/ready", "/docs", "/docs/oauth2-redirect", "/redoc", "/openapi.json"}
 
 
 def create_app(settings: Settings | None = None, registry: RunnerRegistry | None = None) -> FastAPI:
@@ -34,23 +36,37 @@ def create_app(settings: Settings | None = None, registry: RunnerRegistry | None
             logger.warning("API_KEYS is empty: authentication is disabled")
         yield
 
-    app = FastAPI(title="AI Compliance Analysis API", version="1.0.0", lifespan=lifespan)
+    app = get_fast_api_app(
+        agents_dir=str(ADK_DIR),
+        web=False,
+        lifespan=lifespan,
+        allow_origins=settings.cors_origin_list or None,
+    )
+    app.title = "AI Compliance Analysis API"
+    app.version = "1.0.0"
     app.state.settings = settings
-
-    if settings.cors_origin_list:
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=settings.cors_origin_list,
-            allow_methods=["GET", "POST"],
-            allow_headers=["X-API-Key", "Content-Type", "X-Request-ID"],
-        )
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
         incoming = request.headers.get("x-request-id", "")
         request.state.request_id = incoming if _REQUEST_ID.match(incoming) else uuid.uuid4().hex
         length = request.headers.get("content-length", "")
-        if length.isdigit() and int(length) > settings.max_body_bytes:
+        if (
+            settings.api_key_list
+            and request.method != "OPTIONS"
+            and request.url.path not in _PUBLIC_PATHS
+            and not any(
+                secrets.compare_digest(request.headers.get("x-api-key", ""), key)
+                for key in settings.api_key_list
+            )
+        ):
+            response = JSONResponse(
+                status_code=401,
+                content=ErrorResponse(
+                    detail="Missing or invalid API key", code="unauthorized", request_id=request.state.request_id
+                ).model_dump(),
+            )
+        elif length.isdigit() and int(length) > settings.max_body_bytes:
             response = JSONResponse(
                 status_code=413,
                 content=ErrorResponse(
@@ -72,6 +88,8 @@ def create_app(settings: Settings | None = None, registry: RunnerRegistry | None
             ).model_dump(),
         )
 
+    # ADK already owns /health and its production agent/session/artifact routes.
+    # Add only the compliance-specific readiness and analysis endpoints.
     app.include_router(health.router)
     app.include_router(analysis.router)
     return app

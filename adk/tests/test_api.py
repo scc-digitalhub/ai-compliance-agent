@@ -63,6 +63,10 @@ def test_api_key_is_enforced_when_configured(client_factory):
         assert client.post("/v1/compliance/context", json=PROJECT, headers={"X-API-Key": "nope"}).status_code == 401
         ok = client.post("/v1/compliance/context", json=PROJECT, headers={"X-API-Key": "k2"})
         assert ok.status_code == 200
+        assert client.get("/list-apps").status_code == 401
+        native = client.get("/list-apps", headers={"X-API-Key": "k2"})
+        assert native.status_code == 200
+        assert isinstance(native.json(), list)
         assert client.get("/health").status_code == 200
 
 
@@ -101,4 +105,11 @@ def test_health_and_ready(client_factory):
 def test_openapi_exposes_typed_schemas(client_factory):
     with client_factory()[0] as client:
         spec = client.get("/openapi.json").json()
-    assert set(spec["paths"]) >= {"/v1/compliance/context", "/v1/compliance/datasets", "/v1/compliance/models"}
+    assert set(spec["paths"]) >= {
+        "/list-apps",
+        "/run",
+        "/run_sse",
+        "/v1/compliance/context",
+        "/v1/compliance/datasets",
+        "/v1/compliance/models",
+    }

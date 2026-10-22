@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from types import SimpleNamespace
 
 from google.adk.tools import FunctionTool
@@ -48,6 +49,12 @@ def test_tool_errors_are_returned_not_raised(make_registry):
     llm.fail_with = RuntimeError("boom")
     out = asyncio.run(analyze_project_context(ProjectInput(**PROJECT), ctx()))
     assert out["code"] == "upstream_model_error"
+
+
+def test_project_context_accepts_serialized_project_input(make_registry):
+    make_registry(example("project-context"))
+    out = asyncio.run(analyze_project_context(json.dumps(PROJECT), ctx()))
+    assert out["data"]["risk_classification"]["risk_level"] == "HIGH"
 
 
 def test_tool_declarations_build_for_typed_params():

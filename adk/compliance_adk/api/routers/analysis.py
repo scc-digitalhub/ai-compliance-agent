@@ -1,7 +1,7 @@
 """Structured analysis endpoints; each wraps one structured agent."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 
 from ...contracts import (
     AnalysisResponse,
@@ -13,7 +13,7 @@ from ...contracts import (
     ModelComplianceOut,
     ProjectInput,
 )
-from ..deps import Registry, request_id_of, require_api_key
+from ..deps import Registry, request_id_of
 
 ERRORS = {
     401: {"model": ErrorResponse},
@@ -23,7 +23,7 @@ ERRORS = {
     504: {"model": ErrorResponse},
 }
 
-router = APIRouter(prefix="/v1/compliance", tags=["compliance"], dependencies=[Depends(require_api_key)])
+router = APIRouter(prefix="/v1/compliance", tags=["compliance"])
 
 
 @router.post(

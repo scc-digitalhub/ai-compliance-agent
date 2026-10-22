@@ -5,7 +5,7 @@ earlier ones (project context into dataset and model analysis) without the LLM r
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, TypeVar
 
 from google.adk.tools import ToolContext
 from pydantic import BaseModel
@@ -27,6 +27,13 @@ PROJECT_KEY = "analysis_project"
 CONTEXT_KEY = "analysis_project_context"
 DATASETS_KEY = "analysis_datasets"
 MODELS_KEY = "analysis_models"
+InputModel = TypeVar("InputModel", bound=BaseModel)
+
+
+def _normalize_input(model_type: type[InputModel], value: Any) -> InputModel:
+    if isinstance(value, str):
+        return model_type.model_validate_json(value)
+    return model_type.model_validate(value)
 
 
 async def _run(agent_key: str, request: BaseModel) -> AnalysisResponse[Any] | dict[str, str]:
@@ -65,6 +72,7 @@ async def analyze_project_context(project: ProjectInput, tool_context: ToolConte
     Args:
         project: The project definition (name, domain, ai_task and goal are required).
     """
+    project = _normalize_input(ProjectInput, project)
     response = await _run("project_context", project)
     if isinstance(response, dict):
         return response
@@ -86,6 +94,9 @@ async def analyze_dataset(
         project: Optional project definition; defaults to the one analysed earlier in the session.
     """
     state = tool_context.state
+    dataset = _normalize_input(DatasetInput, dataset)
+    if project is not None:
+        project = _normalize_input(ProjectInput, project)
     request = DatasetAnalysisRequest(
         dataset=dataset, project=project or _stored_project(state), project_context=_stored_context(state)
     )
@@ -109,6 +120,9 @@ async def analyze_model(
         project: Optional project definition; defaults to the one analysed earlier in the session.
     """
     state = tool_context.state
+    model = _normalize_input(ModelInput, model)
+    if project is not None:
+        project = _normalize_input(ProjectInput, project)
     datasets = [DataComplianceOut.model_validate(d) for d in state.get(DATASETS_KEY, {}).values()]
     request = ModelAnalysisRequest(
         model=model,

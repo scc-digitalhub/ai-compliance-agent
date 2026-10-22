@@ -4,11 +4,6 @@ from fastapi.responses import JSONResponse
 router = APIRouter(tags=["system"])
 
 
-@router.get("/health", summary="Liveness")
-async def health():
-    return {"status": "ok"}
-
-
 @router.get("/ready", summary="Readiness: agents built and OKF bundle loaded")
 async def ready(request: Request):
     registry = getattr(request.app.state, "registry", None)
