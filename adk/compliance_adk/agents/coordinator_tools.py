@@ -22,11 +22,9 @@ from ..contracts import (
 )
 from ..errors import ComplianceAdkError
 from ..runtime import get_registry
+from .session_state import CONTEXT_KEY, DATASETS_KEY, MODELS_KEY, PROJECT_KEY
+from .specification_tools import get_compliance_specification
 
-PROJECT_KEY = "analysis_project"
-CONTEXT_KEY = "analysis_project_context"
-DATASETS_KEY = "analysis_datasets"
-MODELS_KEY = "analysis_models"
 InputModel = TypeVar("InputModel", bound=BaseModel)
 
 
@@ -62,17 +60,44 @@ def _stored_project(state: Any) -> Optional[ProjectInput]:
     return ProjectInput.model_validate(raw) if raw else None
 
 
-async def analyze_project_context(project: ProjectInput, tool_context: ToolContext) -> dict[str, Any]:
+def _stored_on_dh(kind: str, entity: str, tool_context: ToolContext) -> Optional[dict[str, Any]]:
+    """The specification already stored on the DH platform (also loaded into the session), if any."""
+    found = get_compliance_specification(kind, entity, tool_context)
+    if "specification" not in found:
+        return None
+    return {
+        "stored_on_dh": True,
+        "analysis_run": False,
+        "kind": kind,
+        "entity": entity,
+        "specification": found["specification"],
+        "message": (
+            f"A specification for {kind} '{entity}' is already stored on the DH platform and was loaded. "
+            "No analysis was run. Present it and ask the user whether to re-run the analysis; "
+            "call this tool again with rerun=True only if the user decides to."
+        ),
+    }
+
+
+async def analyze_project_context(
+    project: ProjectInput, tool_context: ToolContext, rerun: bool = False
+) -> dict[str, Any]:
     """Build the structured compliance context of an AI project.
 
     Returns regulations, requirements, affected and vulnerable groups, protected attributes,
     foreseeable misuse, risk classification and human oversight, grounded in the OKF bundle.
     The result is stored and reused by later dataset and model analyses.
 
+    The DH platform is checked first (identifier: the project name). When a specification is already
+    stored there, it is returned without running the analysis; the user decides whether to re-run.
+
     Args:
         project: The project definition (name, domain, ai_task and goal are required).
+        rerun: True only when the user asked to run the analysis again despite a stored specification.
     """
     project = _normalize_input(ProjectInput, project)
+    if not rerun and (stored := _stored_on_dh("project", project.name, tool_context)):
+        return stored
     response = await _run("project_context", project)
     if isinstance(response, dict):
         return response
@@ -82,19 +107,25 @@ async def analyze_project_context(project: ProjectInput, tool_context: ToolConte
 
 
 async def analyze_dataset(
-    dataset: DatasetInput, tool_context: ToolContext, project: Optional[ProjectInput] = None
+    dataset: DatasetInput, tool_context: ToolContext, project: Optional[ProjectInput] = None, rerun: bool = False
 ) -> dict[str, Any]:
     """Derive the structured compliance specification of an AI dataset.
 
     Returns the dataset scope, protected attributes and compliance objectives. The stored project
     context is attached automatically; do not pass it.
 
+    The DH platform is checked first (identifier: the dataset name). When a specification is already
+    stored there, it is returned without running the analysis; the user decides whether to re-run.
+
     Args:
         dataset: The dataset definition (name and scope are required).
         project: Optional project definition; defaults to the one analysed earlier in the session.
+        rerun: True only when the user asked to run the analysis again despite a stored specification.
     """
     state = tool_context.state
     dataset = _normalize_input(DatasetInput, dataset)
+    if not rerun and (stored := _stored_on_dh("dataset", dataset.name, tool_context)):
+        return stored
     if project is not None:
         project = _normalize_input(ProjectInput, project)
     request = DatasetAnalysisRequest(
@@ -108,19 +139,25 @@ async def analyze_dataset(
 
 
 async def analyze_model(
-    model: ModelInput, tool_context: ToolContext, project: Optional[ProjectInput] = None
+    model: ModelInput, tool_context: ToolContext, project: Optional[ProjectInput] = None, rerun: bool = False
 ) -> dict[str, Any]:
     """Derive the structured compliance specification of an AI model.
 
     Returns compliance objectives with metrics and acceptance conditions. The stored project context
     and dataset analyses are attached automatically; do not pass them.
 
+    The DH platform is checked first (identifier: the model name). When a specification is already
+    stored there, it is returned without running the analysis; the user decides whether to re-run.
+
     Args:
         model: The model definition (name and ai_task are required).
         project: Optional project definition; defaults to the one analysed earlier in the session.
+        rerun: True only when the user asked to run the analysis again despite a stored specification.
     """
     state = tool_context.state
     model = _normalize_input(ModelInput, model)
+    if not rerun and (stored := _stored_on_dh("model", model.name, tool_context)):
+        return stored
     if project is not None:
         project = _normalize_input(ProjectInput, project)
     datasets = [DataComplianceOut.model_validate(d) for d in state.get(DATASETS_KEY, {}).values()]
@@ -140,7 +177,8 @@ async def analyze_model(
 def get_session_analyses(tool_context: ToolContext) -> dict[str, Any]:
     """Return the analyses already produced in this conversation (project context, datasets, models).
 
-    Use it to answer follow-up questions without running the analyses again.
+    Use it to answer follow-up questions without running the analyses again. It never reads the DH
+    platform: specifications stored there are retrieved with the compliance-specifications skill.
     """
     state = tool_context.state
     return {

@@ -8,11 +8,13 @@ from typing import Any, Callable
 from google.adk.skills import load_skill_from_dir
 from google.adk.skills.models import Skill
 
+from .agents.specification_tools import SPECIFICATION_TOOL_REGISTRY
 from .config import get_settings
 from .errors import ConfigError
-from .knowledge.tools import TOOL_REGISTRY
+from .knowledge.tools import TOOL_REGISTRY as OKF_TOOL_REGISTRY
 
 EXAMPLE_REFERENCE = "example.json"
+TOOL_REGISTRY: dict[str, Callable[..., Any]] = {**OKF_TOOL_REGISTRY, **SPECIFICATION_TOOL_REGISTRY}
 
 
 @lru_cache

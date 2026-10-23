@@ -4,8 +4,7 @@ import re
 
 import pytest
 
-from compliance_adk.knowledge.tools import TOOL_REGISTRY
-from compliance_adk.skill_loader import load_skill, render_instruction, skill_tool_names, skill_tools
+from compliance_adk.skill_loader import TOOL_REGISTRY, load_skill, render_instruction, skill_tool_names, skill_tools
 
 from .conftest import SKILLS
 
@@ -13,7 +12,13 @@ SKILL_NAMES = sorted(p.name for p in SKILLS.iterdir() if p.is_dir())
 
 
 def test_skills_are_discovered():
-    assert SKILL_NAMES == ["compliance-framework", "dataset-analysis", "model-analysis", "project-context"]
+    assert SKILL_NAMES == [
+        "compliance-framework",
+        "compliance-specifications",
+        "dataset-analysis",
+        "model-analysis",
+        "project-context",
+    ]
 
 
 @pytest.mark.parametrize("name", SKILL_NAMES)
