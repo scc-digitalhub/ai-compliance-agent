@@ -67,7 +67,7 @@ class RiskClassificationOut(OutModel):
 class HumanOversightOut(OutModel):
     oversight_mode: e.OversightMode
     oversight_mode_value: Optional[str] = Field(None, description="Free text when oversight_mode is OTHER")
-    overseer_roles: list[str] = Field(default_factory=list)
+    overseer_roles: list[e.ActorRole] = Field(default_factory=list, description="Roles of the parties exercising oversight")
     intervention_points: list[e.InterventionPoint] = Field(default_factory=list)
     authority: list[e.OversightAuthority] = Field(default_factory=list)
     availability: e.OversightAvailability = "BUSINESS_HOURS"

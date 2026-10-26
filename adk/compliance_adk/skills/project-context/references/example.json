@@ -78,7 +78,7 @@
     },
     "human_oversight": {
       "oversight_mode": "HUMAN_IN_THE_LOOP",
-      "overseer_roles": ["Compliance Officer", "Qualified Case Reviewer"],
+      "overseer_roles": ["COMPLIANCE_OWNER", "HUMAN_OVERSIGHT_OPERATOR"],
       "intervention_points": ["DECISION_APPROVAL", "ESCALATION_REVIEW"],
       "authority": ["OVERRIDE_OUTPUT", "SUSPEND_SERVICE", "ESCALATE"],
       "availability": "BUSINESS_HOURS",

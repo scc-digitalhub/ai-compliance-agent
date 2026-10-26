@@ -12,9 +12,11 @@ dependencies = [
     "litellm>=1.80",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
-    "pydantic>=2.8",
+    "pydantic>=2.13",
     "pydantic-settings>=2.4",
     "pyyaml>=6.0",
+    # 0.16 adds the `extensions` field to projects
+    "digitalhub>=0.16.0b18",
 ]
 
 [project.optional-dependencies]

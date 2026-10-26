@@ -65,6 +65,8 @@ def _stored_on_dh(kind: str, entity: str, tool_context: ToolContext) -> Optional
     found = get_compliance_specification(kind, entity, tool_context)
     if "specification" not in found:
         return None
+    if kind == "project" and not found["specification"].get("context"):
+        return None  # only the project description is stored, not its analysis
     return {
         "stored_on_dh": True,
         "analysis_run": False,
@@ -92,7 +94,8 @@ async def analyze_project_context(
     stored there, it is returned without running the analysis; the user decides whether to re-run.
 
     Args:
-        project: The project definition (name, domain, ai_task and goal are required).
+        project: The project definition (name, domain, ai_task and goal are required; domain is an object
+            with domain, subdomain and use_case; scope has in_scope and out_of_scope lists).
         rerun: True only when the user asked to run the analysis again despite a stored specification.
     """
     project = _normalize_input(ProjectInput, project)

@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     okf_path: Path = Field(REPO_DIR / "okf", validation_alias=AliasChoices("OKF_PATH"))
     skills_path: Path = Field(PACKAGE_DIR / "skills", validation_alias=AliasChoices("SKILLS_PATH"))
 
+    # DH platform project holding the datasets and models referred to by name.
+    dh_project: Optional[str] = Field(None, validation_alias=AliasChoices("DH_PROJECT", "PROJECT_NAME"))
+
     max_concurrency: int = Field(4, ge=1, validation_alias=AliasChoices("MAX_CONCURRENCY"))
     request_timeout_s: float = Field(120.0, gt=0, validation_alias=AliasChoices("REQUEST_TIMEOUT_S"))
     max_validation_retries: int = Field(2, ge=0, validation_alias=AliasChoices("MAX_VALIDATION_RETRIES"))

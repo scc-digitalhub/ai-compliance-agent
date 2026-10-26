@@ -25,7 +25,25 @@
     "overseer_roles": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "PROVIDER",
+          "DEPLOYER",
+          "DISTRIBUTOR",
+          "AUTHORIZED_REPRESENTATIVE",
+          "PRODUCT_MANUFACTURER",
+          "MODEL_DEVELOPER",
+          "SYSTEM_INTEGRATOR",
+          "SERVICE_OPERATOR",
+          "DATA_PROVIDER",
+          "DATA_CONTROLLER",
+          "DATA_PROCESSOR",
+          "HUMAN_OVERSIGHT_OPERATOR",
+          "END_USER",
+          "AFFECTED_PERSON",
+          "COMPLIANCE_OWNER",
+          "OTHER"
+        ]
       }
     },
     "intervention_points": {

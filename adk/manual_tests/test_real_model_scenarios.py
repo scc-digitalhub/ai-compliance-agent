@@ -19,10 +19,12 @@ from compliance_adk.agents.coordinator import build_coordinator_agent
 from compliance_adk.agents.session_state import CONTEXT_KEY, DATASETS_KEY, MODELS_KEY
 from compliance_adk.config import Settings
 from compliance_adk.contracts import (
+    ComplianceContextOut,
     DatasetAnalysisRequest,
     DatasetInput,
     ModelAnalysisRequest,
     ModelInput,
+    ProjectComplianceSpec,
     ProjectInput,
 )
 from compliance_adk.dh import tools as dh
@@ -166,7 +168,7 @@ def _example_result(skill: str) -> dict:
 
 @pytest.fixture
 def dh_store(monkeypatch):
-    """In-memory stand-in for the placeholder DH platform; keys are (entity kind, entity, extension kind)."""
+    """In-memory stand-in for the DH platform; keys are (entity kind, entity, extension kind)."""
     store: dict[tuple[str, str, str], dict] = {}
     monkeypatch.setattr(dh, "get_project_extension", lambda project, extension_kind: store.get(("project", project, extension_kind), {}))
     monkeypatch.setattr(dh, "get_entity_extension", lambda entity, entity_kind, extension_kind: store.get((entity_kind, entity, extension_kind), {}))
@@ -198,7 +200,7 @@ async def _converse(runner, session_id: str, prompt: str) -> tuple[list[str], st
 def test_coordinator_real_model_saves_and_retrieves_specifications(dh_store):
     """Session A stores three specifications; a new session B retrieves one from the DH store.
 
-    dh/tools.py is still a placeholder, so an in-memory store stands in for the DH platform.
+    An in-memory store stands in for the DH platform (see test_dh_platform_scenarios.py for the real one).
     """
     settings = _settings()
     store = dh_store
@@ -234,7 +236,7 @@ def test_coordinator_real_model_saves_and_retrieves_specifications(dh_store):
             )
             print("Save reply:", saved_reply)
             assert set(store) == {
-                ("project", "credit-scoring", "project-compliance"),
+                ("project", "credit-scoring", "ai-compliance"),
                 ("dataset", DATASET.name, "data-compliance"),
                 ("model", MODEL.name, "model-compliance"),
             }
@@ -296,7 +298,9 @@ def _coordinator_session(settings):
 def test_coordinator_real_model_presents_stored_specification_instead_of_analysing(dh_store, analysis_runs):
     """A specification already on DH is retrieved and offered; no analysis runs until the user decides."""
     settings = _settings()
-    dh_store[("project", "credit-scoring", "project-compliance")] = _example_result("project-context")
+    context = ComplianceContextOut.model_validate(_example_result("project-context"))
+    stored = ProjectComplianceSpec.of(PROJECT.model_copy(update={"name": "credit-scoring"}), context)
+    dh_store[("project", "credit-scoring", "ai-compliance")] = stored.model_dump(mode="json", exclude_none=True)
 
     async def scenario():
         sessions, runner, session = await _coordinator_session(settings)()

@@ -14,8 +14,8 @@ TASK: Build the ComplianceContext of the AI project described by the input.
 Ground every fact in the OKF tools; use general knowledge only for concepts the bundle lacks and record
 that in `assumptions`.
 
-The input is a project definition: name, domain, subdomain, ai_task, goal, purpose, audience,
-scope_in, scope_out, deployment, geography, environment.
+The input is a project definition: name, domain (domain, subdomain, use_case), ai_task, ai_task_value,
+goal, purpose, audience, scope (in_scope, out_of_scope), deployment, geography, environment.
 
 Steps:
 1. Identify the applicable regulatory frameworks from the geography and domain.
@@ -33,7 +33,8 @@ Steps:
 
 5. Identify foreseeable misuse with get_misuse_scenarios(), relevant to domain and deployment.
 
-6. Choose a human oversight profile appropriate for the risk level.
+6. Choose a human oversight profile appropriate for the risk level; overseer_roles are actor roles
+   (e.g. HUMAN_OVERSIGHT_OPERATOR, DEPLOYER, COMPLIANCE_OWNER).
 
 Rules:
 - Copy `id`, names, uris and enum values from tool results (`instance` field); never invent catalog ids.

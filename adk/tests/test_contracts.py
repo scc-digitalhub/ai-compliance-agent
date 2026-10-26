@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from compliance_adk.contracts import common, enums, results
+from compliance_adk.contracts import common, enums, requests, results
 from compliance_adk.contracts import (
     DatasetAgentOutput,
     ModelAgentOutput,
@@ -63,6 +63,10 @@ ENUM_CASES = [
     ("MisuseScenario", ("likelihood",), enums.Likelihood),
     ("MisuseScenario", ("impact",), enums.Impact),
     ("ComplianceContext", ("environment",), enums.Environment),
+    ("ComplianceContext", ("actor_role",), enums.ActorRole),
+    ("HumanOversightProfile", ("overseer_roles", "items"), enums.ActorRole),
+    ("ProjectComplianceSpec", ("ai_task",), enums.AiTask),
+    ("ProjectComplianceSpec", ("deployment",), enums.Deployment),
     ("DataComplianceSpec", ("scope",), enums.DatasetScope),
 ]
 
@@ -74,6 +78,8 @@ def test_enums_match_okb(schema, path, alias):
 
 MODEL_TO_SCHEMA = [
     (results.ComplianceContextOut, "ComplianceContext", set()),
+    (requests.ProjectComplianceSpec, "ProjectComplianceSpec", set()),
+    (requests.DomainDescriptor, "DomainDescriptor", set()),
     (results.DataComplianceOut, "DataComplianceSpec", set()),
     (common.RequirementOut, "Requirement", set()),
     (common.AttributeRefOut, "AttributeRef", {"rationale"}),
@@ -113,3 +119,18 @@ def test_invalid_enum_is_rejected():
     data["result"]["human_oversight"]["oversight_mode"] = "HUMAN_ON_THE_LOOP"
     with pytest.raises(ValueError):
         ProjectContextAgentOutput.model_validate(data)
+
+
+def test_project_input_round_trips_through_the_dh_project_specification():
+    project = requests.ProjectInput(
+        name="credit", domain="finance", ai_task="classification", goal="g", geography=["IT"], environment="pilot"
+    )
+    context = results.ComplianceContextOut.model_validate(
+        {**example("project-context")["result"], "geography": ["IT"], "environment": "PILOT"}
+    )
+
+    spec = requests.ProjectComplianceSpec.of(project, context)
+
+    assert project.domain.domain == "finance" and project.ai_task == "CLASSIFICATION"
+    assert "name" not in spec.model_dump() and "geography" not in spec.model_dump()
+    assert spec.project("credit") == project  # geography and environment come back from the context

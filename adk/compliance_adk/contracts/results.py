@@ -27,8 +27,8 @@ class ComplianceContextOut(OutModel):
     environment: e.Environment = "PRODUCTION"
     regulations: list[RegulatoryRefOut]
     geography: list[str]
-    actor_role: str = Field("PROVIDER", description="Role of the organisation, e.g. PROVIDER, DEPLOYER")
-    actor_role_value: str | None = None
+    actor_role: e.ActorRole = Field("PROVIDER", description="Role of the organisation, e.g. PROVIDER, DEPLOYER")
+    actor_role_value: str | None = Field(None, description="Free text when actor_role is OTHER")
     requirements: list[RequirementOut]
     affected_groups: list[GroupSpecOut] = Field(default_factory=list)
     vulnerable_groups: list[GroupSpecOut] = Field(default_factory=list)

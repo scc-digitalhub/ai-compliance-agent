@@ -11,12 +11,13 @@ from google.adk.tools import FunctionTool
 from google.genai import types
 
 from compliance_adk.agents.coordinator import build_coordinator_agent
-from compliance_adk.agents.session_state import CONTEXT_KEY, DATASETS_KEY, MODELS_KEY
+from compliance_adk.agents.session_state import CONTEXT_KEY, DATASETS_KEY, MODELS_KEY, PROJECT_KEY
 from compliance_adk.agents.specification_tools import (
     SPECIFICATION_TOOL_REGISTRY,
     get_compliance_specification,
     save_compliance_specification,
 )
+from compliance_adk.contracts import ComplianceContextOut, ProjectComplianceSpec, ProjectInput
 from compliance_adk.dh import tools as dh
 
 from .conftest import PROJECT, ScriptedLlm, example
@@ -55,8 +56,28 @@ def ctx(**state) -> SimpleNamespace:
     return SimpleNamespace(state=dict(state))
 
 
-def project_spec():
+def project_context():
     return example("project-context")["result"]
+
+
+def project_state(name: str = PROJECT["name"]) -> dict:
+    """Session state after a project analysis."""
+    project = ProjectInput(**{**PROJECT, "name": name})
+    return {PROJECT_KEY: project.model_dump(mode="json"), CONTEXT_KEY: project_context()}
+
+
+def project_spec():
+    """The ai-compliance extension spec: the project description with the compliance context."""
+    spec = ProjectComplianceSpec.of(ProjectInput(**PROJECT), ComplianceContextOut(**project_context()))
+    return spec.model_dump(mode="json", exclude_none=True)
+
+
+def null_paths(value, path="") -> list[str]:
+    if isinstance(value, dict):
+        return [p for k, v in value.items() for p in null_paths(v, f"{path}.{k}")]
+    if isinstance(value, list):
+        return [p for v in value for p in null_paths(v, f"{path}[]")]
+    return [path] if value is None else []
 
 
 def dataset_spec():
@@ -70,7 +91,7 @@ def model_spec():
 def test_save_stores_the_analysed_specifications_under_the_dh_extension_kinds(dh_store):
     tool_context = ctx(
         **{
-            CONTEXT_KEY: project_spec(),
+            **project_state(),
             DATASETS_KEY: {"Applications": dataset_spec()},
             MODELS_KEY: {"Credit model": model_spec()},
         }
@@ -84,16 +105,19 @@ def test_save_stores_the_analysed_specifications_under_the_dh_extension_kinds(dh
 
     assert all(r["saved"] and r["source"] == "session" for r in results)
     assert set(dh_store.data) == {
-        ("project", "credit-scoring", "project-compliance"),
+        ("project", "credit-scoring", "ai-compliance"),
         ("dataset", "Applications", "data-compliance"),
         ("model", "Credit model", "model-compliance"),
     }
-    stored = dh_store.data[("project", "credit-scoring", "project-compliance")]
-    assert stored["risk_classification"]["risk_level"] == project_spec()["risk_classification"]["risk_level"]
+    stored = dh_store.data[("project", "credit-scoring", "ai-compliance")]
+    assert stored["ai_task"] == "CLASSIFICATION" and stored["domain"] == {"domain": "finance"}
+    assert stored["goal"] == PROJECT["goal"] and "name" not in stored  # the name is the DH identifier
+    assert stored["context"]["risk_classification"]["risk_level"] == project_context()["risk_classification"]["risk_level"]
+    assert all(null_paths(spec) == [] for spec in dh_store.data.values())  # DH schemas reject nulls
 
 
 def test_get_returns_the_stored_specification_and_loads_it_into_the_session(dh_store):
-    save_compliance_specification("project", "p1", ctx(**{CONTEXT_KEY: project_spec()}))
+    save_compliance_specification("project", "p1", ctx(**project_state("p1")))
     save_compliance_specification("dataset", "d1", ctx(**{DATASETS_KEY: {"d1": dataset_spec()}}))
     save_compliance_specification("model", "m1", ctx(**{MODELS_KEY: {"m1": model_spec()}}))
 
@@ -102,10 +126,13 @@ def test_get_returns_the_stored_specification_and_loads_it_into_the_session(dh_s
     dataset = get_compliance_specification("dataset", "d1", fresh)
     model = get_compliance_specification("model", "m1", fresh)
 
-    assert project["specification"]["risk_classification"]["risk_level"] == project_spec()["risk_classification"]["risk_level"]
+    risk_level = project_context()["risk_classification"]["risk_level"]
+    assert project["specification"]["context"]["risk_classification"]["risk_level"] == risk_level
     assert dataset["specification"]["scope"] == dataset_spec()["scope"]
     assert model["specification"]["objectives"]
-    assert fresh.state[CONTEXT_KEY]["risk_classification"]["risk_level"] == project_spec()["risk_classification"]["risk_level"]
+    assert fresh.state[CONTEXT_KEY]["risk_classification"]["risk_level"] == risk_level
+    assert fresh.state[PROJECT_KEY]["name"] == "p1" and fresh.state[PROJECT_KEY]["goal"] == PROJECT["goal"]
+    assert fresh.state[PROJECT_KEY]["geography"] == project_context()["geography"]  # restored from the context
     assert set(fresh.state[DATASETS_KEY]) == {"d1"} and set(fresh.state[MODELS_KEY]) == {"m1"}
 
 
@@ -128,7 +155,7 @@ def test_save_without_an_analysis_reports_not_found_and_writes_nothing(dh_store)
 
 def test_save_rejects_an_invalid_specification_and_writes_nothing(dh_store):
     broken = project_spec()
-    del broken["risk_classification"]
+    del broken["context"]["risk_classification"]
 
     out = save_compliance_specification("project", "p1", ctx(), specification=broken)
 
@@ -147,10 +174,65 @@ def test_get_reports_missing_and_invalid_stored_specifications(dh_store):
     assert fresh.state == {}  # nothing invalid reaches the session
 
 
+def test_save_keeps_the_fields_managed_on_the_platform(dh_store):
+    dh_store.data[("project", "p1", "ai-compliance")] = {
+        **project_spec(),
+        "goal": "Old goal",
+        "compliance_status": {"status": "IN_REVIEW"},
+    }
+
+    save_compliance_specification("project", "p1", ctx(**project_state("p1")))
+
+    stored = dh_store.data[("project", "p1", "ai-compliance")]
+    assert stored["goal"] == PROJECT["goal"]  # replaced by the analysis
+    assert stored["compliance_status"] == {"status": "IN_REVIEW"}  # kept
+
+
+def test_get_ignores_the_fields_managed_on_the_platform(dh_store):
+    stored = project_spec()
+    stored["compliance_status"] = {"status": "IN_REVIEW"}
+    stored["context"]["risk_classification"]["assessor"] = {"name": "Reviewer"}
+    dh_store.data[("project", "p1", "ai-compliance")] = stored
+    dh_store.data[("dataset", "d1", "data-compliance")] = {**dataset_spec(), "governance": {"owner": "x"}}
+    fresh = ctx()
+
+    project = get_compliance_specification("project", "p1", fresh)
+    dataset = get_compliance_specification("dataset", "d1", fresh)
+
+    assert "compliance_status" not in project["specification"]
+    assert "assessor" not in project["specification"]["context"]["risk_classification"]
+    assert "governance" not in dataset["specification"]
+    assert ComplianceContextOut.model_validate(fresh.state[CONTEXT_KEY])
+
+
+def test_project_description_without_context_does_not_count_as_an_analysis(dh_store):
+    from compliance_adk.agents import coordinator_tools
+
+    description = {k: v for k, v in project_spec().items() if k != "context"}
+    dh_store.data[("project", "p1", "ai-compliance")] = description
+
+    assert coordinator_tools._stored_on_dh("project", "p1", ctx()) is None
+
+
 def test_unknown_kind_is_rejected(dh_store):
     assert get_compliance_specification("service", "x", ctx())["code"] == "invalid_kind"
     assert save_compliance_specification("service", "x", ctx())["code"] == "invalid_kind"
     assert dh_store.calls == []
+
+
+def test_platform_failures_are_returned_as_dh_errors(dh_store, monkeypatch):
+    def unreachable(*args):
+        raise ConnectionError("unreachable")
+
+    monkeypatch.setattr(dh, "get_entity_extension", unreachable)
+    monkeypatch.setattr(dh, "save_project_extension", unreachable)
+    fresh = ctx(**project_state())
+
+    read = get_compliance_specification("dataset", "d1", fresh)
+    saved = save_compliance_specification("project", "p1", fresh)
+
+    assert read["code"] == saved["code"] == "dh_error" and "unreachable" in read["error"]
+    assert DATASETS_KEY not in fresh.state
 
 
 def test_tool_declarations_build_for_typed_params():
@@ -194,11 +276,11 @@ def test_coordinator_saves_and_retrieves_specifications_end_to_end(make_registry
         if part.function_response
     }
     assert results["save_compliance_specification"]["saved"] is True
-    assert results["get_compliance_specification"]["specification"]["risk_classification"]["risk_level"] == "HIGH"
-    assert ("project", "credit-scoring", "project-compliance") in dh_store.data
+    assert results["get_compliance_specification"]["specification"]["context"]["risk_classification"]["risk_level"] == "HIGH"
+    assert ("project", "credit-scoring", "ai-compliance") in dh_store.data
 
 
-STORED_KEY = ("project", "credit-scoring", "project-compliance")
+STORED_KEY = ("project", "credit-scoring", "ai-compliance")
 GET_PROJECT = {"call": "get_compliance_specification", "args": {"kind": "project", "entity": "credit-scoring"}}
 SAVE_PROJECT = {"call": "save_compliance_specification", "args": {"kind": "project", "entity": "credit-scoring"}}
 LOAD_SKILL = {"call": "load_skill", "args": {"skill_name": "compliance-specifications"}}
@@ -246,7 +328,7 @@ def test_stored_specification_is_presented_without_running_the_analysis(make_reg
 
     out = responded(turn)["analyze_project_context"]
     assert out["stored_on_dh"] is True and out["analysis_run"] is False
-    assert out["specification"]["risk_classification"]["risk_level"] == "HIGH"
+    assert out["specification"]["context"]["risk_classification"]["risk_level"] == "HIGH"
     assert "re-run" in out["message"] and "rerun=True" in out["message"]
     assert analysis_llm.seen_messages == []
     assert session.state[CONTEXT_KEY]["risk_classification"]["risk_level"] == "HIGH"  # loaded for reuse
@@ -271,7 +353,7 @@ def test_user_can_re_run_a_stored_analysis_and_replace_it(make_registry, setting
     assert responded(first)["analyze_project_context"]["analysis_run"] is False
     assert "data" in responded(second)["analyze_project_context"]  # the analysis ran this time
     assert len(analysis_llm.seen_messages) == 1
-    assert dh_store.data[STORED_KEY]["risk_classification"]["rationale"] == "Re-run rationale."
+    assert dh_store.data[STORED_KEY]["context"]["risk_classification"]["rationale"] == "Re-run rationale."
 
 
 def test_missing_specification_is_analysed_then_saved(make_registry, settings, dh_store):

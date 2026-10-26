@@ -10,7 +10,8 @@ metadata:
 Use this skill to persist the structured specifications produced by the analyses and to load stored ones.
 
 Kinds, each tied to one entity of the DH platform:
-- project: the project compliance context (risk classification, requirements, groups, oversight).
+- project: the project description (domain, ai_task, goal, scope, ...) and its compliance context
+  (risk classification, requirements, groups, oversight) under `context`.
 - dataset: the data compliance specification of a dataset (attributes and objectives).
 - model: the model compliance specification of a model (objectives).
 
@@ -39,5 +40,5 @@ Rules
 - The entity identifier is the one the user gives, otherwise the name of the project, dataset or model
   in the request. Never invent one.
 - Datasets and models analysed in this conversation are saved under the name used in the analysis.
-- Report an error to the user as it is returned (not_found, invalid_specification); never retry by
+- Report an error to the user as it is returned (not_found, invalid_specification, dh_error); never retry by
   fabricating or patching specification content.

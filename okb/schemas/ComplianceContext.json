@@ -28,7 +28,25 @@
     },
     "actor_role": {
       "type": "string",
-      "description": "Role of the organisation/party in this context."
+      "description": "Role of the organisation/party in this context.",
+      "enum": [
+        "PROVIDER",
+        "DEPLOYER",
+        "DISTRIBUTOR",
+        "AUTHORIZED_REPRESENTATIVE",
+        "PRODUCT_MANUFACTURER",
+        "MODEL_DEVELOPER",
+        "SYSTEM_INTEGRATOR",
+        "SERVICE_OPERATOR",
+        "DATA_PROVIDER",
+        "DATA_CONTROLLER",
+        "DATA_PROCESSOR",
+        "HUMAN_OVERSIGHT_OPERATOR",
+        "END_USER",
+        "AFFECTED_PERSON",
+        "COMPLIANCE_OWNER",
+        "OTHER"
+      ]
     },
     "actor_role_value": {
       "type": "string"

@@ -3,10 +3,13 @@ from .envelope import AnalysisMeta, AnalysisResponse, ErrorResponse, TokenUsage
 from .requests import (
     DatasetAnalysisRequest,
     DatasetInput,
+    DomainDescriptor,
     FieldSchemaEntry,
     ModelAnalysisRequest,
     ModelInput,
+    ProjectComplianceSpec,
     ProjectInput,
+    ProjectScope,
 )
 from .results import (
     ComplianceContextOut,
