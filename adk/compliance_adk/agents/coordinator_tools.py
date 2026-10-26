@@ -22,7 +22,7 @@ from ..contracts import (
 )
 from ..errors import ComplianceAdkError
 from ..runtime import get_registry
-from .session_state import CONTEXT_KEY, DATASETS_KEY, MODELS_KEY, PROJECT_KEY
+from .session_state import CONTEXT_KEY, DATASETS_KEY, ENTITIES_KEY, MODELS_KEY, PROJECT_KEY
 from .specification_tools import get_compliance_specification
 
 InputModel = TypeVar("InputModel", bound=BaseModel)
@@ -175,10 +175,12 @@ async def analyze_model(
 
 
 def get_session_analyses(tool_context: ToolContext) -> dict[str, Any]:
-    """Return the analyses already produced in this conversation (project context, datasets, models).
+    """Return the analyses already produced in this conversation (project context, datasets, models)
+    and the DH entity details retrieved so far (entities).
 
     Use it to answer follow-up questions without running the analyses again. It never reads the DH
-    platform: specifications stored there are retrieved with the compliance-specifications skill.
+    platform: specifications stored there are retrieved with the compliance-specifications skill,
+    entity details with the entity-details skill.
     """
     state = tool_context.state
     return {
@@ -186,6 +188,7 @@ def get_session_analyses(tool_context: ToolContext) -> dict[str, Any]:
         "project_context": state.get(CONTEXT_KEY),
         "datasets": state.get(DATASETS_KEY, {}),
         "models": state.get(MODELS_KEY, {}),
+        "entities": state.get(ENTITIES_KEY, {}),
     }
 
 

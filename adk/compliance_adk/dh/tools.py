@@ -4,6 +4,11 @@
 
 from ..contracts.results import ComplianceContextOut, DataComplianceOut, ModelComplianceOut
 
+def get_entity(entity: str, entity_kind: str) -> dict:
+    """Retrieve the details for a given entity."""
+    print(f"Retrieving entity for entity: {entity}, entity kind: {entity_kind}")
+    # Placeholder implementation, replace with actual logic
+    return {}
 
 def get_project_extension(project: str, extension_kind: str) -> dict:
     """Retrieve the compliance-related extension for a given project."""

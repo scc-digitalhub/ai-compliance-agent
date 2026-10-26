@@ -16,6 +16,7 @@ def test_skills_are_discovered():
         "compliance-framework",
         "compliance-specifications",
         "dataset-analysis",
+        "entity-details",
         "model-analysis",
         "project-context",
     ]

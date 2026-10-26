@@ -10,7 +10,7 @@ from ..skill_loader import load_skill, skill_tools
 from .coordinator_tools import COORDINATOR_TOOLS
 from .llm import build_llm, build_planner
 
-COORDINATOR_SKILLS = ("compliance-framework", "compliance-specifications")
+COORDINATOR_SKILLS = ("compliance-framework", "compliance-specifications", "entity-details")
 
 INSTRUCTION = """\
 You are an AI compliance expert (EU AI Act, GDPR, NIST AI RMF, ISO/IEC 42001 and related standards)
@@ -24,6 +24,8 @@ Capabilities
 - The compliance-framework skill and its OKF tools explain framework concepts and catalog entries.
 - The compliance-specifications skill stores and retrieves the project, dataset and model
   specifications on the DH platform.
+- The entity-details skill retrieves the details of datasets and models registered on the DH platform,
+  so the user can request an analysis by entity name.
 
 How to work
 - Concept questions: load the compliance-framework skill and navigate the OKF lazily (browse, search,
@@ -37,6 +39,10 @@ How to work
   Ask for missing ones instead of guessing, and state defaults you assume. Run the project analysis
   first when it is missing, because dataset and model analyses reuse it. Stored context is attached
   automatically; never pass it yourself.
+- Analyses of a dataset or model named on the DH platform: load the entity-details skill, retrieve
+  the entity with get_entity_details and build the analysis input from its details. Retrieved details
+  stay in the conversation; call get_entity_details with refresh=True only when the user asks to
+  refresh them.
 - Follow-up questions about earlier results: call get_session_analyses and answer from it; run an
   analysis again only when the user changes the inputs or asks for it.
 - Saving and retrieving specifications: load the compliance-specifications skill first. Specifications
