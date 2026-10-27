@@ -1,0 +1,111 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-compliance-platform"
+version = "0.1.0"
+description = "Reusable AI compliance tools, skills, adapters, and agent integrations"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.13",
+    "pydantic-settings>=2.4",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+api = [
+    "digitalhub>=0.16.0b18",
+    "fastapi>=0.115",
+    "litellm>=1.80",
+    "uvicorn[standard]>=0.30",
+]
+mcp = [
+    "digitalhub>=0.16.0b18",
+    "mcp>=2,<3",
+]
+adk = [
+    "digitalhub>=0.16.0b18",
+    "google-adk>=2.12",
+    "litellm>=1.80",
+]
+server = [
+    "digitalhub>=0.16.0b18",
+    "fastapi>=0.115",
+    "litellm>=1.80",
+    "mcp>=2,<3",
+    "uvicorn[standard]>=0.30",
+]
+dev = [
+    "digitalhub>=0.16.0b18",
+    "fastapi>=0.115",
+    "google-adk>=2.12",
+    "httpx>=0.27",
+    "jsonschema>=4.20",
+    "litellm>=1.80",
+    "mcp>=2,<3",
+    "pytest>=8",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.scripts]
+compliance-api = "compliance_api.app:main"
+compliance-mcp = "compliance_mcp.server:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = [
+    "compliance_core",
+    "compliance_core.contracts",
+    "compliance_core.knowledge",
+    "compliance_dh",
+    "compliance_skills",
+    "compliance_api",
+    "compliance_api.routers",
+    "compliance_mcp",
+    "compliance_adk",
+    "compliance_adk.agents",
+    "compliance_adk.runtime",
+    "compliance_agent",
+    "dataset_agent",
+    "model_agent",
+    "project_context_agent",
+]
+
+[tool.setuptools.package-dir]
+compliance_core = "packages/compliance-core/src/compliance_core"
+"compliance_core.contracts" = "packages/compliance-core/src/compliance_core/contracts"
+"compliance_core.knowledge" = "packages/compliance-core/src/compliance_core/knowledge"
+compliance_dh = "packages/compliance-dh/src/compliance_dh"
+compliance_skills = "packages/compliance-skills/src/compliance_skills"
+compliance_api = "packages/compliance-api/src/compliance_api"
+"compliance_api.routers" = "packages/compliance-api/src/compliance_api/routers"
+compliance_mcp = "packages/compliance-mcp/src/compliance_mcp"
+compliance_adk = "adk/compliance_adk"
+"compliance_adk.agents" = "adk/compliance_adk/agents"
+"compliance_adk.runtime" = "adk/compliance_adk/runtime"
+compliance_agent = "adk/compliance_agent"
+dataset_agent = "adk/dataset_agent"
+model_agent = "adk/model_agent"
+project_context_agent = "adk/project_context_agent"
+
+[tool.setuptools.package-data]
+compliance_core = [
+    "data/okf/**/*.md",
+    "data/okb/*.json",
+    "data/okb/*.jsonld",
+    "data/okb/schemas/*.json",
+]
+compliance_skills = ["skills/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+    "adk/tests",
+    "packages/compliance-core/tests",
+    "packages/compliance-dh/tests",
+    "packages/compliance-mcp/tests",
+    "packages/compliance-skills/tests",
+    "packages/compliance-api/tests",
+]

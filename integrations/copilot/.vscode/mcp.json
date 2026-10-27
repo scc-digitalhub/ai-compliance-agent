@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+  "servers": {
+    "ai-compliance": {
+      "type": "stdio",
+      "command": "compliance-mcp",
+      "args": []
+    }
+  }
+}

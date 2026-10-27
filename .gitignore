@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local compliance analysis state may contain sensitive project or dataset metadata.
+.compliance/

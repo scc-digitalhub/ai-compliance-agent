@@ -16,9 +16,9 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
 from compliance_adk.agents.coordinator import build_coordinator_agent
-from compliance_adk.agents.session_state import CONTEXT_KEY, DATASETS_KEY, MODELS_KEY
+from compliance_core.state import CONTEXT_KEY, DATASETS_KEY, MODELS_KEY
 from compliance_adk.config import Settings
-from compliance_adk.contracts import (
+from compliance_core.contracts import (
     ComplianceContextOut,
     DatasetAnalysisRequest,
     DatasetInput,
@@ -27,7 +27,7 @@ from compliance_adk.contracts import (
     ProjectComplianceSpec,
     ProjectInput,
 )
-from compliance_adk.dh import tools as dh
+from compliance_dh import tools as dh
 from compliance_adk.runtime import RunnerRegistry, set_registry
 
 PROJECT = ProjectInput(

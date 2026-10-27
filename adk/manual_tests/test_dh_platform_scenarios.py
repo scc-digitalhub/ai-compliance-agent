@@ -29,15 +29,15 @@ from google.adk.sessions import InMemorySessionService  # noqa: E402
 from google.genai import types  # noqa: E402
 
 from compliance_adk.agents.coordinator import build_coordinator_agent  # noqa: E402
-from compliance_adk.agents.session_state import CONTEXT_KEY, PROJECT_KEY  # noqa: E402
-from compliance_adk.contracts import (  # noqa: E402
+from compliance_core.state import CONTEXT_KEY, PROJECT_KEY  # noqa: E402
+from compliance_core.contracts import (  # noqa: E402
     ComplianceContextOut,
     DataComplianceOut,
     ModelComplianceOut,
     ProjectComplianceSpec,
     ProjectInput,
 )
-from compliance_adk.dh import tools as dh  # noqa: E402
+from compliance_dh import tools as dh  # noqa: E402
 from compliance_adk.runtime import RunnerRegistry, set_registry  # noqa: E402
 
 EXTENSION_KIND = "ai-compliance"  # project compliance extension kind registered in DH Core

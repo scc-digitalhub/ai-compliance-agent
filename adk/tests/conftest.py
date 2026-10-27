@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sys
+from importlib.resources import files
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -18,10 +19,10 @@ if str(ADK_DIR) not in sys.path:
     sys.path.insert(0, str(ADK_DIR))
 
 from compliance_adk.config import Settings  # noqa: E402
-from compliance_adk.knowledge import get_bundle  # noqa: E402
+from compliance_core.knowledge import get_bundle  # noqa: E402
 from compliance_adk.runtime import RunnerRegistry, set_registry  # noqa: E402
 
-SKILLS = ADK_DIR / "compliance_adk" / "skills"
+SKILLS = Path(str(files("compliance_skills").joinpath("skills")))
 
 
 def example(skill: str) -> dict[str, Any]:

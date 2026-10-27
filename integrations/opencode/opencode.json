@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "ai-compliance": {
+      "type": "local",
+      "command": [
+        "compliance-mcp"
+      ],
+      "enabled": true
+    }
+  }
+}

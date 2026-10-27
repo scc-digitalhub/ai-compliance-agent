@@ -5,8 +5,8 @@ import copy
 
 import pytest
 
-from compliance_adk.contracts import DatasetAnalysisRequest, ProjectInput
-from compliance_adk.errors import OutputValidationError, UpstreamModelError, UpstreamRateLimited
+from compliance_core.contracts import DatasetAnalysisRequest, ProjectInput
+from compliance_core.errors import OutputValidationError, UpstreamModelError, UpstreamRateLimited
 from compliance_adk.agents.specs import PROJECT_CONTEXT
 from compliance_adk.agents.structured import build_structured_agent
 
@@ -70,7 +70,7 @@ def test_schema_violation_is_reported_to_the_model(make_registry):
     bad = example("model-analysis")
     bad["result"]["objectives"][0]["condition"] = {}
     registry, llm = make_registry(bad, example("model-analysis"))
-    from compliance_adk.contracts import ModelAnalysisRequest
+    from compliance_core.contracts import ModelAnalysisRequest
 
     run(registry.get("model").run(ModelAnalysisRequest(model={"name": "m", "ai_task": "CLASSIFICATION"})))
     assert "exactly one condition" in llm.seen_messages[1]

@@ -11,14 +11,14 @@ from google.adk.tools import FunctionTool
 from google.genai import types
 
 from compliance_adk.agents.coordinator import build_coordinator_agent
-from compliance_adk.agents.session_state import CONTEXT_KEY, DATASETS_KEY, MODELS_KEY, PROJECT_KEY
+from compliance_core.state import CONTEXT_KEY, DATASETS_KEY, MODELS_KEY, PROJECT_KEY
 from compliance_adk.agents.specification_tools import (
     SPECIFICATION_TOOL_REGISTRY,
     get_compliance_specification,
     save_compliance_specification,
 )
-from compliance_adk.contracts import ComplianceContextOut, ProjectComplianceSpec, ProjectInput
-from compliance_adk.dh import tools as dh
+from compliance_core.contracts import ComplianceContextOut, ProjectComplianceSpec, ProjectInput
+from compliance_dh import tools as dh
 
 from .conftest import PROJECT, ScriptedLlm, example
 

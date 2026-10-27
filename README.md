@@ -1,21 +1,36 @@
 # AI Compliance Framework
 
-AI compliance analysis agents built with Google ADK and FastAPI. The agents use the [Open Knowledge
-Framework (OKF)](okf/) catalog to produce typed compliance context for projects and compliance
-objectives for datasets and models. An interactive coordinator uses the same structured agents to
-answer questions and explain their results. This repository no longer contains the earlier
-`src/compliance_agent` LangChain implementation.
+Reusable AI compliance tools and analysis agents. The framework uses the packaged [Open Knowledge
+Framework (OKF)](packages/compliance-core/src/compliance_core/data/okf/) catalog to produce typed
+compliance context for projects and compliance objectives for datasets and models. It includes a
+framework-neutral core, MCP and REST adapters for host-driven/delegated analysis, and a separate
+Google ADK integration. This repository no longer contains the
+earlier `src/compliance_agent` LangChain implementation.
 
 ## Architecture
 
-- `adk/compliance_adk/contracts/` contains the shared Pydantic request, response, and output models.
-- `adk/compliance_adk/knowledge/` provides cached, read-only tools for the OKF catalog.
+- `packages/compliance-core/src/compliance_core/` contains reusable contracts, validation,
+  knowledge access, state stores, service logic, ports, and the canonical tool catalog. Core
+  imports do not require Google ADK.
+- `packages/compliance-dh/src/compliance_dh/` provides DigitalHub repositories and SDK operations
+  without importing ADK.
+- `packages/compliance-skills/src/compliance_skills/skills/` is the canonical portable skills
+  package.
+- `packages/compliance-api/src/compliance_api/` provides the standalone FastAPI/LiteLLM service
+  without Google ADK.
+- `packages/compliance-mcp/src/compliance_mcp/` adapts the catalog to MCP tools, resources, and
+  prompts. The MCP distribution has no Google ADK dependency.
 - `adk/compliance_adk/agents/` defines the project-context, dataset, model, and interactive coordinator agents.
 - `adk/compliance_adk/runtime/` runs structured agents, validates their output, and returns grounding metadata.
-- `adk/compliance_adk/api/` exposes the structured agents through FastAPI.
-- `adk/compliance_adk/skills/` contains the procedures and output examples used by the agents.
+- `integrations/` contains generated Copilot/VS Code, Claude Code, and OpenCode bundles. The
+  generated skill copies are synchronized from `compliance-skills`.
 - `adk/{compliance_agent,project_context_agent,dataset_agent,model_agent}/` provides entry points for `adk web`.
-- `okb/` defines the compliance object schemas; `okf/` contains the associated knowledge catalog.
+
+All Python components are shipped in one distribution, `ai-compliance-platform`. The component
+directories under `packages/` and `adk/` remain separate source and import packages, but are no
+longer independently installable distributions. Optional extras select runtime dependencies:
+`api`, `mcp`, `adk`, or `server` (API and MCP without Google ADK). For example,
+`pip install "ai-compliance-platform[server]"` installs the server adapters without Google ADK.
 
 The structured API accepts project, dataset, and model definitions directly. Dataset and model requests
 can include project context from an earlier analysis. Responses have a `data` object and `meta` with
@@ -25,17 +40,19 @@ support, not legal advice.
 ## Requirements
 
 - Python 3.11 or newer
-- Access to an LLM supported by LiteLLM (for example, OpenAI-compatible providers or the included
-	[LiteLLM gateway](litellm/docker-compose.yml))
+- [uv](https://docs.astral.sh/uv/)
+- An LLM provider supported by LiteLLM is required for the ADK integration and standalone REST API.
+  The default host-driven MCP workflow uses the host's model and does not require separate LLM
+  credentials.
+- DigitalHub credentials are needed only when using DigitalHub entity lookup or specification
+  operations; DigitalHub integration is enabled by default.
 
-## Setup
+## Google ADK setup
 
+This installs the unified project with the optional Google ADK runtime dependencies:
 ```bash
-cd adk
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-cp .env.example .env
+uv sync --extra adk
+cp adk/.env.example adk/.env
 ```
 
 Edit `adk/.env` and set `STRUCTURED_MODEL` and `COORDINATOR_MODEL` to LiteLLM model IDs. Configure
@@ -48,21 +65,62 @@ provider credentials using the variables expected by your LiteLLM provider. For 
 | `COORDINATOR_MODEL` | Model for interactive compliance questions and reasoning |
 | `PROJECT_CONTEXT_AGENT_MODEL_NAME`, `DATA_ANALYSIS_AGENT_MODEL_NAME`, `MODEL_ANALYSIS_AGENT_MODEL_NAME`, `ROOT_AGENT_MODEL_NAME` | Optional per-agent overrides and legacy names |
 | `LLM_API_BASE`, `LLM_API_KEY` | Optional LiteLLM gateway URL and key |
-| `API_KEYS` | Optional comma-separated API keys; unset disables authentication for local development |
-| `CORS_ORIGINS` | Optional comma-separated allowed browser origins |
-| `MAX_CONCURRENCY`, `REQUEST_TIMEOUT_S`, `MAX_VALIDATION_RETRIES` | Request execution and retry limits |
-| `OKF_PATH` | Optional OKF bundle path; defaults to this repository's `okf/` directory |
+| `MAX_CONCURRENCY`, `REQUEST_TIMEOUT_S`, `MAX_VALIDATION_RETRIES` | ADK runner concurrency, timeout, and validation retry limits |
+| `OKF_PATH` | Optional OKF bundle path; defaults to the packaged core bundle |
+| `COMPLIANCE_WORKSPACE` | Optional default MCP workspace path; defaults to the process working directory |
 
-`STRUCTURED_THINKING_BUDGET` and `COORDINATOR_THINKING_BUDGET` are optional Gemini-specific settings.
-See [`adk/.env.example`](adk/.env.example) for the complete configuration list.
+The optional `STRUCTURED_THINKING_BUDGET` and `COORDINATOR_THINKING_BUDGET` settings apply only to
+Gemini models. See [`adk/.env.example`](adk/.env.example) for the complete configuration list.
 
-## Run the API
+## MCP host integration
 
-From the `adk/` directory with the virtual environment activated:
+The MCP adapter defaults to host-driven analysis: the host model gathers inputs, uses the OKF tools,
+requests the output schema, validates the generated result, and records valid results in the current
+workspace's `.compliance/state.json`. DigitalHub entity lookup and specification tools are enabled
+by default; configure DigitalHub credentials in the environment. Delegated internal LLM analysis is
+opt-in.
+
+Install the unified distribution with MCP dependencies and run the stdio server from the repository:
 
 ```bash
-python -m uvicorn compliance_adk.api.app:app --host 127.0.0.1 --port 8100
+uv sync --extra mcp
+uv run --extra mcp compliance-mcp
 ```
+
+Host bundles include copies of the portable skills and host-specific MCP configuration. Install
+the MCP extra first (as above), then use the relevant bundle. The host process must be able to resolve
+the `compliance-mcp` executable through its `PATH`; for a source checkout, configure the host to
+launch the command through `uv run --project <repository> --extra mcp compliance-mcp`.
+Replace `<repository>` with the absolute path to this checkout.
+
+- **Copilot/VS Code:** copy `integrations/copilot/.github/skills/` into the workspace's
+  `.github/skills/` and `integrations/copilot/.vscode/mcp.json` into `.vscode/mcp.json`.
+- **Claude Code:** load `integrations/claude-code/` with `claude --plugin-dir` or install it as a
+  plugin. Its manifest exposes the `compliance-mcp` executable and the bundled skills.
+- **OpenCode:** copy `integrations/opencode/.opencode/skills/` into the workspace and merge
+  `integrations/opencode/opencode.json` into the workspace OpenCode configuration.
+
+Each host launches the MCP server from its process environment. Set DigitalHub credentials there as
+required; no credentials are stored in the bundles. Analysis state remains in the active workspace's
+`.compliance/` directory. Regenerate or verify checked-in bundles with
+`python scripts/sync_host_plugins.py` and `python scripts/sync_host_plugins.py --check`.
+
+The unified distribution builds as one wheel or source distribution and is not yet published to a
+package index. The ADK extra installs Google ADK; the API, MCP, and server extras do not.
+
+## Run the standalone API
+
+Install the unified distribution with API dependencies, then run the service:
+
+```bash
+uv sync --extra api
+uv run --extra api compliance-api
+```
+
+Configure `STRUCTURED_MODEL` and provider credentials (or `LLM_API_BASE` and `LLM_API_KEY` for a
+LiteLLM gateway) in the API process environment. Optional API keys, CORS, and request limits are
+documented in [`packages/compliance-api/.env.example`](packages/compliance-api/.env.example). This
+service uses LiteLLM and does not install Google ADK.
 
 - OpenAPI documentation: <http://127.0.0.1:8100/docs>
 - Liveness: `GET /health`
@@ -85,28 +143,29 @@ curl -X POST http://127.0.0.1:8100/v1/compliance/context \
 	}'
 ```
 
-If `API_KEYS` is configured, include `-H 'X-API-Key: your-key'` in the request. Invalid request
+If `API_KEYS` is configured, include
+`-H 'X-API-Key: your-key'` in the request. Invalid request
 payloads return 422; upstream, timeout, and repeatedly invalid model output errors return structured
 error responses with request IDs.
 
 ## Interactive Development UI
 
-From `adk/`, run:
+Install the ADK package separately when using Google ADK:
 
 ```bash
-adk web --port 8000
+uv run --project . --extra adk --directory adk adk web --port 8000
 ```
 
-The ADK UI discovers the coordinator and the three structured agent entry points. It is for development;
-the FastAPI service above is the HTTP API. A React console is not included in this checkout; client
+The ADK UI discovers the coordinator and the three structured agent entry points. It is for development.
+A React console is not included in this checkout; client
 applications can integrate with the versioned endpoints.
 
 ## Tests
 
-Tests use a scripted model, so they do not require provider credentials or make real LLM calls:
+Tests use scripted models and fakes, so they do not require provider credentials or make real LLM
+calls. After syncing all workspace packages:
 
 ```bash
-cd adk
-source .venv/bin/activate
-python -m pytest
+uv sync --extra dev
+uv run pytest
 ```

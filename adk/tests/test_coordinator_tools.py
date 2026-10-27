@@ -4,6 +4,7 @@ import asyncio
 import json
 from types import SimpleNamespace
 
+import pytest
 from google.adk.tools import FunctionTool
 
 from compliance_adk.agents.coordinator import build_coordinator_agent
@@ -14,7 +15,8 @@ from compliance_adk.agents.coordinator_tools import (
     analyze_project_context,
     get_session_analyses,
 )
-from compliance_adk.contracts import DatasetInput, ModelInput, ProjectInput
+from compliance_core.contracts import DatasetInput, ModelInput, ProjectInput
+from compliance_dh import tools as dh
 
 from .conftest import DATASET, MODEL, PROJECT, ScriptedLlm, example
 
@@ -23,7 +25,13 @@ def ctx() -> SimpleNamespace:
     return SimpleNamespace(state={})
 
 
-def test_results_are_stored_and_reused_by_later_analyses(make_registry):
+@pytest.fixture
+def empty_dh_repository(monkeypatch):
+    monkeypatch.setattr(dh, "get_project_extension", lambda *args: {})
+    monkeypatch.setattr(dh, "get_entity_extension", lambda *args: {})
+
+
+def test_results_are_stored_and_reused_by_later_analyses(make_registry, empty_dh_repository):
     _, llm = make_registry(example("project-context"), example("dataset-analysis"), example("model-analysis"))
     tool_context = ctx()
 
@@ -44,14 +52,27 @@ def test_results_are_stored_and_reused_by_later_analyses(make_registry):
     assert set(stored["datasets"]) == {DATASET["name"]} and set(stored["models"]) == {MODEL["name"]}
 
 
-def test_tool_errors_are_returned_not_raised(make_registry):
+def test_tool_errors_are_returned_not_raised(make_registry, empty_dh_repository):
     _, llm = make_registry()
     llm.fail_with = RuntimeError("boom")
     out = asyncio.run(analyze_project_context(ProjectInput(**PROJECT), ctx()))
     assert out["code"] == "upstream_model_error"
 
 
-def test_project_context_accepts_serialized_project_input(make_registry):
+def test_dh_lookup_failures_are_reported_before_analysis(make_registry, monkeypatch):
+    make_registry(example("project-context"))
+
+    def unavailable(*args):
+        raise ConnectionError("DH unavailable")
+
+    monkeypatch.setattr(dh, "get_project_extension", unavailable)
+    out = asyncio.run(analyze_project_context(ProjectInput(**PROJECT), ctx()))
+
+    assert out["code"] == "dh_error"
+    assert "DH unavailable" in out["error"]
+
+
+def test_project_context_accepts_serialized_project_input(make_registry, empty_dh_repository):
     make_registry(example("project-context"))
     out = asyncio.run(analyze_project_context(json.dumps(PROJECT), ctx()))
     assert out["data"]["risk_classification"]["risk_level"] == "HIGH"
@@ -72,7 +93,7 @@ def test_coordinator_agent_is_built(settings):
     assert len(agent.tools) == 5  # skill toolset + four function tools
 
 
-def test_coordinator_runs_analysis_end_to_end(make_registry, settings):
+def test_coordinator_runs_analysis_end_to_end(make_registry, settings, empty_dh_repository):
     from google.adk.runners import Runner
     from google.adk.sessions import InMemorySessionService
     from google.genai import types
@@ -91,7 +112,14 @@ def test_coordinator_runs_analysis_end_to_end(make_registry, settings):
         sessions = InMemorySessionService()
         runner = Runner(agent=agent, app_name="t", session_service=sessions)
         session = await sessions.create_session(app_name="t", user_id="u")
-        message = types.Content(role="user", parts=[types.Part(text="Analyse my credit scoring project")])
+        message = types.Content(
+            role="user",
+            parts=[
+                types.Part(
+                    text="Use delegated analysis to analyse my credit scoring project."
+                )
+            ],
+        )
         events = [e async for e in runner.run_async(user_id="u", session_id=session.id, new_message=message)]
         return events, await sessions.get_session(app_name="t", user_id="u", session_id=session.id)
 
@@ -103,7 +131,7 @@ def test_coordinator_runs_analysis_end_to_end(make_registry, settings):
 
 
 def test_structured_agent_works_with_models_lacking_native_schema_and_tools(settings):
-    from compliance_adk.contracts import ProjectInput
+    from compliance_core.contracts import ProjectInput
     from compliance_adk.runtime import RunnerRegistry
     from google.adk.models._capabilities import LlmCapabilities
 

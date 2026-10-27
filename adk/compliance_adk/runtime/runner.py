@@ -19,16 +19,16 @@ from pydantic import BaseModel, ValidationError
 from ..agents.specs import StructuredAgentSpec
 from ..agents.structured import build_structured_agent
 from ..config import Settings, get_settings
-from ..contracts import AnalysisMeta, AnalysisResponse, TokenUsage
-from ..errors import (
+from compliance_core.contracts import AnalysisMeta, AnalysisResponse, TokenUsage
+from compliance_core.errors import (
     AnalysisTimeout,
-    ComplianceAdkError,
+    ComplianceError,
     OutputValidationError,
     UpstreamModelError,
     UpstreamRateLimited,
 )
-from ..knowledge import OkfBundle, get_bundle
-from .validation import VALIDATORS, Issue
+from compliance_core.knowledge import OkfBundle, get_bundle
+from compliance_core.validation import Issue, VALIDATORS
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class _Trace:
                 self._collect_paths(value)
 
 
-def _map_upstream(exc: Exception) -> ComplianceAdkError:
+def _map_upstream(exc: Exception) -> ComplianceError:
     if getattr(exc, "status_code", None) == 429 or "RateLimit" in type(exc).__name__:
         return UpstreamRateLimited("The model provider rate limit was reached")
     return UpstreamModelError(f"{type(exc).__name__}: {str(exc)[:300]}")
@@ -176,7 +176,7 @@ class StructuredRunner:
                 trace.observe(event)
                 if event.is_final_response() and event.content and event.content.parts:
                     final_text = "".join(p.text or "" for p in event.content.parts)
-        except ComplianceAdkError:
+        except ComplianceError:
             raise
         except ValidationError as exc:
             raise _Rejected(_schema_problems(exc)) from exc

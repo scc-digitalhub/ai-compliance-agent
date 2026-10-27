@@ -1,0 +1,41 @@
+{
+  "result": {
+    "objectives": [
+      {
+        "name": "Demographic parity",
+        "description": "Positive prediction rates must not differ materially across protected groups.",
+        "metric": {
+          "id": "metric-demographic-parity-difference",
+          "name": "Demographic Parity Difference",
+          "kind": "PRIMITIVE",
+          "scale": "RATIO",
+          "unit": { "symbol": "Δ", "name": "rate difference" },
+          "range": { "lower": -1.0, "upper": 1.0, "discrete": false, "categories": null }
+        },
+        "condition": { "range": { "lower": -0.05, "upper": 0.05, "inclusive": true } },
+        "priority": "MANDATORY",
+        "severity": "HIGH",
+        "requirements": ["req-euai-art-10", "req-euai-art-15"],
+        "rationale": "The model makes decisions about individuals and must not discriminate."
+      },
+      {
+        "name": "Ranking quality",
+        "description": "The model must keep acceptable discrimination performance.",
+        "metric": {
+          "id": "metric-auc-roc",
+          "name": "AUC-ROC (Area Under ROC Curve)",
+          "kind": "PRIMITIVE",
+          "scale": "RATIO",
+          "unit": { "symbol": "AUC", "name": "area" },
+          "range": { "lower": 0.0, "upper": 1.0, "discrete": false, "categories": null }
+        },
+        "condition": { "threshold": { "operator": "GEQ", "value": 0.85 } },
+        "priority": "RECOMMENDED",
+        "severity": "MEDIUM",
+        "requirements": ["req-euai-art-15"],
+        "rationale": "Art. 15 requires an appropriate level of accuracy."
+      }
+    ]
+  },
+  "assumptions": ["Thresholds are initial proposals and must be validated against the intended use."]
+}

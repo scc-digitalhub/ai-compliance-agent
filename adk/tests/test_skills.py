@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 
 import pytest
+from google.adk.tools import FunctionTool
 
 from compliance_adk.skill_loader import TOOL_REGISTRY, load_skill, render_instruction, skill_tool_names, skill_tools
 
@@ -27,6 +28,25 @@ def test_declared_tools_exist(name):
     skill = load_skill(name)
     assert set(skill_tool_names(skill)) <= set(TOOL_REGISTRY)
     assert len(skill_tools(skill)) == len(skill_tool_names(skill))
+
+
+@pytest.mark.parametrize("name", SKILL_NAMES)
+def test_skill_tool_allowlist_uses_portable_frontmatter(name):
+    skill = load_skill(name)
+    declared = set(skill_tool_names(skill))
+
+    assert isinstance(skill.frontmatter.allowed_tools, str)
+    assert declared <= set(skill.frontmatter.allowed_tools.split())
+    assert isinstance(skill.frontmatter.metadata["compliance-tools"], str)
+
+
+@pytest.mark.parametrize("name", ["project-context", "dataset-analysis", "model-analysis"])
+def test_host_driven_adk_skill_tools_hide_runtime_context(name):
+    skill = load_skill(name)
+    for fn in skill_tools(skill):
+        declaration = FunctionTool(fn)._get_declaration()
+        schema = declaration.parameters_json_schema or declaration.parameters
+        assert "tool_context" not in str(schema)
 
 
 @pytest.mark.parametrize("name", SKILL_NAMES)

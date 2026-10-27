@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel
 
 from ..config import ModelRole
-from ..contracts import (
+from compliance_core.contracts import (
     DatasetAgentOutput,
     DatasetAnalysisRequest,
     ModelAgentOutput,

@@ -12,8 +12,8 @@ from google.genai import types
 from compliance_adk.agents.coordinator import COORDINATOR_SKILLS, INSTRUCTION, build_coordinator_agent
 from compliance_adk.agents.coordinator_tools import get_session_analyses
 from compliance_adk.agents.entity_tools import ENTITY_TOOL_REGISTRY, get_entity_details
-from compliance_adk.agents.session_state import DATASETS_KEY, ENTITIES_KEY
-from compliance_adk.dh import tools as dh
+from compliance_core.state import DATASETS_KEY, ENTITIES_KEY
+from compliance_dh import tools as dh
 from compliance_adk.skill_loader import TOOL_REGISTRY, load_skill
 
 from .conftest import ScriptedLlm, example

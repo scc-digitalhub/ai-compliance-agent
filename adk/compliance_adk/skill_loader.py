@@ -9,32 +9,50 @@ from google.adk.skills import load_skill_from_dir
 from google.adk.skills.models import Skill
 
 from .agents.entity_tools import ENTITY_TOOL_REGISTRY
+from .agents.host_tools import HOST_TOOL_REGISTRY
+from .agents.knowledge_tools import TOOL_REGISTRY as OKF_TOOL_REGISTRY
 from .agents.specification_tools import SPECIFICATION_TOOL_REGISTRY
 from .config import get_settings
-from .errors import ConfigError
-from .knowledge.tools import TOOL_REGISTRY as OKF_TOOL_REGISTRY
+from compliance_core.errors import ConfigurationError
 
 EXAMPLE_REFERENCE = "example.json"
 TOOL_REGISTRY: dict[str, Callable[..., Any]] = {
     **OKF_TOOL_REGISTRY,
     **SPECIFICATION_TOOL_REGISTRY,
     **ENTITY_TOOL_REGISTRY,
+    **HOST_TOOL_REGISTRY,
 }
 
 
 @lru_cache
 def load_skill(name: str) -> Skill:
-    return load_skill_from_dir(get_settings().skills_path / name)
+    skill = load_skill_from_dir(get_settings().skills_path / name)
+    metadata = skill.frontmatter.metadata
+    if "compliance-tools" in metadata and "adk_additional_tools" not in metadata:
+        metadata["adk_additional_tools"] = skill_tool_names(skill)
+    return skill
 
 
 def skill_tool_names(skill: Skill) -> list[str]:
-    return list(skill.frontmatter.metadata.get("adk_additional_tools", []))
+    metadata = skill.frontmatter.metadata
+    portable = metadata.get("compliance-tools")
+    legacy = metadata.get("adk_additional_tools")
+    raw = portable if portable is not None else legacy
+    if isinstance(raw, str):
+        return [name.strip() for name in raw.split(",") if name.strip()]
+    if isinstance(raw, list) and all(isinstance(name, str) for name in raw):
+        return raw
+    if raw is None:
+        return []
+    raise ConfigurationError(
+        f"Skill '{skill.name}' must declare compliance-tools as a comma-separated string"
+    )
 
 
 def skill_tools(skill: Skill) -> list[Callable[..., Any]]:
     unknown = [n for n in skill_tool_names(skill) if n not in TOOL_REGISTRY]
     if unknown:
-        raise ConfigError(f"Skill '{skill.name}' declares unknown tools: {unknown}")
+        raise ConfigurationError(f"Skill '{skill.name}' declares unknown tools: {unknown}")
     return [TOOL_REGISTRY[n] for n in skill_tool_names(skill)]
 
 

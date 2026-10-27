@@ -5,7 +5,7 @@ from google.adk.models.base_llm import BaseLlm
 
 from ..agents.specs import ALL_SPECS
 from ..config import Settings, get_settings
-from ..knowledge import OkfBundle, get_bundle
+from compliance_core.knowledge import OkfBundle, get_bundle
 from .runner import StructuredRunner
 
 

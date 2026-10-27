@@ -1,0 +1,11 @@
+{
+  "name": "ai-compliance",
+  "version": "0.1.0",
+  "description": "Portable AI compliance skills and MCP tools.",
+  "mcpServers": {
+    "ai-compliance": {
+      "command": "compliance-mcp",
+      "args": []
+    }
+  }
+}
