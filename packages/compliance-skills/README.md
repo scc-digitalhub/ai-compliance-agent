@@ -22,3 +22,6 @@ The host's selected model is used; no model or credentials are embedded in the d
 Host-driven analysis is the default. Delegated analysis additionally requires server-side delegated
 mode and LLM configuration. DigitalHub errors are reported rather than silently bypassed, and writing
 specifications to DigitalHub requires an explicit user request.
+DigitalHub project selection also comes from the user's request or previously established context,
+not the process environment. Dataset/model entity and specification tools accept an explicit
+`project` argument or a full `store://` key; the agent asks when the project is missing or ambiguous.

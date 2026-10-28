@@ -36,19 +36,19 @@ def dh_entities(monkeypatch):
     }
     calls: list[tuple[str, str]] = []
 
-    def get_entity(entity, entity_kind):
+    def get_entity(entity, entity_kind, *, project=None):
         calls.append((entity, entity_kind))
         return store.get((entity_kind, entity), {})
 
     monkeypatch.setattr(dh, "get_entity", get_entity)
     # no specification is stored, so analyses always run
-    monkeypatch.setattr(dh, "get_entity_extension", lambda *a: {})
+    monkeypatch.setattr(dh, "get_entity_extension", lambda *a, **kw: {})
     monkeypatch.setattr(dh, "get_project_extension", lambda *a: {})
     return SimpleNamespace(data=store, calls=calls)
 
 
 def ctx(**state) -> SimpleNamespace:
-    return SimpleNamespace(state=dict(state))
+    return SimpleNamespace(state={"analysis_project": {"name": "credit"}, **state})
 
 
 @pytest.mark.parametrize(
@@ -61,7 +61,7 @@ def test_details_are_retrieved_from_dh_and_kept_in_the_session(dh_entities, kind
 
     assert out == {"kind": kind, "entity": entity, "source": "dh", "details": details}
     assert dh_entities.calls == [(entity, kind)]
-    assert tool_context.state[ENTITIES_KEY] == {kind: {entity: details}}
+    assert tool_context.state[ENTITIES_KEY] == {kind: {f"credit/{entity}": details}}
 
 
 def test_later_calls_reuse_the_session_without_calling_dh(dh_entities):
@@ -84,7 +84,7 @@ def test_refresh_reloads_the_details_from_dh(dh_entities):
     out = get_entity_details("dataset", "applications-2024", tool_context, refresh=True)
 
     assert out["source"] == "dh" and out["details"]["metadata"]["description"] == "changed"
-    assert tool_context.state[ENTITIES_KEY]["dataset"]["applications-2024"]["metadata"]["description"] == "changed"
+    assert tool_context.state[ENTITIES_KEY]["dataset"]["credit/applications-2024"]["metadata"]["description"] == "changed"
     assert len(dh_entities.calls) == 2
 
 
@@ -96,7 +96,7 @@ def test_entities_of_both_kinds_coexist_in_the_session(dh_entities):
 
     entities = get_session_analyses(tool_context)["entities"]
     assert set(entities) == {"dataset", "model"}
-    assert set(entities["dataset"]) == {"applications-2024"} and set(entities["model"]) == {"credit-model"}
+    assert set(entities["dataset"]) == {"credit/applications-2024"} and set(entities["model"]) == {"credit/credit-model"}
     assert tool_context.state[DATASETS_KEY] == {"other": {"kept": True}}  # analyses are untouched
 
 
@@ -110,7 +110,7 @@ def test_missing_entity_is_reported_and_not_cached(dh_entities):
 
 
 def test_platform_failures_are_returned_not_raised(monkeypatch):
-    def boom(entity, entity_kind):
+    def boom(entity, entity_kind, *, project=None):
         raise ConnectionError("unreachable")
 
     monkeypatch.setattr(dh, "get_entity", boom)
@@ -119,7 +119,7 @@ def test_platform_failures_are_returned_not_raised(monkeypatch):
     out = get_entity_details("dataset", "applications-2024", tool_context)
 
     assert out["code"] == "dh_error" and "unreachable" in out["error"]
-    assert tool_context.state == {}
+    assert tool_context.state == {"analysis_project": {"name": "credit"}}
 
 
 def test_unknown_kind_is_rejected(dh_entities):
@@ -132,7 +132,7 @@ def test_tool_is_registered_and_its_declaration_builds():
     declaration = FunctionTool(get_entity_details)._get_declaration()
     schema = str(declaration.parameters_json_schema or declaration.parameters)
     assert "tool_context" not in schema
-    assert all(word in schema for word in ("dataset", "model", "refresh"))
+    assert all(word in schema for word in ("dataset", "model", "refresh", "project"))
 
 
 def test_guidance_tells_the_agent_to_reuse_and_refresh_only_on_request():
@@ -143,11 +143,14 @@ def test_guidance_tells_the_agent_to_reuse_and_refresh_only_on_request():
 
 
 LOAD_SKILL = {"call": "load_skill", "args": {"skill_name": "entity-details"}}
-GET_DATASET = {"call": "get_entity_details", "args": {"kind": "dataset", "entity": "applications-2024"}}
+GET_DATASET = {"call": "get_entity_details", "args": {"kind": "dataset", "entity": "applications-2024", "project": "credit"}}
 REFRESH_DATASET = {**GET_DATASET, "args": {**GET_DATASET["args"], "refresh": True}}
 ANALYSE_DATASET = {
     "call": "analyze_dataset",
-    "args": {"dataset": {"name": "applications-2024", "scope": "TRAINING", "description": "Loan applications received in 2024"}},
+    "args": {
+        "dataset": {"name": "applications-2024", "scope": "TRAINING", "description": "Loan applications received in 2024"},
+        "project": {"name": "credit", "domain": {"domain": "finance"}, "ai_task": "CLASSIFICATION", "goal": "Score credit"},
+    },
 }
 
 
@@ -182,13 +185,13 @@ def test_coordinator_analyses_a_dataset_by_name_end_to_end(make_registry, settin
         model=ScriptedLlm(script=[LOAD_SKILL, GET_DATASET, ANALYSE_DATASET, "Dataset analysed."], seen_messages=[]),
     )
 
-    (turn,), session = run_turns(agent, "Run the compliance analysis of dataset applications-2024")
+    (turn,), session = run_turns(agent, "Run the compliance analysis of dataset applications-2024 in project credit")
 
     assert turn[-1].content.parts[0].text == "Dataset analysed."
     assert responses(turn, "get_entity_details")[0]["details"] == DATASET_DETAILS
     assert "data" in responses(turn, "analyze_dataset")[0]
     assert len(analysis_llm.seen_messages) == 1 and "applications-2024" in analysis_llm.seen_messages[0]
-    assert session.state[ENTITIES_KEY]["dataset"]["applications-2024"] == DATASET_DETAILS
+    assert session.state[ENTITIES_KEY]["dataset"]["credit/applications-2024"] == DATASET_DETAILS
     assert "applications-2024" in session.state[DATASETS_KEY]
 
 
@@ -202,7 +205,7 @@ def test_coordinator_reuses_details_across_turns_and_refreshes_on_request(settin
     )
 
     (first, second, third), session = run_turns(
-        agent, "Get dataset applications-2024", "Show it again", "Refresh it, it changed on the platform"
+        agent, "Get dataset applications-2024 in project credit", "Show it again", "Refresh it, it changed on the platform"
     )
 
     assert responses(first, "get_entity_details")[0]["source"] == "dh"

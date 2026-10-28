@@ -18,6 +18,13 @@ MODELS_KEY = "analysis_models"
 ENTITIES_KEY = "dh_entities"
 
 
+def entity_project(state: StateStore, project: str | None) -> str | None:
+    """Use a project argument or the project explicitly established in the workspace."""
+    if project is None:
+        project = (state.get(PROJECT_KEY) or {}).get("name")
+    return project.strip() if project and project.strip() else None
+
+
 class StateStore(Protocol):
     """Mutable JSON-compatible state exposed to compliance tools."""
 

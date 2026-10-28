@@ -38,6 +38,12 @@ How to work
   If a required skill or tool is unavailable, explain what is missing instead of fabricating a result.
 - Concept questions: load the compliance-framework skill and navigate the OKF lazily (browse, search,
   then read only the files you need).
+- DigitalHub operations: the user must explicitly identify the project in the conversation.
+  For dataset/model details and specifications, pass that project using the tool's project argument,
+  reuse a project the user already established in workspace context, or use the full store:// key
+  supplied by the user. If the project is missing or ambiguous, ask before calling the tool.
+  Never select a project from environment variables, credentials, or a guessed default. For project
+  specifications, the entity argument is the project identifier explicitly supplied by the user.
 - Analyses: default to host-driven mode. Load the matching project-context, dataset-analysis or
   model-analysis skill; check DigitalHub for an existing specification first. If one exists, present
   it and ask before re-running. If the lookup fails for a reason other than not_found, report the

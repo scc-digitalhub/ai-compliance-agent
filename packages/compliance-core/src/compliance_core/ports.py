@@ -12,13 +12,16 @@ EntityKind = Literal["dataset", "model"]
 
 
 class SpecificationRepository(Protocol):
-    def get(self, kind: SpecificationKind, entity: str) -> dict[str, Any]: ...
+    def get(self, kind: SpecificationKind, entity: str, project: str | None = None) -> dict[str, Any]: ...
 
-    def save(self, kind: SpecificationKind, entity: str, specification: dict[str, Any]) -> None: ...
+    def save(
+        self, kind: SpecificationKind, entity: str, specification: dict[str, Any],
+        project: str | None = None,
+    ) -> None: ...
 
 
 class EntityCatalog(Protocol):
-    def get(self, kind: EntityKind, entity: str) -> dict[str, Any]: ...
+    def get(self, kind: EntityKind, entity: str, project: str | None = None) -> dict[str, Any]: ...
 
 
 class AnalysisEngine(Protocol):

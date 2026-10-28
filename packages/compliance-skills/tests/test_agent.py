@@ -33,6 +33,8 @@ def test_agent_preserves_coordinator_guardrails():
         "not get_session_analyses",
         "Never invent catalog ids",
         "not legal advice",
+        "user must explicitly identify the project",
+        "Never select a project from environment variables",
     ):
         assert rule in instructions
 

@@ -28,7 +28,7 @@ def ctx() -> SimpleNamespace:
 @pytest.fixture
 def empty_dh_repository(monkeypatch):
     monkeypatch.setattr(dh, "get_project_extension", lambda *args: {})
-    monkeypatch.setattr(dh, "get_entity_extension", lambda *args: {})
+    monkeypatch.setattr(dh, "get_entity_extension", lambda *args, **kwargs: {})
 
 
 def test_results_are_stored_and_reused_by_later_analyses(make_registry, empty_dh_repository):
@@ -70,6 +70,41 @@ def test_dh_lookup_failures_are_reported_before_analysis(make_registry, monkeypa
 
     assert out["code"] == "dh_error"
     assert "DH unavailable" in out["error"]
+
+
+@pytest.mark.parametrize(
+    ("tool", "input_data"),
+    [(analyze_dataset, DATASET), (analyze_model, MODEL)],
+)
+def test_entity_analysis_requires_project_context_before_dh_lookup_or_generation(
+    make_registry, empty_dh_repository, monkeypatch, tool, input_data
+):
+    _, llm = make_registry()
+    monkeypatch.setenv("DH_PROJECT", "environment-project")
+    result = asyncio.run(tool(input_data, ctx()))
+    assert result["code"] == "missing_project"
+    assert llm.seen_messages == []
+
+
+@pytest.mark.parametrize(
+    ("tool", "input_data", "result_skill"),
+    [(analyze_dataset, DATASET, "dataset-analysis"), (analyze_model, MODEL, "model-analysis")],
+)
+def test_explicit_project_is_used_for_delegated_specification_lookup(
+    make_registry, monkeypatch, tool, input_data, result_skill
+):
+    make_registry(example(result_skill))
+    calls = []
+
+    def get_extension(*args, project=None):
+        calls.append(project)
+        return {}
+
+    monkeypatch.setenv("DH_PROJECT", "environment-project")
+    monkeypatch.setattr(dh, "get_entity_extension", get_extension)
+    result = asyncio.run(tool(input_data, ctx(), project=ProjectInput(**PROJECT)))
+    assert "data" in result
+    assert calls == [PROJECT["name"]]
 
 
 def test_project_context_accepts_serialized_project_input(make_registry, empty_dh_repository):

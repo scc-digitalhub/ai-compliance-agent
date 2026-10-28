@@ -33,7 +33,7 @@ def dh_store(monkeypatch):
         calls.append(("get_project", project, extension_kind))
         return store.get(("project", project, extension_kind), {})
 
-    def get_entity(entity, entity_kind, extension_kind):
+    def get_entity(entity, entity_kind, extension_kind, *, project=None):
         calls.append(("get_entity", entity, entity_kind, extension_kind))
         return store.get((entity_kind, entity, extension_kind), {})
 
@@ -41,7 +41,7 @@ def dh_store(monkeypatch):
         calls.append(("save_project", project, extension_kind))
         store[("project", project, extension_kind)] = extension
 
-    def save_entity(entity, entity_kind, extension_kind, extension):
+    def save_entity(entity, entity_kind, extension_kind, extension, *, project=None):
         calls.append(("save_entity", entity, entity_kind, extension_kind))
         store[(entity_kind, entity, extension_kind)] = extension
 
@@ -118,8 +118,8 @@ def test_save_stores_the_analysed_specifications_under_the_dh_extension_kinds(dh
 
 def test_get_returns_the_stored_specification_and_loads_it_into_the_session(dh_store):
     save_compliance_specification("project", "p1", ctx(**project_state("p1")))
-    save_compliance_specification("dataset", "d1", ctx(**{DATASETS_KEY: {"d1": dataset_spec()}}))
-    save_compliance_specification("model", "m1", ctx(**{MODELS_KEY: {"m1": model_spec()}}))
+    save_compliance_specification("dataset", "d1", ctx(**{DATASETS_KEY: {"d1": dataset_spec()}}), project="p1")
+    save_compliance_specification("model", "m1", ctx(**{MODELS_KEY: {"m1": model_spec()}}), project="p1")
 
     fresh = ctx()
     project = get_compliance_specification("project", "p1", fresh)
@@ -139,8 +139,8 @@ def test_get_returns_the_stored_specification_and_loads_it_into_the_session(dh_s
 def test_save_accepts_an_explicit_specification_as_object_or_json_text(dh_store):
     first, second = ctx(), ctx()
 
-    as_object = save_compliance_specification("model", "m1", first, specification=model_spec())
-    as_text = save_compliance_specification("model", "m2", second, specification=json.dumps(model_spec()))
+    as_object = save_compliance_specification("model", "m1", first, specification=model_spec(), project="p1")
+    as_text = save_compliance_specification("model", "m2", second, specification=json.dumps(model_spec()), project="p1")
 
     assert as_object["source"] == as_text["source"] == "argument"
     assert {k[1] for k in dh_store.data} == {"m1", "m2"}
@@ -148,7 +148,7 @@ def test_save_accepts_an_explicit_specification_as_object_or_json_text(dh_store)
 
 
 def test_save_without_an_analysis_reports_not_found_and_writes_nothing(dh_store):
-    out = save_compliance_specification("dataset", "unknown", ctx(**{DATASETS_KEY: {"other": dataset_spec()}}))
+    out = save_compliance_specification("dataset", "unknown", ctx(**{DATASETS_KEY: {"other": dataset_spec()}}), project="p1")
     assert out["code"] == "not_found"
     assert dh_store.data == {} and dh_store.calls == []
 
@@ -168,7 +168,7 @@ def test_get_reports_missing_and_invalid_stored_specifications(dh_store):
 
     dh_store.data[("dataset", "d1", "data-compliance")] = {"scope": "NOT-A-SCOPE"}
     fresh = ctx()
-    out = get_compliance_specification("dataset", "d1", fresh)
+    out = get_compliance_specification("dataset", "d1", fresh, project="p1")
 
     assert out["code"] == "invalid_specification"
     assert fresh.state == {}  # nothing invalid reaches the session
@@ -221,7 +221,7 @@ def test_unknown_kind_is_rejected(dh_store):
 
 
 def test_platform_failures_are_returned_as_dh_errors(dh_store, monkeypatch):
-    def unreachable(*args):
+    def unreachable(*args, **kwargs):
         raise ConnectionError("unreachable")
 
     monkeypatch.setattr(dh, "get_entity_extension", unreachable)
@@ -383,7 +383,7 @@ def test_dataset_and_model_analyses_check_dh_first(dh_store, tool_name, kind, en
     from .conftest import DATASET, MODEL
 
     dh_store.data[(kind, entity, extension_kind)] = spec()
-    tool_context = ctx()
+    tool_context = ctx(**project_state())
 
     out = asyncio.run(getattr(coordinator_tools, tool_name)({"dataset": DATASET, "model": MODEL}[kind], tool_context))
 

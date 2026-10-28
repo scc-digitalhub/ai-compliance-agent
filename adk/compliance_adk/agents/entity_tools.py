@@ -15,7 +15,8 @@ from .tool_adapter import tool_env
 
 
 def get_entity_details(
-    kind: EntityKind, entity: str, tool_context: ToolContext, refresh: bool = False
+    kind: EntityKind, entity: str, tool_context: ToolContext, refresh: bool = False,
+    project: str | None = None,
 ) -> dict[str, Any]:
     """Retrieve the details of a dataset or model registered on the DH platform.
 
@@ -26,8 +27,9 @@ def get_entity_details(
         kind: 'dataset' or 'model'.
         entity: Name of the dataset or model on the DH platform.
         refresh: True only when the user asks to reload the details from the DH platform.
+        project: DigitalHub project explicitly named by the user; defaults to the conversation project.
     """
-    return _get_entity_details(tool_env(tool_context), kind, entity, refresh)
+    return _get_entity_details(tool_env(tool_context), kind, entity, refresh, project=project)
 
 
 ENTITY_TOOL_REGISTRY: dict[str, Callable[..., Any]] = {

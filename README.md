@@ -80,6 +80,13 @@ workspace's `.compliance/state.json`. DigitalHub entity lookup and specification
 by default; configure DigitalHub credentials in the environment. Delegated internal LLM analysis is
 opt-in.
 
+DigitalHub project selection is explicit, not environment-based. For specification and entity
+operations, name the project in the request (for example, "retrieve dataset applications-2024 in
+project credit") or refer to a project already established in the conversation. Dataset/model tools
+accept a `project` argument; a full `store://` key also identifies its project. For project
+specifications, `entity` is the project identifier. The agent asks when the project is missing or
+ambiguous rather than guessing a default.
+
 Install the unified distribution with MCP dependencies and run the stdio server from the repository:
 
 ```bash

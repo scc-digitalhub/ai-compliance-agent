@@ -45,7 +45,10 @@ Rules:
 - Enum fields accept only the values in the output schema.
 
 Host-driven workflow (default):
-1. Call get_compliance_specification(kind='dataset', entity=dataset.name) before generating. If a
+1. Establish the DigitalHub project explicitly from the user's request or earlier context; ask if
+   missing or ambiguous and never use an environment default.
+   Call get_compliance_specification(kind='dataset', entity=dataset.name, project=project.name)
+   before generating (or use a full store:// key supplied by the user). If a
    specification exists, present it and ask whether to re-run; proceed only after the user confirms.
    Continue on not_found. Report other errors and do not silently proceed.
 2. Call get_session_analyses and include available project and project-context data in the analysis

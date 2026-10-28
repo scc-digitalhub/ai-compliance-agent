@@ -35,7 +35,11 @@ Set secrets through the process environment or your organization's secret manage
 tokens or provider keys. MCP uses the host's model for host-driven analysis, so the MCP process does
 not need separate model credentials. DigitalHub tools are enabled by default. To use them, provide
 the DigitalHub environment settings supported by the installed SDK, including `DHCORE_ENDPOINT`,
-an access credential, and `DH_PROJECT`.
+and an access credential. The user must identify the DigitalHub project in the conversation, not
+through environment settings. Pass the selected project to entity/specification tools with `project`,
+reuse a project already established in workspace context, or supply a full `store://` key.
+For project specifications, `entity` is the explicit project identifier. Ask when the project is
+missing or ambiguous.
 
 The MCP workspace defaults to the process working directory. Set `COMPLIANCE_WORKSPACE` if the
 agent should write analysis state to a different project directory. State files can contain
@@ -204,8 +208,8 @@ For an MCP host, configure the host to launch the server on demand. The generate
 `compliance-mcp` directly, which works when the executable is on the host's `PATH`. Since this
 distribution is not published yet, a source checkout can launch it with `uv` instead. Replace
 `/absolute/path/to/ai-compliance-agent` with the checkout path. Keep the MCP process environment
-configured with `DHCORE_ENDPOINT`, the DigitalHub credential, `DH_PROJECT`, and optionally
-`COMPLIANCE_WORKSPACE`.
+configured with `DHCORE_ENDPOINT`, the DigitalHub credential, and optionally `COMPLIANCE_WORKSPACE`.
+Select the DigitalHub project explicitly in the user request or conversation context.
 
 ### VS Code / GitHub Copilot
 

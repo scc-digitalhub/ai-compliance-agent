@@ -11,7 +11,7 @@ def test_dh_adapters_implement_core_repository_ports(monkeypatch) -> None:
     monkeypatch.setattr(
         tools,
         "get_entity",
-        lambda entity, kind: {"name": entity, "kind": kind},
+        lambda entity, kind, project=None: {"name": entity, "kind": kind},
     )
     monkeypatch.setattr(
         tools,

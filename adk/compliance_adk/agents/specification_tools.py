@@ -15,7 +15,7 @@ from .tool_adapter import tool_env
 
 
 def get_compliance_specification(
-    kind: SpecificationKind, entity: str, tool_context: ToolContext
+    kind: SpecificationKind, entity: str, tool_context: ToolContext, project: str | None = None,
 ) -> dict[str, Any]:
     """Retrieve a stored compliance specification from the DH platform.
 
@@ -24,8 +24,9 @@ def get_compliance_specification(
     Args:
         kind: 'project' (project description and compliance context), 'dataset' (data compliance) or 'model'.
         entity: Identifier of the project, dataset or model on the DH platform.
+        project: DigitalHub project explicitly named by the user for a dataset or model.
     """
-    return _get_compliance_specification(tool_env(tool_context), kind, entity)
+    return _get_compliance_specification(tool_env(tool_context), kind, entity, project=project)
 
 
 def save_compliance_specification(
@@ -33,6 +34,7 @@ def save_compliance_specification(
     entity: str,
     tool_context: ToolContext,
     specification: dict[str, Any] | None = None,
+    project: str | None = None,
 ) -> dict[str, Any]:
     """Store a compliance specification on the DH platform, replacing the stored one.
 
@@ -43,9 +45,10 @@ def save_compliance_specification(
         kind: 'project' (project description and compliance context), 'dataset' (data compliance) or 'model'.
         entity: Identifier of the project, dataset or model on the DH platform.
         specification: Optional specification to store instead of the analysed one, as provided by the user.
+        project: DigitalHub project explicitly named by the user for a dataset or model.
     """
     return _save_compliance_specification(
-        tool_env(tool_context), kind, entity, specification=specification
+        tool_env(tool_context), kind, entity, specification=specification, project=project
     )
 
 

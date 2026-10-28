@@ -47,8 +47,10 @@ def test_digitalhub_tools_are_enabled_by_default_and_can_be_disabled() -> None:
         "get_compliance_specification",
         "save_compliance_specification",
     }.isdisjoint(disabled_tools)
-    assert {
-        "get_entity_details",
-        "get_compliance_specification",
-        "save_compliance_specification",
-    }.isdisjoint(disabled_tools)
+
+
+def test_digitalhub_tool_schemas_expose_explicit_project() -> None:
+    tools = {tool.name: tool for tool in create_server()._tool_manager.list_tools()}
+    for name in ("get_entity_details", "get_compliance_specification", "save_compliance_specification"):
+        assert "project" in tools[name].parameters["properties"]
+        assert "env" not in tools[name].parameters["properties"]

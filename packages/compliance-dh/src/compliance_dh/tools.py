@@ -13,10 +13,7 @@ from compliance_core.contracts.results import (
     ModelComplianceOut,
 )
 
-from .settings import get_dh_settings
-
 STORE_KEY_PREFIX = "store://"
-_UNSET = object()
 
 _ENTITY_API: dict[str, tuple[str, str]] = {
     "dataset": ("get_dataitem", "update_dataitem"),
@@ -40,18 +37,17 @@ def _read_entity(
     entity: str,
     entity_kind: str,
     client: Any | None = None,
-    dh_project: str | None | object = _UNSET,
+    project: str | None = None,
 ) -> Any:
-    """Get a dataset or model by store key or name in the configured DH project."""
+    """Get a dataset or model by store key or name in an explicitly identified project."""
     getter, _ = _entity_api(entity_kind, client)
     if entity.startswith(STORE_KEY_PREFIX):
         return getter(entity)
-    project = get_dh_settings().dh_project if dh_project is _UNSET else dh_project
-    if not project:
+    if not project or not project.strip():
         raise ValueError(
-            f"Set DH_PROJECT, or identify {entity_kind} '{entity}' by its store:// key"
+            f"Specify the DigitalHub project for {entity_kind} '{entity}', or provide its store:// key"
         )
-    return getter(entity, project=project)
+    return getter(entity, project=project.strip())
 
 
 def _plain(obj: Any) -> dict[str, Any]:
@@ -84,11 +80,11 @@ def get_entity(
     entity_kind: str,
     *,
     client: Any | None = None,
-    dh_project: str | None | object = _UNSET,
+    project: str | None = None,
 ) -> dict[str, Any]:
     """Retrieve the details of a dataset (dataitem) or model; empty when it does not exist."""
     try:
-        return _plain(_read_entity(entity, entity_kind, client, dh_project))
+        return _plain(_read_entity(entity, entity_kind, client, project))
     except EntityNotExistsError:
         return {}
 
@@ -110,11 +106,11 @@ def get_entity_extension(
     extension_kind: str,
     *,
     client: Any | None = None,
-    dh_project: str | None | object = _UNSET,
+    project: str | None = None,
 ) -> dict[str, Any]:
     """Retrieve a dataset or model extension spec; empty when absent."""
     try:
-        found = _read_entity(entity, entity_kind, client, dh_project)
+        found = _read_entity(entity, entity_kind, client, project)
     except EntityNotExistsError:
         return {}
     return _find_extension(getattr(found, "extensions", None), extension_kind)
@@ -143,12 +139,12 @@ def save_entity_extension(
     extension: dict[str, Any],
     *,
     client: Any | None = None,
-    dh_project: str | None | object = _UNSET,
+    project: str | None = None,
 ) -> None:
     """Create or replace a dataset or model extension while preserving its identity."""
     sdk_client = _client(client)
     _, updater = _entity_api(entity_kind, sdk_client)
-    found = _read_entity(entity, entity_kind, sdk_client, dh_project)
+    found = _read_entity(entity, entity_kind, sdk_client, project)
     found.extensions = _with_extension(
         getattr(found, "extensions", None), extension_kind, extension
     )

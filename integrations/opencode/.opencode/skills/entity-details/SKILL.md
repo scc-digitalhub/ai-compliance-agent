@@ -7,14 +7,18 @@ metadata:
 ---
 
 Use this skill when the user refers to a dataset or model by its name on the DH platform, for example
-"analyse the dataset applications-2024" or "check the compliance of model credit-model".
+"analyse the dataset applications-2024 in project credit" or
+"check the compliance of model credit-model in project credit".
 
 Retrieving
-1. Call get_entity_details with the kind ('dataset' or 'model') and the entity name the user gives.
+1. Establish the DigitalHub project explicitly from the user's current request or earlier context.
+   If missing or ambiguous, ask the user before proceeding; never use an environment default.
+   Call get_entity_details with the kind ('dataset' or 'model'), entity name and project argument.
+   A full store:// key supplied by the user already identifies the project.
 2. The details are kept in the conversation. Later calls return them from the session (source
    'session') without contacting the platform. Call with refresh=True only when the user asks to
    reload, refresh or update the details, or says the entity changed on the platform.
-3. Report an error as it is returned (not_found, dh_error); never invent details or retry with a
+3. Report an error as it is returned (missing_project, not_found, dh_error); never invent details or retry with a
    guessed name.
 
 Analysing a retrieved entity

@@ -8,7 +8,7 @@ from pydantic import BaseModel, ValidationError
 from .contracts.requests import ProjectComplianceSpec, ProjectInput
 from .contracts.results import ComplianceContextOut, DataComplianceOut, ModelComplianceOut
 from .ports import SpecificationKind
-from .state import CONTEXT_KEY, DATASETS_KEY, MODELS_KEY, PROJECT_KEY
+from .state import CONTEXT_KEY, DATASETS_KEY, MODELS_KEY, PROJECT_KEY, entity_project
 from .tools import ToolEnv, ToolSpec
 
 _SPECIFICATIONS: dict[str, tuple[str, type[BaseModel]]] = {
@@ -57,22 +57,27 @@ def _remember(state: Any, kind: str, entity: str, specification: BaseModel) -> N
 
 
 def get_compliance_specification(
-    env: ToolEnv, kind: SpecificationKind, entity: str
+    env: ToolEnv, kind: SpecificationKind, entity: str, project: str | None = None,
 ) -> dict[str, Any]:
     """Retrieve a stored compliance specification and load it into the workspace.
 
     Args:
         kind: 'project', 'dataset', or 'model'.
         entity: Identifier of the project, dataset, or model.
+        project: DigitalHub project explicitly named by the user for a dataset or model.
+            Defaults to the workspace project; a store:// key already identifies its project.
     """
     if kind not in _SPECIFICATIONS:
         return _error(f"Unknown kind '{kind}'; use one of {list(_SPECIFICATIONS)}", "invalid_kind")
     if env.specifications is None:
         return _error("The specification repository is not configured", "integration_unavailable")
 
+    project = entity_project(env.state, project)
+    if kind != "project" and not project and not entity.startswith("store://"):
+        return _error("Specify the DigitalHub project for this specification, or provide its store:// key", "missing_project")
     _, model_type = _SPECIFICATIONS[kind]
     try:
-        raw = env.specifications.get(kind, entity)
+        raw = env.specifications.get(kind, entity, project=project)
     except Exception as exc:
         return _error(f"Could not read the {kind} '{entity}' from the repository: {exc}", "dh_error")
     if not raw:
@@ -93,6 +98,7 @@ def save_compliance_specification(
     kind: SpecificationKind,
     entity: str,
     specification: Optional[dict[str, Any]] = None,
+    project: str | None = None,
 ) -> dict[str, Any]:
     """Store a compliance specification, preserving repository-managed fields.
 
@@ -102,12 +108,17 @@ def save_compliance_specification(
         kind: 'project', 'dataset', or 'model'.
         entity: Identifier of the project, dataset, or model.
         specification: Optional specification supplied by the user.
+        project: DigitalHub project explicitly named by the user for a dataset or model.
+            Defaults to the workspace project; a store:// key already identifies its project.
     """
     if kind not in _SPECIFICATIONS:
         return _error(f"Unknown kind '{kind}'; use one of {list(_SPECIFICATIONS)}", "invalid_kind")
     if env.specifications is None:
         return _error("The specification repository is not configured", "integration_unavailable")
 
+    project = entity_project(env.state, project)
+    if kind != "project" and not project and not entity.startswith("store://"):
+        return _error("Specify the DigitalHub project for this specification, or provide its store:// key", "missing_project")
     extension_kind, model_type = _SPECIFICATIONS[kind]
     source = "argument" if specification else "session"
     raw = specification or _session_specification(env.state, kind, entity)
@@ -123,7 +134,7 @@ def save_compliance_specification(
         return _error(f"Invalid {model_type.__name__}: {_problems(exc)}", "invalid_specification")
     data = validated.model_dump(mode="json", exclude_none=True)
     try:
-        env.specifications.save(kind, entity, data)
+        env.specifications.save(kind, entity, data, project=project)
     except Exception as exc:
         return _error(f"Could not save the {kind} '{entity}' specification: {exc}", "dh_error")
     if source == "argument":

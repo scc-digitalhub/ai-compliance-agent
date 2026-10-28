@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from .ports import EntityKind
-from .state import ENTITIES_KEY
+from .state import ENTITIES_KEY, entity_project
 from .tools import ToolEnv, ToolSpec
 
 ENTITY_KINDS = ("dataset", "model")
@@ -15,7 +15,8 @@ def _error(message: str, code: str) -> dict[str, str]:
 
 
 def get_entity_details(
-    env: ToolEnv, kind: EntityKind, entity: str, refresh: bool = False
+    env: ToolEnv, kind: EntityKind, entity: str, refresh: bool = False,
+    project: str | None = None,
 ) -> dict[str, Any]:
     """Retrieve dataset or model details from the configured entity catalog.
 
@@ -25,6 +26,8 @@ def get_entity_details(
         kind: 'dataset' or 'model'.
         entity: Name of the dataset or model.
         refresh: True only when the user asks to reload the details.
+        project: DigitalHub project explicitly named by the user; defaults to the workspace project.
+            Required for a bare entity name when no project has been established.
     """
     if kind not in ENTITY_KINDS:
         return _error(
@@ -34,11 +37,15 @@ def get_entity_details(
         return _error("The entity catalog integration is not configured", "integration_unavailable")
 
     state = env.state
-    cached = state.get(ENTITIES_KEY, {}).get(kind, {}).get(entity)
+    project = entity_project(state, project)
+    if not project and not entity.startswith("store://"):
+        return _error("Specify the DigitalHub project for this entity, or provide its store:// key", "missing_project")
+    cache_key = entity if entity.startswith("store://") else f"{project}/{entity}"
+    cached = state.get(ENTITIES_KEY, {}).get(kind, {}).get(cache_key)
     if cached is not None and not refresh:
         return {"kind": kind, "entity": entity, "source": "session", "details": cached}
     try:
-        details = env.entities.get(kind, entity)
+        details = env.entities.get(kind, entity, project=project)
     except Exception as exc:
         return _error(
             f"Could not retrieve {kind} '{entity}' from the entity catalog: {exc}",
@@ -49,7 +56,7 @@ def get_entity_details(
     entities = state.get(ENTITIES_KEY, {})
     state[ENTITIES_KEY] = {
         **entities,
-        kind: {**entities.get(kind, {}), entity: details},
+        kind: {**entities.get(kind, {}), cache_key: details},
     }
     return {"kind": kind, "entity": entity, "source": "dh", "details": details}
 

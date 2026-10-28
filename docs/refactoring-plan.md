@@ -297,7 +297,8 @@ dependencies and **does not install `google-adk`**. Install the distribution wit
   - `COMPLIANCE_STATE=file:.compliance` by default; state is stored in the workspace, not plugin
     data or a process-global cache;
   - `OKF_PATH`;
-  - `DHCORE_*` and `DH_PROJECT`, which configure the enabled-by-default DH tools. The tools remain
+  - `DHCORE_*`, which configure credentials for the enabled-by-default DH tools. The project is
+    explicitly identified by the user in context, never by an environment variable. The tools remain
     visible if credentials are missing and return an actionable configuration error when invoked;
   - `COMPLIANCE_MODE=host|delegated` (`host` by default). Host mode exposes validation and
     `record_analysis`; delegated mode additionally enables `analyze_*` with
@@ -358,8 +359,8 @@ moves; phases 4–7 add the new surfaces.
 2. Split `config.py` into:
    - `CoreSettings` (`OKF_PATH`, state, profile);
    - `LlmSettings` (models, temperature, thinking);
-   - `ApiSettings` (keys, CORS, body size);
-   - `DhSettings`.
+   - `ApiSettings` (keys, CORS, body size).
+   DigitalHub credentials are handled by the SDK; project selection comes from explicit user context.
    Resolve the default OKF path from package data (`importlib.resources`) instead of `REPO_DIR` (C7).
 3. Package OKF/OKB knowledge as data inside the core wheel; repository-root data symlinks are
    intentionally not retained.

@@ -66,9 +66,9 @@ def _stored_project(state: Any) -> Optional[ProjectInput]:
 
 
 def _stored_on_dh(
-    env: ToolEnv, kind: SpecificationKind, entity: str
+    env: ToolEnv, kind: SpecificationKind, entity: str, project: str | None = None,
 ) -> Optional[dict[str, Any]]:
-    found = _get_compliance_specification(env, kind, entity)
+    found = _get_compliance_specification(env, kind, entity, project=project)
     if "specification" not in found:
         if found.get("code") == "not_found":
             return None
@@ -129,10 +129,12 @@ async def analyze_dataset(
         rerun: True only when the user asked to run analysis again despite a stored specification.
     """
     dataset = _normalize_input(DatasetInput, dataset)
-    if not rerun and (stored := _stored_on_dh(env, "dataset", dataset.name)):
-        return stored
     if project is not None:
         project = _normalize_input(ProjectInput, project)
+    if not rerun and (stored := _stored_on_dh(
+        env, "dataset", dataset.name, project=project.name if project else None
+    )):
+        return stored
     request = DatasetAnalysisRequest(
         dataset=dataset,
         project=project or _stored_project(env.state),
@@ -165,10 +167,12 @@ async def analyze_model(
         rerun: True only when the user asked to run analysis again despite a stored specification.
     """
     model = _normalize_input(ModelInput, model)
-    if not rerun and (stored := _stored_on_dh(env, "model", model.name)):
-        return stored
     if project is not None:
         project = _normalize_input(ProjectInput, project)
+    if not rerun and (stored := _stored_on_dh(
+        env, "model", model.name, project=project.name if project else None
+    )):
+        return stored
     datasets = [
         DataComplianceOut.model_validate(value)
         for value in env.state.get(DATASETS_KEY, {}).values()
