@@ -30,6 +30,21 @@ adk = [
     "google-adk>=2.12",
     "litellm>=1.80",
 ]
+acp = [
+    "agent-client-protocol>=0.12.1,<0.13",
+    "digitalhub>=0.16.0b18",
+    "google-adk>=2.13,<3",
+    "sqlalchemy[asyncio]>=2",
+    "aiosqlite>=0.21",
+    "litellm>=1.80",
+]
+a2a = [
+    "a2a-sdk[http-server,sqlite]>=1.3,<2",
+    "digitalhub>=0.16.0b18",
+    "google-adk>=2.13,<3",
+    "litellm>=1.80",
+    "uvicorn[standard]>=0.30",
+]
 server = [
     "digitalhub>=0.16.0b18",
     "fastapi>=0.115",
@@ -38,6 +53,8 @@ server = [
     "uvicorn[standard]>=0.30",
 ]
 dev = [
+    "agent-client-protocol>=0.12.1,<0.13",
+    "a2a-sdk[http-server,sqlite]>=1.3,<2",
     "digitalhub>=0.16.0b18",
     "fastapi>=0.115",
     "google-adk>=2.12",
@@ -52,6 +69,8 @@ dev = [
 [project.scripts]
 compliance-api = "compliance_api.app:main"
 compliance-mcp = "compliance_mcp.server:main"
+compliance-acp = "compliance_protocols.acp:main"
+compliance-a2a = "compliance_protocols.a2a:main"
 
 [tool.setuptools]
 include-package-data = true
@@ -64,6 +83,7 @@ packages = [
     "compliance_api",
     "compliance_api.routers",
     "compliance_mcp",
+    "compliance_protocols",
     "compliance_adk",
     "compliance_adk.agents",
     "compliance_adk.runtime",
@@ -82,9 +102,10 @@ compliance_skills = "packages/compliance-skills/src/compliance_skills"
 compliance_api = "packages/compliance-api/src/compliance_api"
 "compliance_api.routers" = "packages/compliance-api/src/compliance_api/routers"
 compliance_mcp = "packages/compliance-mcp/src/compliance_mcp"
-compliance_adk = "adk/compliance_adk"
-"compliance_adk.agents" = "adk/compliance_adk/agents"
-"compliance_adk.runtime" = "adk/compliance_adk/runtime"
+compliance_protocols = "packages/compliance-protocols/src/compliance_protocols"
+compliance_adk = "packages/compliance-adk/src/compliance_adk"
+"compliance_adk.agents" = "packages/compliance-adk/src/compliance_adk/agents"
+"compliance_adk.runtime" = "packages/compliance-adk/src/compliance_adk/runtime"
 compliance_agent = "adk/compliance_agent"
 dataset_agent = "adk/dataset_agent"
 model_agent = "adk/model_agent"
@@ -108,4 +129,5 @@ testpaths = [
     "packages/compliance-mcp/tests",
     "packages/compliance-skills/tests",
     "packages/compliance-api/tests",
+    "packages/compliance-protocols/tests",
 ]

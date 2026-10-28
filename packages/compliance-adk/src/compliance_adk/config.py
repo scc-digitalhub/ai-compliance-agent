@@ -14,6 +14,8 @@ from compliance_core.settings import CoreSettings
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 ADK_DIR = PACKAGE_DIR.parent
+if PACKAGE_DIR.parent.name == "src" and PACKAGE_DIR.parent.parent.name == "compliance-adk":
+    ADK_DIR = PACKAGE_DIR.parents[3] / "adk"
 DEFAULT_SKILLS_PATH = Path(str(files("compliance_skills").joinpath("skills")))
 
 ModelRole = Literal["project_context", "dataset", "model", "coordinator"]

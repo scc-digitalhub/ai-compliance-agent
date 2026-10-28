@@ -1,0 +1,9 @@
+{
+  "agent_servers": {
+    "AI Compliance": {
+      "type": "custom",
+      "command": "compliance-acp",
+      "args": []
+    }
+  }
+}

@@ -35,6 +35,7 @@ def test_all_component_packages_are_included_in_the_unified_distribution():
         "compliance_skills",
         "compliance_api",
         "compliance_mcp",
+        "compliance_protocols",
         "compliance_adk",
         "compliance_agent",
         "dataset_agent",
@@ -52,3 +53,28 @@ def test_portable_agent_is_packaged_alongside_skills():
     included = {path.relative_to(package).as_posix() for pattern in patterns for path in package.glob(pattern)}
     assert "agents/compliance-assistant.md" in included
     assert "skills/project-context/SKILL.md" in included
+
+
+def test_shared_adk_package_uses_component_source_layout():
+    config = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    package_dirs = config["tool"]["setuptools"]["package-dir"]
+    source = "packages/compliance-adk/src/compliance_adk"
+    for package, suffix in (
+        ("compliance_adk", ""),
+        ("compliance_adk.agents", "/agents"),
+        ("compliance_adk.runtime", "/runtime"),
+    ):
+        assert package_dirs[package] == source + suffix
+        assert (ROOT / package_dirs[package] / "__init__.py").is_file()
+    assert not list((ROOT / "adk" / "compliance_adk").rglob("*.py"))
+
+
+def test_protocol_adapters_have_optional_dependencies_and_entry_points():
+    config = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    extras = config["project"]["optional-dependencies"]
+    assert any(dep.startswith("agent-client-protocol") for dep in extras["acp"])
+    assert any(dep.startswith("a2a-sdk") for dep in extras["a2a"])
+    for extra in ("api", "mcp", "server"):
+        assert not any(dep.startswith(("agent-client-protocol", "a2a-sdk", "google-adk")) for dep in extras[extra])
+    assert config["project"]["scripts"]["compliance-acp"] == "compliance_protocols.acp:main"
+    assert config["project"]["scripts"]["compliance-a2a"] == "compliance_protocols.a2a:main"

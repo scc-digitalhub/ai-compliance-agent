@@ -20,17 +20,25 @@ earlier `src/compliance_agent` LangChain implementation.
   without Google ADK.
 - `packages/compliance-mcp/src/compliance_mcp/` adapts the catalog to MCP tools, resources, and
   prompts. The MCP distribution has no Google ADK dependency.
-- `adk/compliance_adk/agents/` defines the project-context, dataset, model, and interactive coordinator agents.
-- `adk/compliance_adk/runtime/` runs structured agents, validates their output, and returns grounding metadata.
+- `packages/compliance-protocols/src/compliance_protocols/` exposes the ADK coordinator over
+  Agent Client Protocol (stdio) and A2A 1.0 (authenticated HTTP/SSE).
+- `packages/compliance-adk/src/compliance_adk/` provides the shared Google ADK implementation:
+  agent builders, model settings, skill/tool adapters, and structured runners with output validation
+  and grounding metadata. Both the ADK launchers and ACP/A2A adapters import this package.
 - `integrations/` contains generated Copilot/VS Code, Claude Code, and OpenCode bundles. The
   generated agents and skill copies are synchronized from `compliance-skills`.
 - `adk/{compliance_agent,project_context_agent,dataset_agent,model_agent}/` provides entry points for `adk web`.
+
+The `compliance_adk` import namespace is unchanged. `adk/` retains launchers, local configuration,
+tests, and manual scenarios; reusable ADK code lives under `packages/`. Source checkouts continue
+to load ADK settings from `adk/.env`.
 
 All Python components are shipped in one distribution, `ai-compliance-platform`. The component
 directories under `packages/` and `adk/` remain separate source and import packages, but are no
 longer independently installable distributions. Optional extras select runtime dependencies:
 `api`, `mcp`, `adk`, or `server` (API and MCP without Google ADK). For example,
 `pip install "ai-compliance-platform[server]"` installs the server adapters without Google ADK.
+The optional `acp` and `a2a` extras add protocol SDKs, ADK and SQLite persistence.
 
 The structured API accepts project, dataset, and model definitions directly. Dataset and model requests
 can include project context from an earlier analysis. Responses have a `data` object and `meta` with
@@ -122,6 +130,25 @@ required; no credentials are stored in the bundles. Analysis state remains in th
 
 The unified distribution builds as one wheel or source distribution and is not yet published to a
 package index. The ADK extra installs Google ADK; the API, MCP, and server extras do not.
+
+## ACP and A2A agent exposure
+
+Use `uv sync --extra acp --extra a2a` to install the optional protocol adapters, then configure the
+coordinator model and provider credentials as in the ADK setup. Unlike host-driven MCP, these
+adapters run their own model.
+
+- `compliance-acp`: Agent Client Protocol over stdio, with persistent conversations, history replay,
+  text/tool updates, cancellation and per-write editor permissions.
+- `compliance-a2a`: A2A 1.0 JSON-RPC/HTTP and SSE, with Agent Card discovery, durable tasks,
+  input-required clarification, validated JSON artifacts and deferred per-write approval.
+
+DigitalHub operations require an explicit user-selected project and an authorization allowlist
+(`COMPLIANCE_PROTOCOL_ALLOWED_PROJECTS`, a JSON array). Writes default to disabled. A2A additionally
+requires `COMPLIANCE_PROTOCOL_BEARER_TOKEN` (at least 32 characters). A conversation cannot switch
+DigitalHub projects; start a new one instead.
+
+This is a single-tenant, single-worker deployment baseline. See the
+[protocol setup, configuration, client examples and deployment boundaries](packages/compliance-protocols/README.md).
 
 ## Run the standalone API
 

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from importlib.resources import files
 from pathlib import Path
 from typing import Any, AsyncGenerator
@@ -14,13 +13,9 @@ from google.adk.models.llm_response import LlmResponse
 from google.adk.models._capabilities import LlmCapabilities
 from google.genai import types
 
-ADK_DIR = Path(__file__).resolve().parents[1]
-if str(ADK_DIR) not in sys.path:
-    sys.path.insert(0, str(ADK_DIR))
-
-from compliance_adk.config import Settings  # noqa: E402
-from compliance_core.knowledge import get_bundle  # noqa: E402
-from compliance_adk.runtime import RunnerRegistry, set_registry  # noqa: E402
+from compliance_adk.config import Settings
+from compliance_core.knowledge import get_bundle
+from compliance_adk.runtime import RunnerRegistry, set_registry
 
 SKILLS = Path(str(files("compliance_skills").joinpath("skills")))
 
