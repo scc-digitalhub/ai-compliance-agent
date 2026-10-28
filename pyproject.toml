@@ -97,7 +97,7 @@ compliance_core = [
     "data/okb/*.jsonld",
     "data/okb/schemas/*.json",
 ]
-compliance_skills = ["skills/**/*"]
+compliance_skills = ["skills/**/*", "agents/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = [

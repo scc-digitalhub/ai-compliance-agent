@@ -1,7 +1,7 @@
 {
   "name": "ai-compliance",
   "version": "0.1.0",
-  "description": "Portable AI compliance skills and MCP tools.",
+  "description": "Portable AI compliance agent, skills and MCP tools.",
   "mcpServers": {
     "ai-compliance": {
       "command": "compliance-mcp",

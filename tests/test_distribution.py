@@ -43,3 +43,12 @@ def test_all_component_packages_are_included_in_the_unified_distribution():
     }
     assert expected <= package_dirs.keys()
     assert all((ROOT / package_dirs[name]).is_dir() for name in expected)
+
+
+def test_portable_agent_is_packaged_alongside_skills():
+    config = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    patterns = config["tool"]["setuptools"]["package-data"]["compliance_skills"]
+    package = ROOT / config["tool"]["setuptools"]["package-dir"]["compliance_skills"]
+    included = {path.relative_to(package).as_posix() for pattern in patterns for path in package.glob(pattern)}
+    assert "agents/compliance-assistant.md" in included
+    assert "skills/project-context/SKILL.md" in included

@@ -5,8 +5,13 @@ import json
 import sys
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "packages" / "compliance-skills" / "src" / "compliance_skills" / "skills"
+sys.path.insert(0, str(SKILLS.parent.parent))
+
+from compliance_skills import PortableAgent, load_agent
 
 COPILOT_CONFIG = {
     "$schema": "https://json.schemastore.org/mcp.json",
@@ -22,7 +27,7 @@ COPILOT_CONFIG = {
 CLAUDE_MANIFEST = {
     "name": "ai-compliance",
     "version": "0.1.0",
-    "description": "Portable AI compliance skills and MCP tools.",
+    "description": "Portable AI compliance agent, skills and MCP tools.",
     "mcpServers": {
         "ai-compliance": {
             "command": "compliance-mcp",
@@ -60,11 +65,51 @@ HOSTS = {
     },
 }
 
+AGENT_FILES = {
+    "copilot": Path(".github/agents/compliance-assistant.agent.md"),
+    "claude-code": Path("agents/compliance-assistant.md"),
+    "opencode": Path(".opencode/agents/compliance-assistant.md"),
+}
+
+
+def render_agent(host: str, agent: PortableAgent) -> bytes:
+    metadata: dict[str, object] = {
+        "name": agent.name,
+        "description": agent.description,
+    }
+    if host == "copilot":
+        metadata["tools"] = ["read", "search", "ai-compliance/*"]
+    elif host == "claude-code":
+        # Inherit plugin MCP tools: Claude namespaces their server name at installation.
+        metadata["disallowedTools"] = ["Bash", "Edit", "Write", "NotebookEdit"]
+        metadata["skills"] = [f"ai-compliance:{name}" for name in agent.skills]
+    elif host == "opencode":
+        metadata.pop("name")
+        metadata["mode"] = "primary"
+        metadata["permission"] = {"edit": "deny", "bash": "deny"}
+    else:
+        raise ValueError(f"Unknown host: {host}")
+
+    body = agent.instructions
+    if host != "claude-code":
+        body += "\n\nBundled skills\n"
+        for name in agent.skills:
+            body += f"- [{name}](../skills/{name}/SKILL.md)\n"
+    return (
+        "---\n"
+        + yaml.safe_dump(metadata, sort_keys=False, allow_unicode=False)
+        + "---\n"
+        + body.rstrip()
+        + "\n"
+    ).encode("utf-8")
+
 
 def expected_files() -> dict[Path, bytes]:
     files: dict[Path, bytes] = {}
+    agent = load_agent()
     for host, settings in HOSTS.items():
         base = ROOT / "integrations" / host
+        files[base / AGENT_FILES[host]] = render_agent(host, agent)
         skills_path = settings["skills"]
         for skill_dir in sorted(SKILLS.iterdir()):
             if not skill_dir.is_dir():
@@ -94,12 +139,13 @@ def sync(*, check: bool) -> int:
 
     if check:
         for host, settings in HOSTS.items():
-            skill_root = ROOT / "integrations" / host / settings["skills"]
-            if not skill_root.exists():
-                continue
-            for path in skill_root.rglob("*"):
-                if path.is_file() and path not in expected_paths:
-                    stale.append(path.relative_to(ROOT))
+            base = ROOT / "integrations" / host
+            for generated_root in (base / settings["skills"], base / AGENT_FILES[host].parent):
+                if not generated_root.exists():
+                    continue
+                for path in generated_root.rglob("*"):
+                    if path.is_file() and path not in expected_paths:
+                        stale.append(path.relative_to(ROOT))
 
     if stale:
         print("Generated host integration files are stale:", file=sys.stderr)
@@ -117,7 +163,7 @@ def main() -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="fail if generated bundle files differ from the canonical skills",
+        help="fail if generated bundle files differ from the canonical agent and skills",
     )
     args = parser.parse_args()
     return sync(check=args.check)

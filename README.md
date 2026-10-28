@@ -14,8 +14,8 @@ earlier `src/compliance_agent` LangChain implementation.
   imports do not require Google ADK.
 - `packages/compliance-dh/src/compliance_dh/` provides DigitalHub repositories and SDK operations
   without importing ADK.
-- `packages/compliance-skills/src/compliance_skills/skills/` is the canonical portable skills
-  package.
+- `packages/compliance-skills/src/compliance_skills/` packages the canonical portable coordinator
+  definition in `agents/` together with its procedures in `skills/`.
 - `packages/compliance-api/src/compliance_api/` provides the standalone FastAPI/LiteLLM service
   without Google ADK.
 - `packages/compliance-mcp/src/compliance_mcp/` adapts the catalog to MCP tools, resources, and
@@ -23,7 +23,7 @@ earlier `src/compliance_agent` LangChain implementation.
 - `adk/compliance_adk/agents/` defines the project-context, dataset, model, and interactive coordinator agents.
 - `adk/compliance_adk/runtime/` runs structured agents, validates their output, and returns grounding metadata.
 - `integrations/` contains generated Copilot/VS Code, Claude Code, and OpenCode bundles. The
-  generated skill copies are synchronized from `compliance-skills`.
+  generated agents and skill copies are synchronized from `compliance-skills`.
 - `adk/{compliance_agent,project_context_agent,dataset_agent,model_agent}/` provides entry points for `adk web`.
 
 All Python components are shipped in one distribution, `ai-compliance-platform`. The component
@@ -87,18 +87,26 @@ uv sync --extra mcp
 uv run --extra mcp compliance-mcp
 ```
 
-Host bundles include copies of the portable skills and host-specific MCP configuration. Install
-the MCP extra first (as above), then use the relevant bundle. The host process must be able to resolve
+Host bundles include a native compliance assistant agent, copies of the portable skills and
+host-specific MCP configuration. The ADK coordinator and all three host agents share the
+[portable definition](packages/compliance-skills/src/compliance_skills/agents/compliance-assistant.md).
+Install the MCP extra first (as above), then use the relevant bundle. The host process must be able to resolve
 the `compliance-mcp` executable through its `PATH`; for a source checkout, configure the host to
 launch the command through `uv run --project <repository> --extra mcp compliance-mcp`.
 Replace `<repository>` with the absolute path to this checkout.
 
 - **Copilot/VS Code:** copy `integrations/copilot/.github/skills/` into the workspace's
-  `.github/skills/` and `integrations/copilot/.vscode/mcp.json` into `.vscode/mcp.json`.
+  `.github/skills/`, copy `integrations/copilot/.github/agents/` into `.github/agents/`, and merge
+  `integrations/copilot/.vscode/mcp.json` into `.vscode/mcp.json`. Select `compliance-assistant`
+  in the agent picker.
 - **Claude Code:** load `integrations/claude-code/` with `claude --plugin-dir` or install it as a
-  plugin. Its manifest exposes the `compliance-mcp` executable and the bundled skills.
-- **OpenCode:** copy `integrations/opencode/.opencode/skills/` into the workspace and merge
-  `integrations/opencode/opencode.json` into the workspace OpenCode configuration.
+  plugin. Its manifest exposes the `compliance-mcp` executable, bundled skills and
+  `ai-compliance:compliance-assistant` agent. Ask Claude to delegate to that agent; it preloads
+  the six plugin skills and inherits the plugin's MCP tools.
+- **OpenCode:** copy `integrations/opencode/.opencode/skills/` and
+  `integrations/opencode/.opencode/agents/` into the workspace's `.opencode/` directory, then merge
+  `integrations/opencode/opencode.json` into the workspace OpenCode configuration. Switch to
+  the `compliance-assistant` primary agent.
 
 Each host launches the MCP server from its process environment. Set DigitalHub credentials there as
 required; no credentials are stored in the bundles. Analysis state remains in the active workspace's
