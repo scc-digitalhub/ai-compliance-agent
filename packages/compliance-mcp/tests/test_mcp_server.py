@@ -54,3 +54,77 @@ def test_digitalhub_tool_schemas_expose_explicit_project() -> None:
     for name in ("get_entity_details", "get_compliance_specification", "save_compliance_specification"):
         assert "project" in tools[name].parameters["properties"]
         assert "env" not in tools[name].parameters["properties"]
+
+
+def _main_server(monkeypatch, tmp_path, *args):
+    from compliance_mcp import server as module
+
+    captured = {}
+
+    def capture(coroutine):
+        captured["server"] = coroutine.cr_frame.f_locals["self"]
+        coroutine.close()
+
+    monkeypatch.setattr(module.asyncio, "run", capture)
+    module.main(["--workspace", str(tmp_path), *args])
+    return captured["server"]
+
+
+def test_cli_delegated_option_exposes_the_litellm_analysis_tools(monkeypatch, tmp_path) -> None:
+    pytest.importorskip("litellm")
+    monkeypatch.setenv("STRUCTURED_MODEL", "openai/configured-for-test")
+    server = _main_server(monkeypatch, tmp_path, "--delegated", "--no-dh")
+    tools = {tool.name for tool in server._tool_manager.list_tools()}
+    assert {"analyze_project_context", "analyze_dataset", "analyze_model"} <= tools
+    assert "get_entity_details" not in tools
+
+    default = {tool.name for tool in _main_server(monkeypatch, tmp_path)._tool_manager.list_tools()}
+    assert "analyze_dataset" not in default and "get_entity_details" in default
+
+
+def test_cli_delegated_option_requires_a_configured_model(monkeypatch, tmp_path) -> None:
+    pytest.importorskip("litellm")
+    from compliance_core.errors import ConfigurationError
+
+    for name in ("STRUCTURED_MODEL", "PROJECT_CONTEXT_AGENT_MODEL_NAME",
+                 "DATA_ANALYSIS_AGENT_MODEL_NAME", "MODEL_ANALYSIS_AGENT_MODEL_NAME"):
+        monkeypatch.delenv(name, raising=False)
+    with pytest.raises(ConfigurationError, match="STRUCTURED_MODEL"):
+        _main_server(monkeypatch, tmp_path, "--delegated")
+
+
+def test_delegated_analysis_runs_through_mcp_and_records_provenance(tmp_path) -> None:
+    pytest.importorskip("litellm")
+    import asyncio
+    import json
+    from importlib.resources import files
+    from types import SimpleNamespace
+
+    from compliance_api.config import ApiSettings
+    from compliance_api.engine import AnalysisRegistry, DelegatedAnalysisEngine
+    from compliance_core.knowledge import get_bundle
+    from compliance_core.state import FileStateStore
+    from compliance_core.tools import ToolEnv
+
+    expected = json.loads(
+        files("compliance_skills").joinpath("skills", "project-context", "references", "example.json").read_text()
+    )
+
+    async def completion(**kwargs):
+        message = SimpleNamespace(content=json.dumps(expected), tool_calls=None)
+        return SimpleNamespace(choices=[SimpleNamespace(message=message)], usage=None)
+
+    engine = DelegatedAnalysisEngine(AnalysisRegistry(ApiSettings(structured_model="scripted"), completion=completion))
+    store = FileStateStore(tmp_path / ".compliance")
+    env = ToolEnv(state=store, bundle=get_bundle(), analysis_engine=engine)
+    server = create_server(tmp_path, env=env, enable_dh=False, enable_delegated_analysis=True)
+    project = {"name": "credit", "domain": "finance", "ai_task": "CLASSIFICATION", "goal": "Score loans"}
+
+    asyncio.run(server._tool_manager.call_tool("analyze_project_context", {"project": project}, None))
+
+    state = store.snapshot()
+    assert state["analysis_active_project"] == "credit"
+    assert state["analysis_project_context"]["risk_classification"]["risk_level"] == "HIGH"
+    provenance = state["analysis_provenance"]["project"]
+    assert provenance["mode"] == "delegated" and provenance["model"] == "scripted"
+    assert provenance["okf_version"] == get_bundle().version

@@ -34,18 +34,23 @@ Saving
 2. Call save_compliance_specification with the kind, entity identifier and selected project for a
    dataset or model. Omit `specification` to
    store the one analysed in this conversation; pass it only when the user provides or edits one.
-3. Saving replaces the stored specification; say so when you report it.
+3. Saving replaces the stored specification; say so when you report it. The result's provenance
+   (analysis mode, OKF version, consulted OKF paths, assumptions, warnings) is stored with it.
+4. A `conflict` error means the stored specification changed since it was retrieved, or exists but
+   was never retrieved in this workspace. Retrieve and present it, and save again with
+   `overwrite=True` only after the user confirms replacing it.
 
 Retrieving
 - Call get_compliance_specification with the kind, entity identifier and selected project for a
   dataset or model. The result is also loaded
   into the conversation, so later dataset and model analyses reuse a retrieved project context and
-  get_session_analyses shows it.
+  get_session_analyses shows it. A returned `provenance` explains how the specification was produced.
 - Explain a retrieved specification from its content; do not re-run the analysis unless asked.
 
 Rules
 - The entity identifier is the one the user gives, otherwise the name of the project, dataset or model
   in the request. Never invent one.
 - Datasets and models analysed in this conversation are saved under the name used in the analysis.
-- Report an error to the user as it is returned (missing_project, not_found, invalid_specification, dh_error); never retry by
+- Analyses are kept per project: one project's results are never saved to another project.
+- Report an error to the user as it is returned (missing_project, not_found, invalid_specification, conflict, dh_error); never retry by
   fabricating or patching specification content.

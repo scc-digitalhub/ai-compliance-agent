@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tomllib
 from pathlib import Path
 
 import yaml
@@ -13,56 +14,56 @@ sys.path.insert(0, str(SKILLS.parent.parent))
 
 from compliance_skills import PortableAgent, load_agent
 
-COPILOT_CONFIG = {
-    "$schema": "https://json.schemastore.org/mcp.json",
-    "servers": {
-        "ai-compliance": {
-            "type": "stdio",
-            "command": "compliance-mcp",
-            "args": [],
-        }
-    },
-}
+DISTRIBUTION = "ai-compliance-platform"
+VERSION = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
+DESCRIPTION = "Portable AI compliance agent, skills and MCP tools."
 
-CLAUDE_MANIFEST = {
+
+def mcp_command(launcher: str) -> list[str]:
+    """Command that starts the MCP server: an installed executable, or a version-pinned uvx run."""
+    if launcher == "path":
+        return ["compliance-mcp"]
+    if launcher == "uvx":
+        return ["uvx", "--from", f"{DISTRIBUTION}[mcp]=={VERSION}", "compliance-mcp"]
+    raise ValueError(f"Unknown launcher: {launcher}")
+
+
+def host_configs(launcher: str) -> dict[str, dict]:
+    command, *args = mcp_command(launcher)
+    return {
+        "copilot": {
+            "$schema": "https://json.schemastore.org/mcp.json",
+            "servers": {"ai-compliance": {"type": "stdio", "command": command, "args": args}},
+        },
+        "claude-code": {
+            "name": "ai-compliance",
+            "version": VERSION,
+            "description": DESCRIPTION,
+            "mcpServers": {"ai-compliance": {"command": command, "args": args}},
+        },
+        "opencode": {
+            "$schema": "https://opencode.ai/config.json",
+            "mcp": {"ai-compliance": {"type": "local", "command": [command, *args], "enabled": True}},
+        },
+    }
+
+
+MARKETPLACE_CONFIG = {
     "name": "ai-compliance",
-    "version": "0.1.0",
-    "description": "Portable AI compliance agent, skills and MCP tools.",
-    "mcpServers": {
-        "ai-compliance": {
-            "command": "compliance-mcp",
-            "args": [],
-        }
-    },
-}
-
-OPENCODE_CONFIG = {
-    "$schema": "https://opencode.ai/config.json",
-    "mcp": {
-        "ai-compliance": {
-            "type": "local",
-            "command": ["compliance-mcp"],
-            "enabled": True,
-        }
-    },
+    "description": "AI compliance assistant for Claude Code",
+    "owner": {"name": "scc-digitalhub"},
+    "plugins": [{
+        "name": "ai-compliance",
+        "source": "./integrations/claude-code",
+        "description": DESCRIPTION,
+        "version": VERSION,
+    }],
 }
 
 HOSTS = {
-    "copilot": {
-        "skills": Path(".github/skills"),
-        "config": Path(".vscode/mcp.json"),
-        "manifest": COPILOT_CONFIG,
-    },
-    "claude-code": {
-        "skills": Path("skills"),
-        "config": Path(".claude-plugin/plugin.json"),
-        "manifest": CLAUDE_MANIFEST,
-    },
-    "opencode": {
-        "skills": Path(".opencode/skills"),
-        "config": Path("opencode.json"),
-        "manifest": OPENCODE_CONFIG,
-    },
+    "copilot": {"skills": Path(".github/skills"), "config": Path(".vscode/mcp.json")},
+    "claude-code": {"skills": Path("skills"), "config": Path(".claude-plugin/plugin.json")},
+    "opencode": {"skills": Path(".opencode/skills"), "config": Path("opencode.json")},
 }
 
 AGENT_FILES = {
@@ -104,11 +105,18 @@ def render_agent(host: str, agent: PortableAgent) -> bytes:
     ).encode("utf-8")
 
 
-def expected_files() -> dict[Path, bytes]:
+def _json(value: object) -> bytes:
+    return (json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode()
+
+
+def expected_files(output: Path | None = None, launcher: str = "path") -> dict[Path, bytes]:
+    """Generated files; by default the checked-in bundles under integrations/."""
     files: dict[Path, bytes] = {}
     agent = load_agent()
+    configs = host_configs(launcher)
+    root = output or ROOT / "integrations"
     for host, settings in HOSTS.items():
-        base = ROOT / "integrations" / host
+        base = root / host
         files[base / AGENT_FILES[host]] = render_agent(host, agent)
         skills_path = settings["skills"]
         for skill_dir in sorted(SKILLS.iterdir()):
@@ -117,17 +125,15 @@ def expected_files() -> dict[Path, bytes]:
             for source in sorted(path for path in skill_dir.rglob("*") if path.is_file()):
                 relative = source.relative_to(SKILLS)
                 files[base / skills_path / relative] = source.read_bytes()
-
-        config_path = base / settings["config"]
-        files[config_path] = (
-            json.dumps(settings["manifest"], indent=2, ensure_ascii=False) + "\n"
-        ).encode()
+        files[base / settings["config"]] = _json(configs[host])
+    if output is None:
+        files[ROOT / ".claude-plugin" / "marketplace.json"] = _json(MARKETPLACE_CONFIG)
     return files
 
 
-def sync(*, check: bool) -> int:
+def sync(*, check: bool, output: Path | None = None, launcher: str = "path") -> int:
     stale: list[Path] = []
-    files = expected_files()
+    files = expected_files(output, launcher)
     expected_paths = set(files)
     for path, content in files.items():
         if check:
@@ -165,8 +171,18 @@ def main() -> int:
         action="store_true",
         help="fail if generated bundle files differ from the canonical agent and skills",
     )
+    parser.add_argument(
+        "--output", type=Path,
+        help="write the bundles to this directory instead of integrations/ (for release artifacts)",
+    )
+    parser.add_argument(
+        "--launcher", choices=("path", "uvx"), default="path",
+        help="path: run compliance-mcp from PATH; uvx: run the released version with uvx",
+    )
     args = parser.parse_args()
-    return sync(check=args.check)
+    if args.check and (args.output or args.launcher != "path"):
+        parser.error("--check verifies the checked-in path-launcher bundles only")
+    return sync(check=args.check, output=args.output, launcher=args.launcher)
 
 
 if __name__ == "__main__":

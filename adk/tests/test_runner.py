@@ -104,3 +104,12 @@ def test_provider_errors_are_mapped(make_registry):
     llm.fail_with = RateLimitError("slow down")
     with pytest.raises(UpstreamRateLimited):
         run(registry.get("project_context").run(ProjectInput(**PROJECT)))
+
+
+def test_adk_specs_are_the_core_definitions():
+    from compliance_adk.agents import specs
+    from compliance_core import analysis_engine as core
+
+    for adk_spec, definition in zip(specs.ALL_SPECS, core.ANALYSES):
+        assert adk_spec.key == definition.key and adk_spec.output_schema is definition.output_model
+        assert adk_spec.input_schema is definition.request_model and adk_spec.role == definition.key

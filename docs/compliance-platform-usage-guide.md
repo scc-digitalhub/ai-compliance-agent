@@ -195,7 +195,9 @@ The MCP server exposes core knowledge, schema, validation, result-recording, ent
 DigitalHub specification tools. Host-driven analysis is the default: the host model reads the
 portable skill, calls the tools, produces the structured result, and asks the core to validate and
 record it. No separate LLM key is needed by MCP. The default `FileStateStore` writes to
-`.compliance/state.json` in the selected workspace.
+`.compliance/state.json` in the selected workspace. Analyses are kept per project; the flat
+`analysis_*` keys hold the active project and `analysis_workspaces` the others. Each tool call holds
+a lock on `.compliance/state.lock`, so several hosts can share a workspace.
 
 Install the extra once for command-line testing:
 

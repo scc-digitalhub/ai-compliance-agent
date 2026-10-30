@@ -92,11 +92,13 @@ def test_core_settings_resolve_workspace_and_okf_from_environment(monkeypatch, t
 def test_context_validation_keeps_semantic_checks() -> None:
     result = SimpleNamespace(
         regulations=[],
-        requirements=[SimpleNamespace(id="unknown")],
+        requirements=[SimpleNamespace(
+            id="unknown", source=SimpleNamespace(framework="EU_AI_ACT"), applicability_status="APPLICABLE",
+        )],
         geography=[],
         risk_classification=SimpleNamespace(risk_level="UNKNOWN"),
     )
-    bundle = SimpleNamespace(ids_of_type=lambda kind: {"known"})
+    bundle = SimpleNamespace(ids_of_type=lambda kind: {"known"}, concepts={})
 
     issues = validate_context(result, SimpleNamespace(), bundle)
 
@@ -241,7 +243,7 @@ def test_host_record_tool_validates_before_persisting_workspace_state() -> None:
         output = json.loads(
             (skills / skill / "references" / "example.json").read_text(encoding="utf-8")
         )
-        result = record_compliance_analysis(env, kind, request, output)
+        result = record_compliance_analysis(env, kind, request, output, grounding=["catalog/requirements/eu-ai-act/art14-human-oversight.md"])
         assert result["valid"] is True
         assert result["stored"] is True
         if kind == "project":

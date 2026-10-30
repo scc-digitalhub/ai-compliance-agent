@@ -18,6 +18,8 @@ from acp.schema import (
     NewSessionResponse, PermissionOption, PromptResponse, ToolCallUpdate,
 )
 
+from compliance_core.version import framework_version
+
 from .config import ProtocolSettings
 from .runtime import ConversationRuntime
 
@@ -37,7 +39,7 @@ class ComplianceACPAgent(Agent):
         return InitializeResponse(
             protocolVersion=PROTOCOL_VERSION,
             agentCapabilities=AgentCapabilities(loadSession=True),
-            agentInfo=Implementation(name="ai-compliance", version="0.1.0"),
+            agentInfo=Implementation(name="ai-compliance", version=framework_version()),
         )
 
     def _ready(self) -> Client:

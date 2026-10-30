@@ -237,3 +237,61 @@ import compliance_api.app
         check=False,
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_api_serves_the_core_analysis_definitions():
+    from compliance_core.analysis_engine import ANALYSES
+
+    assert ALL_SPECS is ANALYSES
+
+
+def test_run_evals_cli_compares_models_with_scripted_completions(monkeypatch, tmp_path):
+    import importlib.util
+
+    import litellm
+
+    async def completion(**kwargs):
+        request = json.loads(next(m["content"] for m in kwargs["messages"] if m["role"] == "user"))
+        skill = "dataset-analysis" if "dataset" in request else "model-analysis" if "model" in request else "project-context"
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(_example(skill)), tool_calls=None))],
+            usage=SimpleNamespace(prompt_tokens=2, completion_tokens=1),
+        )
+
+    monkeypatch.setattr(litellm, "acompletion", completion)
+    root = Path(__file__).resolve().parents[3]
+    spec = importlib.util.spec_from_file_location("run_evals", root / "scripts" / "run_evals.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    out, markdown = tmp_path / "report.json", tmp_path / "report.md"
+    monkeypatch.setattr(sys, "argv", [
+        "run_evals.py", "--model", "scripted-a", "--model", "scripted-b",
+        "--case", "consumer-credit-scoring", "--case", "credit-scoring-model",
+        "--out", str(out), "--markdown", str(markdown), "--min-validity", "1",
+    ])
+
+    assert module.main() == 0
+    reports = json.loads(out.read_text())
+    assert [report["label"] for report in reports] == ["scripted-a", "scripted-b"]
+    assert reports[0]["summary"]["validity_rate"] == 1.0
+    assert reports[0]["summary"]["risk_accuracy"] == 1.0
+    assert "| Metric | scripted-a | scripted-b |" in markdown.read_text()
+
+
+def test_litellm_engine_can_run_without_digitalhub_tools():
+    seen = {}
+
+    async def completion(**kwargs):
+        seen["tools"] = {tool["function"]["name"] for tool in kwargs["tools"]}
+        message = SimpleNamespace(content=json.dumps(_example("project-context")), tool_calls=None)
+        return SimpleNamespace(choices=[SimpleNamespace(message=message)], usage=None)
+
+    request = PROJECT_CONTEXT.request_model.model_validate(
+        {"name": "credit", "domain": "finance", "ai_task": "CLASSIFICATION", "goal": "Score loans"}
+    )
+    for enable_dh, expected in ((True, True), (False, False)):
+        engine = LiteLlmEngine(PROJECT_CONTEXT, ApiSettings(structured_model="s", enable_dh=enable_dh),
+                               completion=completion)
+        asyncio.run(engine.run("project_context", request))
+        assert ("get_compliance_specification" in seen["tools"]) is expected
+        assert "get_requirements" in seen["tools"]

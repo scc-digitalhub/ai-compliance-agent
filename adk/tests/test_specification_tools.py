@@ -91,7 +91,7 @@ def model_spec():
 def test_save_stores_the_analysed_specifications_under_the_dh_extension_kinds(dh_store):
     tool_context = ctx(
         **{
-            **project_state(),
+            **project_state("credit-scoring"),
             DATASETS_KEY: {"Applications": dataset_spec()},
             MODELS_KEY: {"Credit model": model_spec()},
         }
@@ -181,11 +181,66 @@ def test_save_keeps_the_fields_managed_on_the_platform(dh_store):
         "compliance_status": {"status": "IN_REVIEW"},
     }
 
-    save_compliance_specification("project", "p1", ctx(**project_state("p1")))
+    save_compliance_specification("project", "p1", ctx(**project_state("p1")), overwrite=True)
 
     stored = dh_store.data[("project", "p1", "ai-compliance")]
     assert stored["goal"] == PROJECT["goal"]  # replaced by the analysis
     assert stored["compliance_status"] == {"status": "IN_REVIEW"}  # kept
+
+
+def test_save_refuses_to_replace_a_specification_not_retrieved_in_the_workspace(dh_store):
+    dh_store.data[("project", "p1", "ai-compliance")] = {**project_spec(), "goal": "Old goal"}
+
+    out = save_compliance_specification("project", "p1", ctx(**project_state("p1")))
+
+    assert out["code"] == "conflict" and out["seen_revision"] is None and out["current_revision"]
+    assert dh_store.data[("project", "p1", "ai-compliance")]["goal"] == "Old goal"
+
+
+def test_save_detects_a_concurrent_change_since_retrieval(dh_store):
+    dh_store.data[("dataset", "d1", "data-compliance")] = dataset_spec()
+    session = ctx(**project_state("p1"))
+    retrieved = get_compliance_specification("dataset", "d1", session, project="p1")
+    assert retrieved["revision"]
+    assert save_compliance_specification("dataset", "d1", session, project="p1")["saved"] is True
+
+    dh_store.data[("dataset", "d1", "data-compliance")] = {**dataset_spec(), "scope": "VALIDATION"}
+    conflict = save_compliance_specification("dataset", "d1", session, project="p1")
+    assert conflict["code"] == "conflict" and conflict["seen_revision"]
+    assert dh_store.data[("dataset", "d1", "data-compliance")]["scope"] == "VALIDATION"
+
+    replaced = save_compliance_specification("dataset", "d1", session, project="p1", overwrite=True)
+    assert replaced["saved"] is True
+    assert dh_store.data[("dataset", "d1", "data-compliance")]["scope"] == dataset_spec()["scope"]
+
+
+def test_provenance_is_stored_with_the_specification_and_returned_on_retrieval(dh_store):
+    from compliance_core.host_tools import record_compliance_analysis
+    from compliance_core.knowledge import get_bundle
+    from compliance_core.state import MappingStateStore
+    from compliance_core.tools import ToolEnv
+
+    session = ctx(**project_state("p1"))
+    env = ToolEnv(state=MappingStateStore(session.state), bundle=get_bundle())
+    request = {"dataset": {"name": "d1", "scope": "TRAINING"}}
+    recorded = record_compliance_analysis(
+        env, "dataset", request, example("dataset-analysis"), grounding=["catalog/metrics/index.md"],
+    )
+    assert recorded["stored"] and recorded["provenance"]["mode"] == "host"
+
+    save_compliance_specification("dataset", "d1", session, project="p1")
+    stored = dh_store.data[("dataset", "d1", "data-compliance")]
+    assert stored["provenance"]["mode"] == "host"
+    assert stored["provenance"]["okf_version"] == get_bundle().version
+    assert stored["provenance"]["grounding"] == ["catalog/metrics/index.md"]
+    assert stored["provenance"]["assumptions"] == example("dataset-analysis")["assumptions"]
+
+    fresh = ctx()
+    retrieved = get_compliance_specification("dataset", "d1", fresh, project="p1")
+    assert "provenance" not in retrieved["specification"]
+    assert retrieved["provenance"]["grounding"] == ["catalog/metrics/index.md"]
+    assert save_compliance_specification("dataset", "d1", fresh, project="p1")["saved"] is True
+    assert dh_store.data[("dataset", "d1", "data-compliance")]["provenance"]["mode"] == "host"  # preserved
 
 
 def test_get_ignores_the_fields_managed_on_the_platform(dh_store):
@@ -226,7 +281,7 @@ def test_platform_failures_are_returned_as_dh_errors(dh_store, monkeypatch):
 
     monkeypatch.setattr(dh, "get_entity_extension", unreachable)
     monkeypatch.setattr(dh, "save_project_extension", unreachable)
-    fresh = ctx(**project_state())
+    fresh = ctx(**project_state("p1"))
 
     read = get_compliance_specification("dataset", "d1", fresh)
     saved = save_compliance_specification("project", "p1", fresh)
@@ -248,7 +303,7 @@ def test_coordinator_saves_and_retrieves_specifications_end_to_end(make_registry
     coordinator_llm = ScriptedLlm(
         script=[
             {"call": "load_skill", "args": {"skill_name": "compliance-specifications"}},
-            {"call": "analyze_project_context", "args": {"project": PROJECT}},
+            {"call": "analyze_project_context", "args": {"project": {**PROJECT, "name": "credit-scoring"}}},
             {"call": "save_compliance_specification", "args": {"kind": "project", "entity": "credit-scoring"}},
             {"call": "get_compliance_specification", "args": {"kind": "project", "entity": "credit-scoring"}},
             "Saved and retrieved.",
@@ -416,3 +471,24 @@ def test_guidance_tells_the_agent_about_the_check_and_rerun_decision():
     skill = load_skill("compliance-specifications").instructions
     assert "stored_on_dh" in skill and "rerun=True" in skill and "not_found" in skill
     assert "stored_on_dh" in INSTRUCTION and "rerun=True" in INSTRUCTION and "re-run the analysis" in INSTRUCTION
+
+
+def test_one_projects_analysis_is_never_saved_as_another_project(dh_store):
+    session = ctx(**project_state("credit"))
+
+    out = save_compliance_specification("project", "research", session)
+
+    assert out["code"] == "not_found" and "'credit'" in out["error"]
+    assert dh_store.data == {}
+
+
+def test_store_key_specifications_round_trip_in_their_own_project(dh_store):
+    key = "store://p2/dataitem/d1"
+    dh_store.data[("dataset", key, "data-compliance")] = dataset_spec()
+    session = ctx(**project_state("p1"))
+
+    assert get_compliance_specification("dataset", key, session)["specification"]
+    saved = save_compliance_specification("dataset", key, session)
+
+    assert saved["saved"] is True
+    assert DATASETS_KEY not in session.state or key not in session.state[DATASETS_KEY]  # kept in p2, not p1

@@ -1,64 +1,38 @@
-"""Specifications of the structured agents (typed input, typed output, one skill each)."""
+"""ADK view of the core analysis definitions (typed input, typed output, one skill each)."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
-from pydantic import BaseModel
+from compliance_core import analysis_engine as core
+from compliance_core.analysis_engine import AnalysisDefinition
 
 from ..config import ModelRole
-from compliance_core.contracts import (
-    DatasetAgentOutput,
-    DatasetAnalysisRequest,
-    ModelAgentOutput,
-    ModelAnalysisRequest,
-    ProjectContextAgentOutput,
-    ProjectInput,
-)
 
 
 @dataclass(frozen=True)
-class StructuredAgentSpec:
-    key: str
-    agent_name: str
-    role: ModelRole
-    skill_name: str
-    description: str
-    input_schema: type[BaseModel]
-    output_schema: type[BaseModel]
+class StructuredAgentSpec(AnalysisDefinition):
+    @classmethod
+    def of(cls, definition: AnalysisDefinition) -> "StructuredAgentSpec":
+        return cls(**{item.name: getattr(definition, item.name) for item in fields(AnalysisDefinition)})
+
+    @property
+    def role(self) -> ModelRole:
+        return self.key
+
+    @property
+    def input_schema(self):
+        return self.request_model
+
+    @property
+    def output_schema(self):
+        return self.output_model
 
     @property
     def output_key(self) -> str:
         return f"{self.key}_output"
 
 
-PROJECT_CONTEXT = StructuredAgentSpec(
-    key="project_context",
-    agent_name="project_context_agent",
-    role="project_context",
-    skill_name="project-context",
-    description="Builds the structured compliance context of an AI project definition.",
-    input_schema=ProjectInput,
-    output_schema=ProjectContextAgentOutput,
-)
-
-DATASET = StructuredAgentSpec(
-    key="dataset",
-    agent_name="dataset_agent",
-    role="dataset",
-    skill_name="dataset-analysis",
-    description="Derives the structured data compliance specification of an AI dataset.",
-    input_schema=DatasetAnalysisRequest,
-    output_schema=DatasetAgentOutput,
-)
-
-MODEL = StructuredAgentSpec(
-    key="model",
-    agent_name="model_agent",
-    role="model",
-    skill_name="model-analysis",
-    description="Derives the structured model compliance specification of an AI model.",
-    input_schema=ModelAnalysisRequest,
-    output_schema=ModelAgentOutput,
-)
-
+PROJECT_CONTEXT = StructuredAgentSpec.of(core.PROJECT_CONTEXT)
+DATASET = StructuredAgentSpec.of(core.DATASET)
+MODEL = StructuredAgentSpec.of(core.MODEL)
 ALL_SPECS = (PROJECT_CONTEXT, DATASET, MODEL)

@@ -42,12 +42,21 @@ def _as_mapping(value: Any) -> Mapping[str, Any]:
     return {}
 
 
+def _requirement_concepts(bundle: Any) -> dict[str, Any]:
+    return {c.id: c for c in bundle.concepts.values() if c.type == "Requirement" and c.id}
+
+
+def _requirement_framework(concept: Any) -> str | None:
+    return ((concept.instance or {}).get("source") or {}).get("framework")
+
+
 def _check_objectives(objectives: Iterable[Any], bundle: Any, request: Any) -> list[Issue]:
     issues: list[Issue] = []
     objectives = list(objectives)
     if not objectives:
         issues.append(_error("objectives must not be empty"))
-    known_reqs = bundle.ids_of_type("Requirement") | _context_requirement_ids(request)
+    context_reqs = _context_requirement_ids(request)
+    known_reqs = bundle.ids_of_type("Requirement") | context_reqs
     metrics = {c.id: c.instance for c in bundle.concepts.values() if c.type == "Metric" and c.id}
 
     for obj in objectives:
@@ -57,6 +66,13 @@ def _check_objectives(objectives: Iterable[Any], bundle: Any, request: Any) -> l
                     _error(
                         f"objective '{obj.name}' links unknown requirement id '{rid}'; "
                         "use ids returned by get_requirements"
+                    )
+                )
+            elif context_reqs and rid not in context_reqs:
+                issues.append(
+                    _warning(
+                        f"objective '{obj.name}' links requirement '{rid}', which is not among the "
+                        "project context's requirements"
                     )
                 )
         catalog_metric = metrics.get(obj.metric.id)
@@ -93,16 +109,53 @@ def validate_context(result: Any, request: Any, bundle: Any) -> list[Issue]:
         issues.append(_error("requirements must not be empty"))
     if not result.geography:
         issues.append(_error("geography must not be empty"))
-    known = bundle.ids_of_type("Requirement")
+
+    catalog = _requirement_concepts(bundle)
+    known_frameworks = {
+        (c.instance or {}).get("framework") for c in bundle.concepts.values() if c.type == "RegulatoryRef"
+    } - {None}
+    declared = {regulation.framework for regulation in result.regulations}
+    for framework in sorted(declared - known_frameworks):
+        issues.append(_warning(f"regulation framework '{framework}' is not in the OKF bundle"))
+
     seen: set[str] = set()
     for req in result.requirements:
         if req.id in seen:
             issues.append(_warning(f"duplicate requirement id '{req.id}'"))
         seen.add(req.id)
-        if req.id not in known:
+        concept = catalog.get(req.id)
+        if concept is None:
             issues.append(_warning(f"requirement '{req.id}' is not in the OKF bundle"))
-    if result.risk_classification.risk_level == "UNKNOWN":
+        elif (expected := _requirement_framework(concept)) and req.source.framework != expected:
+            issues.append(_error(
+                f"requirement '{req.id}' belongs to framework '{expected}' in the OKF bundle, "
+                f"not '{req.source.framework}'"
+            ))
+        if declared and req.source.framework not in declared:
+            issues.append(_error(
+                f"requirement '{req.id}' cites framework '{req.source.framework}', which is not among the "
+                f"declared regulations {sorted(declared)}; add the regulation or remove the requirement"
+            ))
+
+    risk = result.risk_classification.risk_level
+    applicable = [req for req in result.requirements if req.applicability_status == "APPLICABLE"]
+
+    def tagged(tag: str) -> list[str]:
+        return [req.id for req in applicable if tag in getattr(catalog.get(req.id), "tags", ())]
+
+    if risk == "UNKNOWN":
         issues.append(_warning("risk level could not be determined"))
+    elif risk in ("MINIMAL", "LIMITED") and (high := tagged("high-risk")):
+        issues.append(_warning(
+            f"risk level is {risk}, but applicable requirements {high} apply to high-risk systems"
+        ))
+    elif risk == "HIGH" and "EU_AI_ACT" in declared and not tagged("high-risk"):
+        issues.append(_warning(
+            "risk level is HIGH, but no applicable EU AI Act high-risk requirement (for example "
+            "Art. 9-15) is listed"
+        ))
+    elif risk == "PROHIBITED" and not tagged("prohibited"):
+        issues.append(_warning("risk level is PROHIBITED, but no prohibited-practice requirement is listed"))
     return issues
 
 
@@ -121,10 +174,29 @@ def validate_model(result: Any, request: Any, bundle: Any) -> list[Issue]:
     return _check_objectives(result.objectives, bundle, request)
 
 
+def grounding_issues(paths: Iterable[str] | None, bundle: Any) -> list[Issue]:
+    """Cited OKF sources must be given and must exist in the bundle."""
+    paths = [path for path in (paths or []) if isinstance(path, str) and path.strip()]
+    if not paths:
+        return [_error(
+            "grounding must list the OKF concept paths read for this analysis, for example "
+            "catalog/requirements/eu-ai-act/art14-human-oversight.md"
+        )]
+    issues = []
+    for path in paths:
+        try:
+            found = bundle.resolve(path.strip().lstrip("/"))
+        except ValueError:
+            found = None
+        if found is None or found.suffix != ".md" or not found.is_file():
+            issues.append(_error(f"grounding path '{path}' is not in the OKF bundle"))
+    return issues
+
+
 VALIDATORS = {
     "project_context": validate_context,
     "dataset": validate_dataset,
     "model": validate_model,
 }
 
-__all__ = ["Issue", "VALIDATORS", "validate_context", "validate_dataset", "validate_model"]
+__all__ = ["Issue", "VALIDATORS", "grounding_issues", "validate_context", "validate_dataset", "validate_model"]

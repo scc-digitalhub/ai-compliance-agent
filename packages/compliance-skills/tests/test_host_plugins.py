@@ -77,3 +77,31 @@ def test_freshness_detects_missing_changed_and_obsolete_agents(generator, monkey
     assert generator.sync(check=True) == 1
     obsolete.unlink()
     assert generator.sync(check=True) == 0
+
+
+def test_bundles_and_marketplace_use_the_distribution_version(generator):
+    import json
+    import tomllib
+
+    version = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
+    plugin = json.loads((ROOT / "integrations/claude-code/.claude-plugin/plugin.json").read_text())
+    marketplace = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
+    assert generator.VERSION == plugin["version"] == version
+    entry = marketplace["plugins"][0]
+    assert entry["name"] == plugin["name"] and entry["version"] == version
+    assert (ROOT / entry["source"] / ".claude-plugin" / "plugin.json").is_file()
+
+
+def test_release_bundles_pin_the_released_version_with_uvx(generator, tmp_path):
+    import json
+
+    assert generator.sync(check=False, output=tmp_path, launcher="uvx") == 0
+    pinned = f"ai-compliance-platform[mcp]=={generator.VERSION}"
+    claude = json.loads((tmp_path / "claude-code/.claude-plugin/plugin.json").read_text())
+    copilot = json.loads((tmp_path / "copilot/.vscode/mcp.json").read_text())
+    opencode = json.loads((tmp_path / "opencode/opencode.json").read_text())
+    assert claude["mcpServers"]["ai-compliance"] == {"command": "uvx", "args": ["--from", pinned, "compliance-mcp"]}
+    assert copilot["servers"]["ai-compliance"]["args"] == ["--from", pinned, "compliance-mcp"]
+    assert opencode["mcp"]["ai-compliance"]["command"] == ["uvx", "--from", pinned, "compliance-mcp"]
+    assert (tmp_path / "claude-code/agents/compliance-assistant.md").is_file()
+    assert not (tmp_path / ".claude-plugin").exists()

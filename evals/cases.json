@@ -1,0 +1,145 @@
+{
+  "description": "Benchmark cases for the structured compliance analyses. Expectations are drafted from Regulation (EU) 2024/1689 (EU AI Act) and must be confirmed by a qualified compliance reviewer before scores are used for decisions. Requirement expectations are minimal sets measured by recall, not exhaustive lists.",
+  "cases": [
+    {
+      "id": "consumer-credit-scoring",
+      "analysis": "project_context",
+      "request": {
+        "name": "consumer-credit-scoring",
+        "domain": {"domain": "finance", "use_case": "consumer lending"},
+        "ai_task": "CLASSIFICATION",
+        "goal": "Evaluate the creditworthiness of natural persons applying for consumer loans and establish their credit score",
+        "audience": "Credit officers of a retail bank",
+        "geography": ["EU"]
+      },
+      "expected": {
+        "risk_level": "HIGH",
+        "requirements": ["req-euai-art-10", "req-euai-art-13", "req-euai-art-14", "req-euai-art-15"]
+      },
+      "rationale": "Annex III point 5(b): creditworthiness evaluation and credit scoring of natural persons is high-risk; Articles 10, 13, 14 and 15 apply to high-risk systems."
+    },
+    {
+      "id": "cv-screening",
+      "analysis": "project_context",
+      "request": {
+        "name": "cv-screening",
+        "domain": {"domain": "employment", "use_case": "recruitment"},
+        "ai_task": "RANKING",
+        "goal": "Analyse and filter job applications and rank candidates for interviews",
+        "audience": "Human resources recruiters",
+        "geography": ["EU"]
+      },
+      "expected": {
+        "risk_level": "HIGH",
+        "requirements": ["req-euai-art-10", "req-euai-art-13", "req-euai-art-14"]
+      },
+      "rationale": "Annex III point 4(a): recruitment or selection, in particular analysing and filtering job applications and evaluating candidates, is high-risk."
+    },
+    {
+      "id": "exam-grading",
+      "analysis": "project_context",
+      "request": {
+        "name": "exam-grading",
+        "domain": {"domain": "education", "use_case": "assessment"},
+        "ai_task": "REGRESSION",
+        "goal": "Evaluate learning outcomes by scoring written exams of secondary school students",
+        "audience": "Teachers",
+        "geography": ["EU"]
+      },
+      "expected": {
+        "risk_level": "HIGH",
+        "requirements": ["req-euai-art-10", "req-euai-art-14"]
+      },
+      "rationale": "Annex III point 3(b): evaluating learning outcomes in education and vocational training is high-risk."
+    },
+    {
+      "id": "customer-support-chatbot",
+      "analysis": "project_context",
+      "request": {
+        "name": "customer-support-chatbot",
+        "domain": {"domain": "retail", "use_case": "customer support"},
+        "ai_task": "GENERATION",
+        "goal": "Answer customer questions about orders and deliveries through a chat interface",
+        "audience": "Online shop customers",
+        "geography": ["EU"]
+      },
+      "expected": {
+        "risk_level": "LIMITED",
+        "requirements": ["req-euai-art-50"]
+      },
+      "rationale": "Article 50(1): systems intended to interact directly with natural persons carry transparency obligations; customer support is not an Annex III use case."
+    },
+    {
+      "id": "email-spam-filter",
+      "analysis": "project_context",
+      "request": {
+        "name": "email-spam-filter",
+        "domain": {"domain": "information technology", "use_case": "email filtering"},
+        "ai_task": "CLASSIFICATION",
+        "goal": "Classify incoming corporate emails as spam or legitimate",
+        "audience": "Employees",
+        "geography": ["EU"]
+      },
+      "expected": {"risk_level": "MINIMAL"},
+      "rationale": "Spam filtering is outside Article 5, Annex III and Article 50; the European Commission cites it as minimal risk."
+    },
+    {
+      "id": "social-scoring",
+      "analysis": "project_context",
+      "request": {
+        "name": "social-scoring",
+        "domain": {"domain": "public administration", "use_case": "citizen scoring"},
+        "ai_task": "CLASSIFICATION",
+        "goal": "Score citizens on their social behaviour over time to grant or deny access to unrelated public services",
+        "audience": "Municipal officers",
+        "geography": ["EU"]
+      },
+      "expected": {
+        "risk_level": "PROHIBITED",
+        "requirements": ["req-euai-art-5"]
+      },
+      "rationale": "Article 5(1)(c): social scoring leading to detrimental treatment in unrelated contexts is a prohibited practice."
+    },
+    {
+      "id": "recruitment-training-data",
+      "analysis": "dataset",
+      "request": {
+        "dataset": {
+          "name": "applications-2024",
+          "description": "Historical job applications with hiring outcomes",
+          "scope": "TRAINING",
+          "sensitivity": "PII",
+          "n_records": 120000,
+          "schema_fields": [
+            {"name": "age", "dtype": "int"},
+            {"name": "gender", "dtype": "string"},
+            {"name": "years_experience", "dtype": "int"},
+            {"name": "hired", "dtype": "bool"}
+          ],
+          "known_protected_attributes": ["age", "gender"]
+        }
+      },
+      "expected": {
+        "requirements": ["req-euai-art-10"],
+        "attributes": ["age", "gender"]
+      },
+      "rationale": "Article 10 data governance applies to training data of high-risk systems; age and gender are protected characteristics present in the data."
+    },
+    {
+      "id": "credit-scoring-model",
+      "analysis": "model",
+      "request": {
+        "model": {
+          "name": "credit-scorer",
+          "description": "Gradient boosted classifier predicting loan default",
+          "ai_task": "CLASSIFICATION",
+          "output_type": "BINARY_CLASSIFICATION",
+          "trained_on_sensitive_data": true,
+          "known_affected_groups": ["loan applicants"]
+        }
+      },
+      "expected": {"requirements": ["req-euai-art-15"]},
+      "rationale": "Article 15 requires appropriate accuracy, robustness and cybersecurity for high-risk models such as credit scoring."
+    }
+  ]
+}

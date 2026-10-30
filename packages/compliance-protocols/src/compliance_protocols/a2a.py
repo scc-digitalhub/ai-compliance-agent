@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 
+from compliance_core.version import framework_version
 from compliance_skills import load_agent, load_skill
 
 from .config import ProtocolSettings
@@ -144,7 +145,7 @@ def build_card(settings: ProtocolSettings) -> AgentCard:
         raise ValueError("public_url must be an absolute HTTP(S) origin without a path")
     definition = load_agent()
     return AgentCard(
-        name=definition.name, description=definition.description, version="0.1.0",
+        name=definition.name, description=definition.description, version=framework_version(),
         supported_interfaces=[AgentInterface(
             url=settings.public_url.rstrip("/") + "/a2a", protocol_binding="JSONRPC", protocol_version="1.0",
         )],

@@ -15,6 +15,12 @@ from compliance_core.contracts import ModelComplianceOut
 from protocol_test_support import GET_ENTITY, LOAD_ENTITY, LOAD_SPECS, SAVE, noop
 
 
+def saved_bodies(data):
+    """Stored specifications without their generated provenance, which must be present."""
+    assert all(spec["provenance"]["mode"] in ("supplied", "host", "delegated", "unknown") for spec in data.values())
+    return {key: {k: v for k, v in spec.items() if k != "provenance"} for key, spec in data.items()}
+
+
 def test_durable_history_and_explicit_project_policy(runtime_factory, monkeypatch):
     monkeypatch.setenv("DH_PROJECT", "credit")
 
@@ -35,24 +41,26 @@ def test_durable_history_and_explicit_project_policy(runtime_factory, monkeypatc
         try:
             history = await restored.history(session_id)
             assert any(item["text"] == "In credit" for item in history)
-            assert (await restored.get(session_id)).state["protocol_project"] == "credit"
+            assert "credit/scorer" in (await restored.get(session_id)).state["dh_entities"]["model"]
             assert (await restored.prompt(session_id, "Continue", noop)).text == "Continued."
         finally:
             await restored.close()
     asyncio.run(scenario())
 
 
-def test_sessions_isolate_state_and_project_switch_is_rejected(runtime_factory):
+def test_sessions_isolate_state_and_a_conversation_can_switch_projects(runtime_factory):
     async def scenario():
         switch = {**GET_ENTITY, "args": {**GET_ENTITY["args"], "project": "other"}}
-        runtime = runtime_factory([LOAD_ENTITY, GET_ENTITY, "Found.", switch, "Start a new session."])
+        runtime = runtime_factory([LOAD_ENTITY, GET_ENTITY, "Found.", switch, "Found in other."])
         try:
             first, second = await runtime.create(), await runtime.create()
             await runtime.prompt(first, "Get scorer in credit", noop)
             assert "dh_entities" not in (await runtime.get(second)).state
             result = await runtime.prompt(first, "Get scorer in other", noop)
-            assert result.status == "input_required"
-            assert runtime.entities.calls == [("model", "scorer", "credit")]
+            assert result.status == "completed"
+            assert runtime.entities.calls == [("model", "scorer", "credit"), ("model", "scorer", "other")]
+            cached = (await runtime.get(first)).state["dh_entities"]["model"]
+            assert set(cached) == {"credit/scorer", "other/scorer"}
         finally:
             await runtime.close()
     asyncio.run(scenario())
@@ -68,7 +76,7 @@ def test_explicit_project_access_is_delegated_to_repository(runtime_factory, pro
             result = await runtime.prompt(session_id, f"Get scorer in {project}", noop)
             assert result.status == "completed"
             assert runtime.entities.calls == [("model", "scorer", project)]
-            assert (await runtime.get(session_id)).state["protocol_project"] == project
+            assert f"{project}/scorer" in (await runtime.get(session_id)).state["dh_entities"]["model"]
         finally:
             await runtime.close()
     asyncio.run(scenario())
@@ -121,7 +129,7 @@ def test_approved_write_to_previously_unlisted_project(runtime_factory):
                 session_id, "", noop, approval_id=pending.approval["id"], approve=True,
             )
             assert result.status == "completed"
-            assert runtime.specifications.data == {("model", "scorer", "research"): {"objectives": []}}
+            assert saved_bodies(runtime.specifications.data) == {("model", "scorer", "research"): {"objectives": []}}
         finally:
             await runtime.close()
     asyncio.run(scenario())
@@ -157,7 +165,7 @@ def test_write_approval_is_bound_to_session_payload_and_consumed_once(runtime_fa
             assert invalid.status == "failed"
             saved = await runtime.prompt(session_id, "", noop, approval_id=approval["id"], approve=True)
             assert saved.status == "completed"
-            assert runtime.specifications.data == {("model", "scorer", "credit"): {"objectives": []}}
+            assert saved_bodies(runtime.specifications.data) == {("model", "scorer", "credit"): {"objectives": []}}
             repeated = await runtime.prompt(session_id, "", noop, approval_id=approval["id"], approve=True)
             assert repeated.status == "failed"
             assert sum(call[0] == "save" for call in runtime.specifications.calls) == 1
@@ -248,7 +256,7 @@ def test_recorded_results_are_validated_structured_artifacts(runtime_factory):
             {"call": "load_skill", "args": {"skill_name": "model-analysis"}},
             {"call": "record_compliance_analysis", "args": {
                 "kind": "model", "request": {"model": {"name": "scorer", "ai_task": "CLASSIFICATION"}},
-                "output": example,
+                "output": example, "grounding": ["catalog/requirements/eu-ai-act/art14-human-oversight.md"],
             }},
             "The validated assessment is ready.",
         ])
@@ -262,6 +270,7 @@ def test_recorded_results_are_validated_structured_artifacts(runtime_factory):
                 example["result"]
             ).model_dump(mode="json")
             assert result.artifacts[0]["meta"]["okf_version"]
+            assert result.artifacts[0]["provenance"]["grounding"] == ["catalog/requirements/eu-ai-act/art14-human-oversight.md"]
         finally:
             await runtime.close()
     asyncio.run(scenario())
@@ -318,7 +327,72 @@ def test_pending_write_approval_survives_restart(runtime_factory):
         try:
             result = await restored.prompt(session_id, "", noop, approval_id=approval_id, approve=True)
             assert result.status == "completed"
-            assert restored.specifications.data == {("model", "scorer", "credit"): {"objectives": []}}
+            assert saved_bodies(restored.specifications.data) == {("model", "scorer", "credit"): {"objectives": []}}
         finally:
             await restored.close()
+    asyncio.run(scenario())
+
+
+def test_conflicting_write_is_refused_and_overwrite_is_part_of_the_approval(runtime_factory):
+    async def scenario():
+        overwrite = {**SAVE, "args": {**SAVE["args"], "overwrite": True}}
+        runtime = runtime_factory(
+            [LOAD_SPECS, SAVE, "It changed on DigitalHub.", overwrite, "Replaced."], allow_writes=True,
+        )
+        runtime.specifications.data[("model", "scorer", "credit")] = {"objectives": [], "owner": "someone"}
+        approvals = []
+
+        async def permit(approval):
+            approvals.append(approval["operation"])
+            return True
+
+        try:
+            session_id = await runtime.create()
+            refused = await runtime.prompt(session_id, "Save scorer in credit", noop, permission=permit)
+            assert refused.status == "failed" and "overwrite=True" in refused.text
+            assert runtime.specifications.data[("model", "scorer", "credit")]["owner"] == "someone"
+            replaced = await runtime.prompt(session_id, "Replace it", noop, permission=permit)
+            assert replaced.status == "completed"
+            assert [operation["overwrite"] for operation in approvals] == [False, True]
+            assert "provenance" in runtime.specifications.data[("model", "scorer", "credit")]
+        finally:
+            await runtime.close()
+    asyncio.run(scenario())
+
+
+def test_approved_session_writes_keep_the_analysis_provenance(runtime_factory):
+    async def scenario():
+        example = json.loads((SKILLS_PATH / "model-analysis/references/example.json").read_text())
+        record = {"call": "record_compliance_analysis", "args": {
+            "kind": "model", "output": example,
+            "request": {"model": {"name": "scorer", "ai_task": "CLASSIFICATION"},
+                        "project": {"name": "credit", "domain": "finance", "ai_task": "CLASSIFICATION",
+                                    "goal": "Score loans"}},
+            "grounding": ["catalog/requirements/eu-ai-act/art15-accuracy-robustness.md"],
+        }}
+        save = {"call": "save_compliance_specification",
+                "args": {"kind": "model", "entity": "scorer", "project": "credit"}}
+        runtime = runtime_factory(
+            [{"call": "load_skill", "args": {"skill_name": "model-analysis"}}, record, LOAD_SPECS, save,
+             "Approve?", save, "Saved."],
+            allow_writes=True,
+        )
+        try:
+            session_id = await runtime.create()
+            pending = await runtime.prompt(session_id, "Assess and save scorer in credit", noop)
+            assert pending.approval["source"] == "session"
+            deferred = await runtime.prompt(session_id, "", noop, approval_id=pending.approval["id"], approve=True)
+            assert deferred.status == "completed"
+            stored = runtime.specifications.data[("model", "scorer", "credit")]["provenance"]
+            assert stored["mode"] == "host"
+            assert stored["grounding"] == ["catalog/requirements/eu-ai-act/art15-accuracy-robustness.md"]
+
+            async def permit(approval):
+                return True
+
+            immediate = await runtime.prompt(session_id, "Save again", noop, permission=permit)
+            assert immediate.status == "completed"
+            assert runtime.specifications.data[("model", "scorer", "credit")]["provenance"]["mode"] == "host"
+        finally:
+            await runtime.close()
     asyncio.run(scenario())

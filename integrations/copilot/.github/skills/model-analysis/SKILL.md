@@ -54,7 +54,9 @@ Host-driven workflow (default):
 3. Call get_output_schema('model') before generating the result.
 4. Call validate_model_compliance with the original model analysis request and generated output.
 5. If invalid, correct the errors and validate again. When valid, call record_compliance_analysis
-   with kind='model', the original request and the generated output.
+   with kind='model', the original request, the generated output and `grounding`: the OKF
+   concept paths you read (required: recording is refused without them or with paths that are
+   not in the bundle). They are stored as the result's provenance.
 6. Return the normalized output from the successful validation; do not include tool-call details.
 
 Delegated mode is opt-in. If the user asks for it and analyze_model is available, use that tool

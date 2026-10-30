@@ -34,8 +34,14 @@ REST clients, and other agent frameworks. Gemini CLI integration is deferred.
   Copilot/VS Code, Claude Code, and OpenCode bundles with MCP launch configuration and a
   stale-output check. Gemini CLI integration is intentionally deferred.
 - Added the standalone `compliance-api` package and LiteLLM engine, which do not import Google ADK.
-- Remaining: extract reusable prompt/persona assets, add adapter-conformance and native host tests,
-  and complete package CI/release automation.
+- Added project-scoped workspace state, provenance on saved specifications, revision-based write
+  conflict detection and cross-process workspace locking.
+- Moved analysis definitions, the analyst prompt and the validate-and-retry loop into
+  `compliance_core.analysis_engine`; the ADK and LiteLLM engines only implement model calls. MCP
+  exposes delegated analysis with `compliance-mcp --delegated`.
+- Added CI, a single version source, tag-driven releases (PyPI, GitHub release with uvx-pinned host
+  bundles, A2A container image) and a Claude Code marketplace.
+- Remaining: adapter-conformance and native host tests, and MCP Registry registration.
 
 ---
 

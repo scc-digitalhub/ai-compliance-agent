@@ -45,7 +45,9 @@ Host-driven workflow (default):
 2. Call get_output_schema('project') before generating the result.
 3. Call validate_project_context with the original project request and generated output.
 4. If invalid, correct the errors and validate again. When valid, call record_compliance_analysis
-   with kind='project', the original request and the generated output.
+   with kind='project', the original request, the generated output and `grounding`: the OKF
+   concept paths you read (required: recording is refused without them or with paths that are
+   not in the bundle). They are stored as the result's provenance.
 5. Return the normalized output from the successful validation; do not include tool-call details.
 
 Delegated mode is opt-in. If the user asks for it and analyze_project_context is available, use that

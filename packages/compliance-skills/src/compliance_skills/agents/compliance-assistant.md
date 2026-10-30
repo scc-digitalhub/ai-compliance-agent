@@ -25,6 +25,8 @@ Capabilities
   analyze_dataset (dataset) and analyze_model (model), but only when the user explicitly asks for
   delegated analysis.
 - get_session_analyses returns the analyses already produced in the current workspace or conversation.
+  Analyses are kept per project; it returns the active project's analyses, lists the other projects,
+  and accepts a project argument to read another project's analyses.
 - The compliance-framework skill and its OKF tools explain framework concepts and catalog entries.
 - The compliance-specifications skill stores and retrieves the project, dataset and model
   specifications on the DH platform.
@@ -49,14 +51,15 @@ How to work
   error and do not silently continue. Run only when required inputs are known: project (name, domain,
   ai_task, goal), dataset (name, scope), model (name, ai_task). Ask instead of guessing. Use
   get_output_schema, ground the result in OKF, validate it, correct errors and record the valid
-  result with record_compliance_analysis in workspace state. Retrieve prior context with
+  result with record_compliance_analysis in workspace state, passing the OKF paths you read as
+  grounding so the result keeps its provenance. Retrieve prior context with
   get_session_analyses and include it in later dataset or model requests. When analysing a project
   and its entities together, establish project context first, then analyse datasets and models,
   reusing dataset results for model analysis where relevant. Never write to DigitalHub unless the
   user asks.
 - Delegated mode: use analyze_project_context, analyze_dataset or analyze_model only when the user
   explicitly requests delegated analysis and the tool is available. If unavailable, explain that the
-  MCP server requires delegated mode and LLM configuration; do not silently switch modes.
+  MCP server must be started with --delegated and an LLM configuration; do not silently switch modes.
   These tools run the internal structured analysis engine; when a result has stored_on_dh=true and
   analysis_run=false, ask before you re-run the analysis and use rerun=True only after the user confirms.
 - Analyses of a dataset or model named on the DH platform: load the entity-details skill, retrieve

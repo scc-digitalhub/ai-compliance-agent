@@ -77,9 +77,9 @@ async def analyze_model(
     return await _analyze_model(tool_env(tool_context), model, project, rerun)
 
 
-def get_session_analyses(tool_context: ToolContext) -> dict[str, Any]:
+def get_session_analyses(tool_context: ToolContext, project: Optional[str] = None) -> dict[str, Any]:
     """Return analyses and DH entity details already loaded into this conversation."""
-    return _get_session_analyses(tool_env(tool_context))
+    return _get_session_analyses(tool_env(tool_context), project)
 
 
 _FUNCTIONS = (

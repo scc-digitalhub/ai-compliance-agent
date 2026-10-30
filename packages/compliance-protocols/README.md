@@ -42,10 +42,13 @@ DigitalHub authorization failures are reported as tool errors.
 `COMPLIANCE_PROTOCOL_ALLOWED_PROJECTS` has been removed. Remove it from deployment configuration;
 it no longer restricts access. Use DigitalHub permissions to limit accessible projects.
 
-A protocol conversation is bound to the first DigitalHub project explicitly used, even if several
-projects are authorized. Start a new conversation to switch projects. This avoids mixing
-same-named dataset/model assessments from different projects. Each conversation has independent
-ADK state; no global workspace state is shared between conversations.
+Analyses are kept per project inside a conversation, so one conversation may work with several
+DigitalHub projects without mixing same-named dataset/model assessments. Each conversation has
+independent ADK state; no global workspace state is shared between conversations.
+
+Writes are also checked for conflicts: a save returns `conflict` when the stored specification
+changed since it was retrieved, or exists but was never retrieved in the conversation. The approved
+operation states whether `overwrite` is requested. Saved specifications carry a `provenance` block.
 
 Only validated/recorded analysis results and normalized retrieved specifications become result
 artifacts. Recorded results include OKF version and consulted paths. Assumptions and validation

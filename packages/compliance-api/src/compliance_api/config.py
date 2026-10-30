@@ -37,6 +37,10 @@ class ApiSettings(BaseSettings):
     api_keys: str = Field("", validation_alias=AliasChoices("API_KEYS"))
     cors_origins: str = Field("", validation_alias=AliasChoices("CORS_ORIGINS"))
     max_body_bytes: int = Field(1_000_000, gt=0, validation_alias=AliasChoices("MAX_BODY_BYTES"))
+    enable_dh: bool = Field(
+        True, validation_alias=AliasChoices("COMPLIANCE_ENABLE_DH"),
+        description="Give analyses the DigitalHub specification and entity tools",
+    )
 
     @property
     def api_key_list(self) -> list[str]:

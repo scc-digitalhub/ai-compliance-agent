@@ -1,7 +1,7 @@
 """ADK adapters for the framework-neutral host-driven analysis tools."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from google.adk.tools import ToolContext
 
@@ -43,9 +43,10 @@ def record_compliance_analysis(
     request: Any,
     output: Any,
     tool_context: ToolContext,
+    grounding: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     """Validate and store a host-generated compliance analysis in the current conversation."""
-    return _record(tool_env(tool_context), kind, request, output)
+    return _record(tool_env(tool_context), kind, request, output, grounding)
 
 
 HOST_TOOL_REGISTRY = {

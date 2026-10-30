@@ -1,0 +1,15 @@
+{
+  "name": "ai-compliance",
+  "description": "AI compliance assistant for Claude Code",
+  "owner": {
+    "name": "scc-digitalhub"
+  },
+  "plugins": [
+    {
+      "name": "ai-compliance",
+      "source": "./integrations/claude-code",
+      "description": "Portable AI compliance agent, skills and MCP tools.",
+      "version": "0.1.0"
+    }
+  ]
+}

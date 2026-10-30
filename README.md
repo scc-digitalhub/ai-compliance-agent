@@ -10,7 +10,9 @@ earlier `src/compliance_agent` LangChain implementation.
 ## Architecture
 
 - `packages/compliance-core/src/compliance_core/` contains reusable contracts, validation,
-  knowledge access, state stores, service logic, ports, and the canonical tool catalog. Core
+  knowledge access, state stores, service logic, ports, the canonical tool catalog and the shared
+  structured-analysis engine (analysis definitions, analyst prompt, validate-and-retry loop and
+  response metadata). The ADK and LiteLLM engines only implement how a message reaches the model. Core
   imports do not require Google ADK.
 - `packages/compliance-dh/src/compliance_dh/` provides DigitalHub repositories and SDK operations
   without importing ADK.
@@ -84,15 +86,24 @@ Gemini models. See [`adk/.env.example`](adk/.env.example) for the complete confi
 
 The MCP adapter defaults to host-driven analysis: the host model gathers inputs, uses the OKF tools,
 requests the output schema, validates the generated result, and records valid results in the current
-workspace's `.compliance/state.json`. DigitalHub entity lookup and specification tools are enabled
+workspace's `.compliance/state.json`, together with their provenance. Analyses are kept per project:
+switching projects archives the previous project's results instead of mixing them, and several
+host processes can share one workspace safely. DigitalHub entity lookup and specification tools are enabled
 by default; configure DigitalHub credentials in the environment. Delegated internal LLM analysis is
-opt-in.
+opt-in: start the server with `compliance-mcp --delegated` (requires the `server` extra, or `mcp`
+with `api`, plus `STRUCTURED_MODEL` and provider credentials) to also expose `analyze_*` tools. Use
+`--workspace PATH` to select the workspace and `--no-dh` to disable DigitalHub tools.
 
 DigitalHub project selection is explicit, not environment-based. For specification and entity
 operations, name the project in the request (for example, "retrieve dataset applications-2024 in
 project credit") or refer to a project already established in the conversation. Dataset/model tools
 accept a `project` argument; a full `store://` key also identifies its project. For project
-specifications, `entity` is the project identifier. The agent asks when the project is missing or
+specifications, `entity` is the project identifier. Saved specifications include a `provenance`
+block (analysis mode, OKF version, consulted OKF paths, assumptions, warnings, framework version and
+time). A save is refused with `conflict` when the stored specification changed since this workspace
+retrieved it, or exists but was never retrieved, unless the user confirms `overwrite=True`. The
+check compares content revisions immediately before writing; it narrows, but cannot eliminate, the
+window for a concurrent write between the check and the save. The agent asks when the project is missing or
 ambiguous rather than guessing a default.
 
 Install the unified distribution with MCP dependencies and run the stdio server from the repository:
@@ -128,8 +139,41 @@ required; no credentials are stored in the bundles. Analysis state remains in th
 `.compliance/` directory. Regenerate or verify checked-in bundles with
 `python scripts/sync_host_plugins.py` and `python scripts/sync_host_plugins.py --check`.
 
-The unified distribution builds as one wheel or source distribution and is not yet published to a
-package index. The ADK extra installs Google ADK; the API, MCP, and server extras do not.
+The unified distribution builds as one wheel or source distribution. The ADK extra installs Google
+ADK; the API, MCP, and server extras do not.
+
+Claude Code can also install the plugin straight from this repository, which is a plugin
+marketplace (`.claude-plugin/marketplace.json`):
+
+```text
+/plugin marketplace add scc-digitalhub/ai-compliance-agent
+/plugin install ai-compliance@ai-compliance
+```
+
+## Releases and distribution
+
+The version in `pyproject.toml` is the single source: the MCP server, ACP agent info, A2A Agent
+Card, Claude plugin manifest and marketplace all report it (`compliance_core.version`).
+
+- **CI** (`.github/workflows/ci.yml`) runs the tests on Python 3.11–3.13 (and macOS), checks the
+  generated host bundles, builds the distribution and installs each extra in a clean environment
+  (`scripts/check_wheel_extras.sh`), verifying that `mcp`, `api` and `server` do not pull in Google ADK.
+- **Release** (`.github/workflows/release.yml`): bump the version in `pyproject.toml`, regenerate
+  bundles, and push a `vX.Y.Z` tag matching it. The workflow tests and builds, publishes to PyPI by
+  trusted publishing (configure this repository as trusted publisher for `ai-compliance-platform` and
+  create a `pypi` environment first), creates a GitHub release with the wheel, sdist and zipped host
+  bundles, and pushes the A2A image to `ghcr.io/scc-digitalhub/ai-compliance-agent/compliance-a2a`.
+- **Release host bundles** launch the published version without a local install:
+  `uvx --from "ai-compliance-platform[mcp]==X.Y.Z" compliance-mcp`. Generate them locally with
+  `python scripts/sync_host_plugins.py --output <dir> --launcher uvx`. The checked-in bundles keep
+  running `compliance-mcp` from `PATH` for source checkouts.
+- **A2A container** (`deploy/a2a/Dockerfile`): `uv build` then
+  `docker build -f deploy/a2a/Dockerfile -t compliance-a2a .`. It runs as a non-root user, keeps
+  state in the `/data` volume and listens on port 8101; provide the bearer token, public URL, model
+  and DigitalHub configuration through the environment.
+
+Registration in the MCP Registry is not set up yet: it needs the PyPI package to be published and a
+registry entry whose `uvx` launch selects the `compliance-mcp` command with the `mcp` extra.
 
 ## ACP and A2A agent exposure
 
@@ -145,8 +189,8 @@ adapters run their own model.
 DigitalHub operations require an explicit user-selected project; DigitalHub enforces access using
 the agent process's configured credentials, without a protocol-specific project allowlist.
 Writes default to disabled. A2A additionally
-requires `COMPLIANCE_PROTOCOL_BEARER_TOKEN` (at least 32 characters). A conversation cannot switch
-DigitalHub projects; start a new one instead.
+requires `COMPLIANCE_PROTOCOL_BEARER_TOKEN` (at least 32 characters). Analyses are kept per
+project, so a conversation may switch between DigitalHub projects.
 
 This is a single-tenant, single-worker deployment baseline. See the
 [protocol setup, configuration, client examples and deployment boundaries](packages/compliance-protocols/README.md).
@@ -209,6 +253,41 @@ Tests use scripted models and fakes, so they do not require provider credentials
 calls. After syncing all workspace packages:
 
 ```bash
-uv sync --extra dev
+uv sync --all-extras
 uv run pytest
 ```
+
+## Result quality
+
+Every analysis result is checked against its schema and the OKF bundle before it is stored:
+
+- **Cited sources**: host-driven results are recorded only with `grounding`, the OKF concept paths
+  the host read; every path must exist in the bundle. Delegated results record the paths the engine
+  actually read and warn when none were consulted. Sources are kept in the result's provenance.
+- **Catalog consistency** (errors): unknown requirement ids in objectives, requirements attributed
+  to a different framework than in the catalog, requirements citing a framework that is not among
+  the declared regulations, out-of-range metric thresholds, and dataset scope mismatches.
+- **Plausibility** (warnings): unknown frameworks or requirement ids, objectives linking
+  requirements outside the project context, and risk levels inconsistent with the catalog's
+  high-risk or prohibited-practice requirements that are listed. The OKF bundle has no structured
+  Annex III mapping, so risk classification by domain is measured by the benchmark below rather
+  than enforced.
+
+### Benchmark
+
+`evals/cases.json` holds benchmark cases (Annex III high-risk uses, transparency-only, minimal-risk
+and prohibited practices, plus dataset and model analyses) with the legal basis of each expectation.
+The expectations must be confirmed by a qualified reviewer before scores inform decisions.
+`scripts/run_evals.py` runs them through the LiteLLM engine and compares models on validity, risk
+accuracy, recall of expected catalog requirements and attributes, invented catalog ids, grounding,
+retries, warnings, tokens and latency:
+
+```bash
+uv sync --extra api
+uv run python scripts/run_evals.py --model openai/gpt-4.1 --model gemini/gemini-2.5-pro \
+  --out eval-report.json --markdown eval-report.md
+```
+
+DigitalHub tools are disabled during evaluation unless `--with-dh` is given. Run the benchmark when
+skills, the OKF bundle or the model change; the manual **Evaluate models** workflow
+(`.github/workflows/evals.yml`) runs it in CI with model credentials from repository secrets.

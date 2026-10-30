@@ -26,8 +26,9 @@ from compliance_adk.agents.coordinator import build_coordinator_agent
 from compliance_adk.agents.tool_adapter import AdkAnalysisEngine, TOOL_ENV_FACTORY
 from compliance_core.knowledge import get_bundle
 from compliance_core.ports import EntityKind, SpecificationKind
+from compliance_core.provenance import split_provenance
 from compliance_core.specification_tools import (
-    _SPECIFICATIONS, _session_specification, _validate, save_compliance_specification,
+    SpecificationError, prepare_specification, save_compliance_specification,
 )
 from compliance_core.state import MappingStateStore, entity_project
 from compliance_core.tools import ToolEnv
@@ -38,7 +39,6 @@ from .config import ProtocolSettings
 logger = logging.getLogger(__name__)
 APP = "compliance_protocols"
 USER = "single_tenant"
-BOUND_PROJECT = "protocol_project"
 PENDING = "protocol_pending_write"
 Status = Literal["completed", "input_required", "failed", "cancelled"]
 Notify = Callable[[dict[str, Any]], Awaitable[None]]
@@ -51,9 +51,11 @@ Protocol interaction rules:
 - DigitalHub writes are disabled unless the deployment enables them, and each write requires a
   separate transport-level approval. An approval_required tool response is not a successful save.
   Relay its approval id and exact operation; never approve a write yourself or retry to bypass it.
-- A conversation is bound to the first DigitalHub project explicitly used. To switch projects,
-  ask the user to start a new conversation. DigitalHub credentials determine project access;
-  never select a default project from environment variables.
+- Every DigitalHub operation needs a project the user explicitly named. Analyses are kept per
+  project, so a conversation may work with several projects. DigitalHub credentials determine
+  project access; never select a default project from environment variables.
+- A save that returns code 'conflict' means the stored specification changed or was never
+  retrieved: present it and ask the user before saving again with overwrite=True.
 - Validated tool results are delivered separately as JSON; explain them without fabricating results.
 """
 
@@ -81,7 +83,20 @@ class TurnResult:
 
 
 def _digest(operation: dict[str, Any]) -> str:
-    return hashlib.sha256(json.dumps(operation, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    """Fingerprint of the approved write; provenance is generated at save time and excluded."""
+    body, _ = split_provenance(operation["specification"])
+    target = {key: operation[key] for key in ("kind", "entity", "project")}
+    encoded = json.dumps({**target, "specification": body}, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode()).hexdigest()
+
+
+def _save_arguments(operation: dict[str, Any], source: str | None) -> dict[str, Any]:
+    """A session analysis is saved from the workspace, keeping its provenance; the approval digest
+    still guarantees that exactly the approved specification is written."""
+    arguments = dict(operation)
+    if source == "session":
+        arguments["specification"] = None
+    return arguments
 
 
 def request_user_input(question: str) -> dict[str, Any]:
@@ -105,10 +120,6 @@ class ProjectPolicy:
             selected = entity_project(self.state, project)
         if not selected:
             raise ValueError("An explicit DigitalHub project is required")
-        bound = self.state.get(BOUND_PROJECT)
-        if bound and selected != bound:
-            raise PermissionError("This conversation is bound to another project; start a new conversation")
-        self.state[BOUND_PROJECT] = selected
         return selected
 
 
@@ -247,22 +258,32 @@ class ConversationRuntime:
             selected = ProjectPolicy(MappingStateStore(state), self.settings).resolve(
                 kind, entity, args.get("project")
             )
-            raw = args.get("specification") or _session_specification(state, kind, entity)
-            if not raw:
-                return {"code": "not_found", "error": "No specification available to save"}
-            normalized = _validate(_SPECIFICATIONS[kind][1], raw).model_dump(mode="json", exclude_none=True)
+            prepared = prepare_specification(
+                MappingStateStore(state), kind, entity, args.get("specification"), selected,
+            )
+        except SpecificationError as exc:
+            if exc.code == "not_found":
+                return {"code": "not_found", "error": str(exc)}
+            turn.status = "input_required"
+            return {"code": "invalid_write", "error": str(exc)}
         except (ValueError, PermissionError, KeyError) as exc:
             turn.status = "input_required"
             return {"code": "invalid_write", "error": str(exc)}
-        operation = {"kind": kind, "entity": entity, "project": selected, "specification": normalized}
-        approval = {"id": uuid.uuid4().hex, "operation": operation, "expires_at": time.time() + self.settings.approval_ttl_s}
+        operation = {
+            "kind": kind, "entity": entity, "project": selected,
+            "specification": prepared["specification"], "overwrite": args.get("overwrite") is True,
+        }
+        approval = {
+            "id": uuid.uuid4().hex, "operation": operation, "source": prepared["source"],
+            "expires_at": time.time() + self.settings.approval_ttl_s,
+        }
         if turn.permission is not None:
             if not await turn.permission(approval):
                 return {"code": "permission_denied", "error": "The user did not approve this write"}
             if approval["expires_at"] < time.time():
                 turn.status = "input_required"
                 return {"code": "approval_expired", "error": "This write approval expired; request it again"}
-            args.update(operation)
+            args.update(_save_arguments(operation, prepared["source"]))
             turn.authorized_write = _digest(operation)
             return None
         state[PENDING] = approval
@@ -379,7 +400,9 @@ class ConversationRuntime:
             return TurnResult("completed", "Write rejected; nothing was saved.", [])
         operation = pending["operation"]
         turn.authorized_write = _digest(operation)
-        result = save_compliance_specification(self.environment_for_state(session.state), **operation)
+        result = save_compliance_specification(
+            self.environment_for_state(session.state), **_save_arguments(operation, pending.get("source")),
+        )
         await self.sessions.append_event(session, Event(
             author=self.agent.name,
             content=types.Content(role="model", parts=[types.Part(text=json.dumps(result))]),

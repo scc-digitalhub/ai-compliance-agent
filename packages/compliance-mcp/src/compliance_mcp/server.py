@@ -10,10 +10,11 @@ from typing import Any, get_type_hints
 
 from compliance_core.knowledge import get_bundle
 from compliance_core.settings import get_core_settings
-from compliance_core.state import FileStateStore
+from compliance_core.state import FileStateStore, transaction
 from compliance_core.tool_catalog import TOOL_SPECS
 from compliance_core.tools import ToolEnv, ToolSpec
 from compliance_core.validation_tools import AnalysisKind
+from compliance_core.version import framework_version
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +61,14 @@ def _tool_wrapper(spec: ToolSpec, env: ToolEnv):
 
     @wraps(spec.fn)
     async def invoke(**kwargs: Any) -> Any:
-        result = spec.fn(env, **kwargs) if has_env else spec.fn(**kwargs)
-        if inspect.isawaitable(result):
-            return await result
+        if spec.needs_llm:
+            # Model calls can take minutes; their state updates are locked individually instead.
+            result = spec.fn(env, **kwargs) if has_env else spec.fn(**kwargs)
+            return await result if inspect.isawaitable(result) else result
+        with transaction(env.state):
+            result = spec.fn(env, **kwargs) if has_env else spec.fn(**kwargs)
+            if inspect.isawaitable(result):
+                result = await result
         return result
 
     invoke.__name__ = spec.name
@@ -96,7 +102,7 @@ def create_server(
 
     server = MCPServer(
         name="ai-compliance",
-        version="0.1.0",
+        version=framework_version(),
         instructions=_SERVER_INSTRUCTIONS,
     )
     from mcp.types import ToolAnnotations
@@ -155,9 +161,38 @@ def create_server(
     return server
 
 
-def main() -> None:
+def _delegated_engine():
+    try:
+        from compliance_api.engine import create_delegated_engine
+    except ImportError as exc:
+        raise RuntimeError(
+            "Delegated analysis needs LiteLLM; install the 'server' extra "
+            "(or 'mcp' together with 'api')."
+        ) from exc
+    return create_delegated_engine()
+
+
+def main(argv: list[str] | None = None) -> None:
     """Run the MCP server over stdio."""
-    server = create_server()
+    import argparse
+
+    parser = argparse.ArgumentParser(prog="compliance-mcp", description=main.__doc__)
+    parser.add_argument("--workspace", help="Workspace whose .compliance/ directory holds analysis state")
+    parser.add_argument(
+        "--delegated", action="store_true",
+        help="Also expose analyze_* tools that run the internal LiteLLM analysis engine "
+        "(requires STRUCTURED_MODEL and provider credentials)",
+    )
+    parser.add_argument("--no-dh", action="store_true", help="Disable DigitalHub entity and specification tools")
+    args = parser.parse_args(argv)
+
+    workspace = Path(args.workspace or get_core_settings().workspace_path).expanduser().resolve()
+    env = _default_env(workspace, not args.no_dh)
+    if args.delegated:
+        env.analysis_engine = _delegated_engine()
+    server = create_server(
+        workspace, env=env, enable_dh=not args.no_dh, enable_delegated_analysis=args.delegated,
+    )
     asyncio.run(server.run_stdio_async())
 
 

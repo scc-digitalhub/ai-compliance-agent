@@ -78,3 +78,18 @@ def test_protocol_adapters_have_optional_dependencies_and_entry_points():
         assert not any(dep.startswith(("agent-client-protocol", "a2a-sdk", "google-adk")) for dep in extras[extra])
     assert config["project"]["scripts"]["compliance-acp"] == "compliance_protocols.acp:main"
     assert config["project"]["scripts"]["compliance-a2a"] == "compliance_protocols.a2a:main"
+
+
+def test_runtime_metadata_reports_the_single_distribution_version():
+    from compliance_core.version import framework_version
+
+    version = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
+    assert framework_version() == version
+    sources = [
+        ROOT / "packages/compliance-mcp/src/compliance_mcp/server.py",
+        ROOT / "packages/compliance-protocols/src/compliance_protocols/a2a.py",
+        ROOT / "packages/compliance-protocols/src/compliance_protocols/acp.py",
+    ]
+    for source in sources:
+        text = source.read_text()
+        assert "framework_version()" in text and f'"{version}"' not in text

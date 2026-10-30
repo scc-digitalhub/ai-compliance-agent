@@ -1,15 +1,12 @@
-"""Runs a structured agent for one request: fresh session, validation with retry, response envelope."""
+"""Runs a structured ADK agent for one request using the core validate-and-retry loop."""
 from __future__ import annotations
 
 import asyncio
 import logging
-import re
 import time
 import uuid
-from dataclasses import dataclass, field
 from typing import Any
 
-from google.adk.events import Event
 from google.adk.models.base_llm import BaseLlm
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
@@ -19,71 +16,53 @@ from pydantic import BaseModel, ValidationError
 from ..agents.specs import StructuredAgentSpec
 from ..agents.structured import build_structured_agent
 from ..config import Settings, get_settings
-from compliance_core.contracts import AnalysisMeta, AnalysisResponse, TokenUsage
-from compliance_core.errors import (
-    AnalysisTimeout,
-    ComplianceError,
-    OutputValidationError,
-    UpstreamModelError,
-    UpstreamRateLimited,
+from compliance_core.analysis_engine import (
+    AnalysisTrace,
+    OutputRejected,
+    build_response,
+    run_validated,
+    schema_problems,
+    upstream_error,
 )
+from compliance_core.contracts import AnalysisResponse
+from compliance_core.errors import AnalysisTimeout, ComplianceError
 from compliance_core.knowledge import OkfBundle, get_bundle
-from compliance_core.validation import Issue, VALIDATORS
 
 logger = logging.getLogger(__name__)
 
 APP_NAME = "compliance_structured"
-_PATH_TOOLS = {"read_okf_concept", "list_okf_directory"}
-_FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL)
 
 
-@dataclass
-class _Trace:
-    attempts: int = 0
-    input_tokens: int = 0
-    output_tokens: int = 0
-    grounding: dict[str, None] = field(default_factory=dict)  # insertion-ordered set
+class _AdkConversation:
+    """One ADK session; each message runs the agent until its final answer."""
 
-    def observe(self, event: Event) -> None:
-        usage = event.usage_metadata
-        if usage:
-            self.input_tokens += usage.prompt_token_count or 0
-            self.output_tokens += usage.candidates_token_count or 0
-        for call in event.get_function_calls():
-            path = (call.args or {}).get("path")
-            if call.name in _PATH_TOOLS and isinstance(path, str) and path:
-                self.grounding[path] = None
-        for response in event.get_function_responses():
-            self._collect_paths(response.response)
+    def __init__(self, runner: Runner, user_id: str, session_id: str, trace: AnalysisTrace):
+        self._runner, self._user_id, self._session_id, self._trace = runner, user_id, session_id, trace
 
-    def _collect_paths(self, obj: Any) -> None:
-        if isinstance(obj, dict):
-            path = obj.get("path")
-            if isinstance(path, str) and path.endswith(".md"):
-                self.grounding[path] = None
-            for value in obj.values():
-                self._collect_paths(value)
-        elif isinstance(obj, list):
-            for value in obj:
-                self._collect_paths(value)
-
-
-def _map_upstream(exc: Exception) -> ComplianceError:
-    if getattr(exc, "status_code", None) == 429 or "RateLimit" in type(exc).__name__:
-        return UpstreamRateLimited("The model provider rate limit was reached")
-    return UpstreamModelError(f"{type(exc).__name__}: {str(exc)[:300]}")
-
-
-def _schema_problems(exc: ValidationError) -> list[str]:
-    return [f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in exc.errors()[:10]]
-
-
-class _Rejected(Exception):
-    """The agent's answer failed ADK's own output_schema validation."""
-
-    def __init__(self, problems: list[str]):
-        super().__init__("; ".join(problems))
-        self.problems = problems
+    async def send(self, message: str) -> str:
+        content = types.Content(role="user", parts=[types.Part(text=message)])
+        final_text = ""
+        try:
+            async for event in self._runner.run_async(
+                user_id=self._user_id, session_id=self._session_id, new_message=content,
+            ):
+                usage = event.usage_metadata
+                if usage:
+                    self._trace.add_usage(usage.prompt_token_count, usage.candidates_token_count)
+                for call in event.get_function_calls():
+                    self._trace.observe_call(call.name, call.args or {})
+                for response in event.get_function_responses():
+                    self._trace.collect(response.response)
+                if event.is_final_response() and event.content and event.content.parts:
+                    final_text = "".join(p.text or "" for p in event.content.parts)
+        except ValidationError as exc:
+            # ADK validates the answer against output_schema before returning it.
+            raise OutputRejected(schema_problems(exc)) from exc
+        except ComplianceError:
+            raise
+        except Exception as exc:
+            raise upstream_error(exc) from exc
+        return final_text
 
 
 class StructuredRunner:
@@ -113,10 +92,11 @@ class StructuredRunner:
     async def run(self, request: BaseModel, request_id: str | None = None) -> AnalysisResponse[Any]:
         request_id = request_id or uuid.uuid4().hex
         started = time.perf_counter()
+        trace = AnalysisTrace()
         try:
             async with asyncio.timeout(self.settings.request_timeout_s):
                 async with self._semaphore():
-                    output, warnings, trace = await self._run_validated(request, request_id)
+                    output, warnings = await self._run_validated(request, request_id, trace)
         except TimeoutError as exc:
             raise AnalysisTimeout(
                 f"Analysis exceeded {self.settings.request_timeout_s:g}s"
@@ -127,71 +107,17 @@ class StructuredRunner:
             "analysis agent=%s request_id=%s attempts=%d latency_ms=%d",
             self.spec.agent_name, request_id, trace.attempts, latency_ms,
         )
-        meta = AnalysisMeta(
-            request_id=request_id,
-            agent=self.spec.agent_name,
-            model=self.model_name,
-            okf_version=self.bundle.version,
-            latency_ms=latency_ms,
-            attempts=trace.attempts,
-            grounding=list(trace.grounding),
-            assumptions=output.assumptions,
-            warnings=warnings,
-            usage=TokenUsage(input_tokens=trace.input_tokens, output_tokens=trace.output_tokens),
+        return build_response(
+            self.spec, output, warnings, trace, request_id=request_id, model=self.model_name,
+            bundle=self.bundle, latency_ms=latency_ms,
         )
-        return AnalysisResponse[type(output.result)](data=output.result, meta=meta)
 
-    async def _run_validated(self, request: BaseModel, request_id: str):
+    async def _run_validated(self, request: BaseModel, request_id: str, trace: AnalysisTrace):
         session = await self._sessions.create_session(app_name=APP_NAME, user_id=request_id)
-        trace = _Trace()
-        message = request.model_dump_json(exclude_none=True)
-        problems: list[str] = []
         try:
-            for attempt in range(1, self.settings.max_validation_retries + 2):
-                trace.attempts = attempt
-                try:
-                    text = await self._invoke(session.id, request_id, message, trace)
-                except _Rejected as rejected:
-                    output, issues = None, [Issue("error", p) for p in rejected.problems]
-                else:
-                    output, issues = self._parse_and_validate(text, request)
-                errors = [i.message for i in issues if i.severity == "error"]
-                if output is not None and not errors:
-                    return output, [i.message for i in issues], trace
-                problems = errors
-                message = (
-                    "Your previous answer was rejected:\n- "
-                    + "\n- ".join(problems)
-                    + "\nReturn the complete corrected JSON object only."
-                )
-            raise OutputValidationError("The model did not produce valid output", problems)
+            return await run_validated(
+                self.spec, request, _AdkConversation(self._runner, request_id, session.id, trace),
+                bundle=self.bundle, max_retries=self.settings.max_validation_retries, trace=trace,
+            )
         finally:
             await self._sessions.delete_session(app_name=APP_NAME, user_id=request_id, session_id=session.id)
-
-    async def _invoke(self, session_id: str, user_id: str, message: str, trace: _Trace) -> str:
-        content = types.Content(role="user", parts=[types.Part(text=message)])
-        final_text = ""
-        try:
-            async for event in self._runner.run_async(user_id=user_id, session_id=session_id, new_message=content):
-                trace.observe(event)
-                if event.is_final_response() and event.content and event.content.parts:
-                    final_text = "".join(p.text or "" for p in event.content.parts)
-        except ComplianceError:
-            raise
-        except ValidationError as exc:
-            raise _Rejected(_schema_problems(exc)) from exc
-        except Exception as exc:
-            raise _map_upstream(exc) from exc
-        return final_text
-
-    def _parse_and_validate(self, text: str, request: BaseModel) -> tuple[BaseModel | None, list[Issue]]:
-        text = text.strip()
-        if fenced := _FENCE.match(text):
-            text = fenced.group(1)
-        if not text:
-            return None, [Issue("error", "the answer was empty")]
-        try:
-            output = self.spec.output_schema.model_validate_json(text)
-        except ValidationError as exc:
-            return None, [Issue("error", p) for p in _schema_problems(exc)]
-        return output, VALIDATORS[self.spec.key](output.result, request, self.bundle)

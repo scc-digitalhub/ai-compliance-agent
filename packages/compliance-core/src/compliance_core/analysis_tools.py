@@ -20,7 +20,11 @@ from .ports import SpecificationKind
 from .specification_tools import (
     get_compliance_specification as _get_compliance_specification,
 )
-from .state import CONTEXT_KEY, DATASETS_KEY, ENTITIES_KEY, MODELS_KEY, PROJECT_KEY
+from .provenance import build_provenance, set_provenance
+from .state import (
+    CONTEXT_KEY, DATASETS_KEY, ENTITIES_KEY, MODELS_KEY, PROJECT_KEY, PROVENANCE_KEY,
+    activate_project, active_project, known_projects, scoped_get, scoped_update, transaction,
+)
 from .tools import ToolEnv, ToolSpec
 
 InputModel = TypeVar("InputModel", bound=BaseModel)
@@ -46,23 +50,43 @@ async def _run(
         return {"error": str(exc), "code": exc.code}
 
 
-def _payload(response: AnalysisResponse[Any]) -> dict[str, Any]:
+def _provenance(response: AnalysisResponse[Any]) -> dict[str, Any]:
+    meta = response.meta
+    return build_provenance(
+        "delegated", meta.okf_version, model=meta.model, grounding=meta.grounding,
+        assumptions=meta.assumptions, warnings=meta.warnings,
+    )
+
+
+def _payload(response: AnalysisResponse[Any], provenance: dict[str, Any]) -> dict[str, Any]:
     return {
         "data": response.data.model_dump(mode="json"),
         "assumptions": response.meta.assumptions,
         "warnings": response.meta.warnings,
         "grounding": response.meta.grounding,
+        "provenance": provenance,
     }
 
 
-def _stored_context(state: Any) -> Optional[ComplianceContextOut]:
-    raw = state.get(CONTEXT_KEY)
+def _stored_context(state: Any, project: str | None = None) -> Optional[ComplianceContextOut]:
+    raw = scoped_get(state, CONTEXT_KEY, project)
     return ComplianceContextOut.model_validate(raw) if raw else None
 
 
-def _stored_project(state: Any) -> Optional[ProjectInput]:
-    raw = state.get(PROJECT_KEY)
+def _stored_project(state: Any, project: str | None = None) -> Optional[ProjectInput]:
+    raw = scoped_get(state, PROJECT_KEY, project)
     return ProjectInput.model_validate(raw) if raw else None
+
+
+def _store_entity(
+    env: ToolEnv, kind: str, name: str, response: AnalysisResponse[Any], project: str | None,
+) -> dict[str, Any]:
+    provenance = _provenance(response)
+    with transaction(env.state):
+        scoped_update(env.state, DATASETS_KEY if kind == "dataset" else MODELS_KEY, name,
+                      response.data.model_dump(mode="json"), project)
+        set_provenance(env.state, kind, name, provenance, project)
+    return _payload(response, provenance)
 
 
 def _stored_on_dh(
@@ -70,7 +94,7 @@ def _stored_on_dh(
 ) -> Optional[dict[str, Any]]:
     found = _get_compliance_specification(env, kind, entity, project=project)
     if "specification" not in found:
-        if found.get("code") == "not_found":
+        if found.get("code") in ("not_found", "integration_unavailable"):
             return None
         return found
     if kind == "project" and not found["specification"].get("context"):
@@ -107,9 +131,13 @@ async def analyze_project_context(
     response = await _run(env, "project_context", project)
     if isinstance(response, dict):
         return response
-    env.state[PROJECT_KEY] = project.model_dump(mode="json")
-    env.state[CONTEXT_KEY] = response.data.model_dump(mode="json")
-    return _payload(response)
+    provenance = _provenance(response)
+    with transaction(env.state):
+        activate_project(env.state, project.name)
+        env.state[PROJECT_KEY] = project.model_dump(mode="json")
+        env.state[CONTEXT_KEY] = response.data.model_dump(mode="json")
+        set_provenance(env.state, "project", project.name, provenance)
+    return _payload(response, provenance)
 
 
 async def analyze_dataset(
@@ -135,19 +163,17 @@ async def analyze_dataset(
         env, "dataset", dataset.name, project=project.name if project else None
     )):
         return stored
+    # Resolved before the model call: the active project may change while it runs.
+    scope = project.name if project else active_project(env.state)
     request = DatasetAnalysisRequest(
         dataset=dataset,
-        project=project or _stored_project(env.state),
-        project_context=_stored_context(env.state),
+        project=project or _stored_project(env.state, scope),
+        project_context=_stored_context(env.state, scope),
     )
     response = await _run(env, "dataset", request)
     if isinstance(response, dict):
         return response
-    env.state[DATASETS_KEY] = {
-        **env.state.get(DATASETS_KEY, {}),
-        dataset.name: response.data.model_dump(mode="json"),
-    }
-    return _payload(response)
+    return _store_entity(env, "dataset", dataset.name, response, scope)
 
 
 async def analyze_model(
@@ -173,35 +199,43 @@ async def analyze_model(
         env, "model", model.name, project=project.name if project else None
     )):
         return stored
+    # Resolved before the model call: the active project may change while it runs.
+    scope = project.name if project else active_project(env.state)
     datasets = [
         DataComplianceOut.model_validate(value)
-        for value in env.state.get(DATASETS_KEY, {}).values()
+        for value in scoped_get(env.state, DATASETS_KEY, scope).values()
     ]
     request = ModelAnalysisRequest(
         model=model,
-        project=project or _stored_project(env.state),
-        project_context=_stored_context(env.state),
+        project=project or _stored_project(env.state, scope),
+        project_context=_stored_context(env.state, scope),
         dataset_compliance=datasets[:10],
     )
     response = await _run(env, "model", request)
     if isinstance(response, dict):
         return response
-    env.state[MODELS_KEY] = {
-        **env.state.get(MODELS_KEY, {}),
-        model.name: response.data.model_dump(mode="json"),
-    }
-    return _payload(response)
+    return _store_entity(env, "model", model.name, response, scope)
 
 
-def get_session_analyses(env: ToolEnv) -> dict[str, Any]:
-    """Return analyses and DH entity details already loaded into the current workspace."""
+def get_session_analyses(env: ToolEnv, project: str | None = None) -> dict[str, Any]:
+    """Return analyses and DH entity details already loaded into the current workspace.
+
+    Analyses are kept per project. Without `project`, the active project's analyses are returned;
+    `projects` lists every project with analyses in the workspace.
+
+    Args:
+        project: Optional project name whose analyses to return instead of the active project's.
+    """
     state = env.state
     return {
-        "project": state.get(PROJECT_KEY),
-        "project_context": state.get(CONTEXT_KEY),
-        "datasets": state.get(DATASETS_KEY, {}),
-        "models": state.get(MODELS_KEY, {}),
-        "entities": state.get(ENTITIES_KEY, {}),
+        "active_project": active_project(state),
+        "projects": known_projects(state),
+        "project": scoped_get(state, PROJECT_KEY, project),
+        "project_context": scoped_get(state, CONTEXT_KEY, project),
+        "datasets": scoped_get(state, DATASETS_KEY, project),
+        "models": scoped_get(state, MODELS_KEY, project),
+        "provenance": scoped_get(state, PROVENANCE_KEY, project),
+        "entities": state.get(ENTITIES_KEY) or {},
     }
 
 

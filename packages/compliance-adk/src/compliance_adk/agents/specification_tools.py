@@ -35,20 +35,25 @@ def save_compliance_specification(
     tool_context: ToolContext,
     specification: dict[str, Any] | None = None,
     project: str | None = None,
+    overwrite: bool = False,
 ) -> dict[str, Any]:
     """Store a compliance specification on the DH platform, replacing the stored one.
 
-    Without `specification`, the one analysed earlier in this conversation is stored. Fields managed on
-    the platform only (e.g. compliance_status, documentation) are kept.
+    Without `specification`, the one analysed earlier in this conversation is stored, with its
+    provenance. Fields managed on the platform only (e.g. compliance_status, documentation) are kept.
+    The save returns code 'conflict' when the stored specification changed since it was retrieved,
+    or exists but was never retrieved; present it and ask the user before using overwrite=True.
 
     Args:
         kind: 'project' (project description and compliance context), 'dataset' (data compliance) or 'model'.
         entity: Identifier of the project, dataset or model on the DH platform.
         specification: Optional specification to store instead of the analysed one, as provided by the user.
         project: DigitalHub project explicitly named by the user for a dataset or model.
+        overwrite: True only when the user confirmed replacing a conflicting stored specification.
     """
     return _save_compliance_specification(
-        tool_env(tool_context), kind, entity, specification=specification, project=project
+        tool_env(tool_context), kind, entity, specification=specification, project=project,
+        overwrite=overwrite,
     )
 
 
