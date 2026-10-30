@@ -1,4 +1,4 @@
-"""Explicit transport policy; allowed projects never select a default project."""
+"""Transport settings; DigitalHub credentials determine project access."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -11,7 +11,6 @@ class ProtocolSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="COMPLIANCE_PROTOCOL_", extra="ignore")
 
     state_dir: Path = Path(".compliance/protocols")
-    allowed_projects: list[str] = Field(default_factory=list)
     allow_writes: bool = False
     bearer_token: SecretStr | None = None
     public_url: str = "http://127.0.0.1:8101"

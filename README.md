@@ -142,8 +142,9 @@ adapters run their own model.
 - `compliance-a2a`: A2A 1.0 JSON-RPC/HTTP and SSE, with Agent Card discovery, durable tasks,
   input-required clarification, validated JSON artifacts and deferred per-write approval.
 
-DigitalHub operations require an explicit user-selected project and an authorization allowlist
-(`COMPLIANCE_PROTOCOL_ALLOWED_PROJECTS`, a JSON array). Writes default to disabled. A2A additionally
+DigitalHub operations require an explicit user-selected project; DigitalHub enforces access using
+the agent process's configured credentials, without a protocol-specific project allowlist.
+Writes default to disabled. A2A additionally
 requires `COMPLIANCE_PROTOCOL_BEARER_TOKEN` (at least 32 characters). A conversation cannot switch
 DigitalHub projects; start a new one instead.
 

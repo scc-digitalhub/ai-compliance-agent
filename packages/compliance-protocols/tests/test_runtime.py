@@ -4,8 +4,10 @@ import asyncio
 import time
 import json
 
+import pytest
 from google.adk.events import Event, EventActions
 
+from compliance_protocols.config import ProtocolSettings
 from compliance_protocols.runtime import PENDING
 from compliance_skills import SKILLS_PATH
 from compliance_core.contracts import ModelComplianceOut
@@ -56,15 +58,70 @@ def test_sessions_isolate_state_and_project_switch_is_rejected(runtime_factory):
     asyncio.run(scenario())
 
 
-def test_allowlist_is_not_a_default_and_denies_unauthorized_project(runtime_factory):
+@pytest.mark.parametrize("project", ["credit", "research", "previously-unlisted"])
+def test_explicit_project_access_is_delegated_to_repository(runtime_factory, project):
     async def scenario():
-        denied = {**GET_ENTITY, "args": {**GET_ENTITY["args"], "project": "private"}}
-        runtime = runtime_factory([LOAD_ENTITY, denied, "Not authorized."])
+        lookup = {**GET_ENTITY, "args": {**GET_ENTITY["args"], "project": project}}
+        runtime = runtime_factory([LOAD_ENTITY, lookup, "Found it."])
         try:
             session_id = await runtime.create()
-            result = await runtime.prompt(session_id, "Get scorer in private", noop)
-            assert result.status == "input_required"
-            assert runtime.entities.calls == []
+            result = await runtime.prompt(session_id, f"Get scorer in {project}", noop)
+            assert result.status == "completed"
+            assert runtime.entities.calls == [("model", "scorer", project)]
+            assert (await runtime.get(session_id)).state["protocol_project"] == project
+        finally:
+            await runtime.close()
+    asyncio.run(scenario())
+
+
+def test_digitalhub_access_denial_is_reported(runtime_factory, monkeypatch):
+    async def scenario():
+        runtime = runtime_factory([LOAD_ENTITY, GET_ENTITY, "Access denied."])
+
+        def denied(kind, entity, project=None):
+            raise PermissionError("DigitalHub denied access to this project")
+
+        monkeypatch.setattr(runtime.entities, "get", denied)
+        try:
+            session_id = await runtime.create()
+            updates = []
+
+            async def notify(event):
+                updates.append(event)
+
+            result = await runtime.prompt(session_id, "Get scorer in credit", notify)
+            assert result.status == "failed"
+            assert any(
+                event.get("result", {}).get("code") == "dh_error"
+                and "DigitalHub denied access" in event["result"]["error"]
+                for event in updates if event["type"] == "tool_end"
+            )
+        finally:
+            await runtime.close()
+    asyncio.run(scenario())
+
+
+def test_removed_project_allowlist_environment_is_ignored(monkeypatch):
+    monkeypatch.setenv("COMPLIANCE_PROTOCOL_ALLOWED_PROJECTS", "obsolete-not-json")
+    assert "allowed_projects" not in ProtocolSettings.model_fields
+    assert "allowed_projects" not in ProtocolSettings().model_dump()
+
+
+def test_approved_write_to_previously_unlisted_project(runtime_factory):
+    async def scenario():
+        save = {**SAVE, "args": {**SAVE["args"], "project": "research"}}
+        runtime = runtime_factory([LOAD_SPECS, save, "Approve?"], allow_writes=True)
+        try:
+            session_id = await runtime.create()
+            pending = await runtime.prompt(session_id, "Save scorer in research", noop)
+            assert pending.status == "input_required"
+            assert pending.approval["operation"]["project"] == "research"
+            assert runtime.specifications.data == {}
+            result = await runtime.prompt(
+                session_id, "", noop, approval_id=pending.approval["id"], approve=True,
+            )
+            assert result.status == "completed"
+            assert runtime.specifications.data == {("model", "scorer", "research"): {"objectives": []}}
         finally:
             await runtime.close()
     asyncio.run(scenario())

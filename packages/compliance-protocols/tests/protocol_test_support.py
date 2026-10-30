@@ -56,7 +56,7 @@ class MemoryEntities:
 def runtime_factory(tmp_path):
     def create(script, **overrides):
         settings = ProtocolSettings(
-            state_dir=tmp_path, allowed_projects=["credit", "other"],
+            state_dir=tmp_path,
             bearer_token="test-token-" + "x" * 32, **overrides,
         )
         agent = build_coordinator_agent(

@@ -52,7 +52,8 @@ Protocol interaction rules:
   separate transport-level approval. An approval_required tool response is not a successful save.
   Relay its approval id and exact operation; never approve a write yourself or retry to bypass it.
 - A conversation is bound to the first DigitalHub project explicitly used. To switch projects,
-  ask the user to start a new conversation. An authorization allowlist is not a default project.
+  ask the user to start a new conversation. DigitalHub credentials determine project access;
+  never select a default project from environment variables.
 - Validated tool results are delivered separately as JSON; explain them without fabricating results.
 """
 
@@ -104,8 +105,6 @@ class ProjectPolicy:
             selected = entity_project(self.state, project)
         if not selected:
             raise ValueError("An explicit DigitalHub project is required")
-        if selected not in self.settings.allowed_projects:
-            raise PermissionError(f"DigitalHub project '{selected}' is not authorized")
         bound = self.state.get(BOUND_PROJECT)
         if bound and selected != bound:
             raise PermissionError("This conversation is bound to another project; start a new conversation")

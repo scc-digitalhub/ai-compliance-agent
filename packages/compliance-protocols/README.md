@@ -29,21 +29,18 @@ The implementation targets `agent-client-protocol` 0.12.x, `a2a-sdk` 1.3.x/1.x a
 | Environment variable | Default / purpose |
 |---|---|
 | `COMPLIANCE_PROTOCOL_STATE_DIR` | `.compliance/protocols`; durable SQLite sessions, history and A2A tasks |
-| `COMPLIANCE_PROTOCOL_ALLOWED_PROJECTS` | `[]`; JSON array of authorized DigitalHub projects |
 | `COMPLIANCE_PROTOCOL_ALLOW_WRITES` | `false`; explicitly enable approval-gated specification writes |
 | `COMPLIANCE_PROTOCOL_TIMEOUT_S` | `180`; per-turn deadline, including queueing and approval waiting |
 | `COMPLIANCE_PROTOCOL_MAX_CONCURRENCY` | `4`; concurrent turns across conversations |
 | `COMPLIANCE_PROTOCOL_APPROVAL_TTL_S` | `300`; expiry for deferred A2A write approvals |
 
-For example:
+The user must name the project in the conversation or provide a full `store://` key.
+DigitalHub enforces project access using the credentials configured for the agent process;
+there is no protocol-specific project allowlist or environment-selected default project.
+DigitalHub authorization failures are reported as tool errors.
 
-```bash
-export COMPLIANCE_PROTOCOL_ALLOWED_PROJECTS='["credit","research"]'
-```
-
-This is an **authorization allowlist**, never project selection. The user must name the project
-in the conversation or provide a full `store://` key. Empty allowlists deny DigitalHub operations
-but do not prevent framework questions or local result validation.
+`COMPLIANCE_PROTOCOL_ALLOWED_PROJECTS` has been removed. Remove it from deployment configuration;
+it no longer restricts access. Use DigitalHub permissions to limit accessible projects.
 
 A protocol conversation is bound to the first DigitalHub project explicitly used, even if several
 projects are authorized. Start a new conversation to switch projects. This avoids mixing
@@ -163,7 +160,8 @@ human consent; possession of the service token alone does not establish that a h
 ## Deployment boundaries and recovery
 
 This is a **single-tenant, single-worker baseline**, not multi-tenant identity delegation.
-All authenticated A2A callers share the configured service identity and project allowlist.
+All authenticated A2A callers share the configured service identity and its DigitalHub permissions;
+caller-specific DigitalHub credentials are not delegated.
 Token holders can access this tenant's stored tasks/contexts; do not share the token across tenants.
 Run a separate process, state directory, token and DigitalHub credentials per tenant or trust boundary.
 Do not point two workers or ACP/A2A processes at the same state directory.
