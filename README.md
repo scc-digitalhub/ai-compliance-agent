@@ -155,14 +155,11 @@ marketplace (`.claude-plugin/marketplace.json`):
 The version in `pyproject.toml` is the single source: the MCP server, ACP agent info, A2A Agent
 Card, Claude plugin manifest and marketplace all report it (`compliance_core.version`).
 
-- **CI** (`.github/workflows/ci.yml`) runs the tests on Python 3.11–3.13 (and macOS), checks the
-  generated host bundles, builds the distribution and installs each extra in a clean environment
-  (`scripts/check_wheel_extras.sh`), verifying that `mcp`, `api` and `server` do not pull in Google ADK.
-- **Release** (`.github/workflows/release.yml`): bump the version in `pyproject.toml`, regenerate
-  bundles, and push a `vX.Y.Z` tag matching it. The workflow tests and builds, publishes to PyPI by
-  trusted publishing (configure this repository as trusted publisher for `ai-compliance-platform` and
-  create a `pypi` environment first), creates a GitHub release with the wheel, sdist and zipped host
-  bundles, and pushes the A2A image to `ghcr.io/scc-digitalhub/ai-compliance-agent/compliance-a2a`.
+- **Manual release preparation**: bump the version in `pyproject.toml`, regenerate host bundles with
+  `python scripts/sync_host_plugins.py`, run the tests and build with `uv build`. Use
+  `scripts/check_wheel_extras.sh` to install each extra in a clean environment and verify that
+  `mcp`, `api` and `server` do not pull in Google ADK. Publishing packages, host bundles and container
+  images is a separate manual step; no automated publishing is configured.
 - **Release host bundles** launch the published version without a local install:
   `uvx --from "ai-compliance-platform[mcp]==X.Y.Z" compliance-mcp`. Generate them locally with
   `python scripts/sync_host_plugins.py --output <dir> --launcher uvx`. The checked-in bundles keep
@@ -288,6 +285,5 @@ uv run python scripts/run_evals.py --model openai/gpt-4.1 --model gemini/gemini-
   --out eval-report.json --markdown eval-report.md
 ```
 
-DigitalHub tools are disabled during evaluation unless `--with-dh` is given. Run the benchmark when
-skills, the OKF bundle or the model change; the manual **Evaluate models** workflow
-(`.github/workflows/evals.yml`) runs it in CI with model credentials from repository secrets.
+DigitalHub tools are disabled during evaluation unless `--with-dh` is given. Run the benchmark locally
+when skills, the OKF bundle or the model change, supplying model credentials through the environment.
