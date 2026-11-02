@@ -39,7 +39,7 @@ REST clients, and other agent frameworks. Gemini CLI integration is deferred.
 - Moved analysis definitions, the analyst prompt and the validate-and-retry loop into
   `compliance_core.analysis_engine`; the ADK and LiteLLM engines only implement model calls. MCP
   exposes delegated analysis with `compliance-mcp --delegated`.
-- Added CI, a single version source, tag-driven releases (PyPI, GitHub release with uvx-pinned host
+- Added a single version source, manual distribution tooling (wheel-extra checks, uvx-pinned host
   bundles, A2A container image) and a Claude Code marketplace.
 - Remaining: adapter-conformance and native host tests, and MCP Registry registration.
 
