@@ -13,7 +13,8 @@ earlier `src/compliance_agent` LangChain implementation.
   knowledge access, state stores, service logic, ports, the canonical tool catalog and the shared
   structured-analysis engine (analysis definitions, analyst prompt, validate-and-retry loop and
   response metadata). The ADK and LiteLLM engines only implement how a message reaches the model. Core
-  imports do not require Google ADK.
+  also owns evaluator/report-code contracts, deterministic report construction and the external
+  `compliance-report` CLI. Core imports do not require Google ADK.
 - `packages/compliance-dh/src/compliance_dh/` provides DigitalHub repositories and SDK operations
   without importing ADK.
 - `packages/compliance-skills/src/compliance_skills/` packages the canonical portable coordinator
@@ -21,7 +22,7 @@ earlier `src/compliance_agent` LangChain implementation.
 - `packages/compliance-api/src/compliance_api/` provides the standalone FastAPI/LiteLLM service
   without Google ADK.
 - `packages/compliance-mcp/src/compliance_mcp/` adapts the catalog to MCP tools, resources, and
-  prompts. The MCP distribution has no Google ADK dependency.
+  prompts. The MCP extra has no Google ADK dependency.
 - `packages/compliance-protocols/src/compliance_protocols/` exposes the ADK coordinator over
   Agent Client Protocol (stdio) and A2A 1.0 (authenticated HTTP/SSE).
 - `packages/compliance-adk/src/compliance_adk/` provides the shared Google ADK implementation:
@@ -38,9 +39,11 @@ to load ADK settings from `adk/.env`.
 All Python components are shipped in one distribution, `ai-compliance-platform`. The component
 directories under `packages/` and `adk/` remain separate source and import packages, but are no
 longer independently installable distributions. Optional extras select runtime dependencies:
-`api`, `mcp`, `adk`, or `server` (API and MCP without Google ADK). For example,
-`pip install "ai-compliance-platform[server]"` installs the server adapters without Google ADK.
-The optional `acp` and `a2a` extras add protocol SDKs, ADK and SQLite persistence.
+`api`, `mcp`, `adk`, or `server` (API and MCP without Google ADK).
+The optional `acp` and `a2a` extras add protocol SDKs, ADK and SQLite persistence; `dev` adds the
+test dependencies. Run the commands below from this checkout's root. For a local pip installation,
+use `python -m pip install ".[server]"` (replace `server` with the desired extra); an index-based
+installation requires a published distribution and is not assumed by these instructions.
 
 The structured API accepts project, dataset, and model definitions directly. Dataset and model requests
 can include project context from an earlier analysis. Responses have a `data` object and `meta` with
@@ -62,18 +65,36 @@ for project/data/model analysis, evaluator generation, both reporting flavours, 
 
 - Python 3.11 or newer
 - [uv](https://docs.astral.sh/uv/)
-- An LLM provider supported by LiteLLM is required for the ADK integration and standalone REST API.
+- An LLM provider supported by LiteLLM is required for ADK and REST analysis/code-generation calls.
   The default host-driven MCP workflow uses the host's model and does not require separate LLM
-  credentials.
-- DigitalHub credentials are needed only when using DigitalHub entity lookup or specification
-  operations; DigitalHub integration is enabled by default.
+  credentials. Deterministic report construction/validation and CLI preview need no model credentials.
+- DigitalHub credentials are needed for entity lookup and specification/report retrieval or
+  publication; DigitalHub integration is enabled by default.
+
+## Installation choices
+
+From the repository root, select the extra for the process you will run:
+
+```bash
+uv sync                         # core, contracts and report preview CLI
+uv sync --extra mcp              # host-driven IDE assistant
+uv sync --extra api              # REST analysis, code generation and deterministic reports
+uv sync --extra server           # REST + MCP; also supports opt-in delegated MCP
+uv sync --extra adk              # Google ADK coordinator and development UI
+uv sync --extra acp --extra a2a  # optional editor/remote agent protocols
+uv sync --extra dev              # tests
+```
+
+These are alternatives, not a required sequence. Keep the required extras on subsequent `uv run`
+commands too; `uv` synchronizes the environment for the extras selected by each invocation.
+GUI-launched hosts must be able to find `uv` (or use its absolute executable path).
 
 ## Google ADK setup
 
 This installs the unified project with the optional Google ADK runtime dependencies:
 ```bash
 uv sync --extra adk
-cp adk/.env.example adk/.env
+test -e adk/.env || cp adk/.env.example adk/.env
 ```
 
 Edit `adk/.env` and set `STRUCTURED_MODEL` and `COORDINATOR_MODEL` to LiteLLM model IDs. Configure
@@ -82,7 +103,7 @@ provider credentials using the variables expected by your LiteLLM provider. For 
 
 | Variable | Purpose |
 |---|---|
-| `STRUCTURED_MODEL` | Default model for project, dataset, and model analysis agents |
+| `STRUCTURED_MODEL` | Default model for project/dataset/model analyses and both code-generation operations |
 | `COORDINATOR_MODEL` | Model for interactive compliance questions and reasoning |
 | `PROJECT_CONTEXT_AGENT_MODEL_NAME`, `DATA_ANALYSIS_AGENT_MODEL_NAME`, `MODEL_ANALYSIS_AGENT_MODEL_NAME`, `ROOT_AGENT_MODEL_NAME` | Optional per-agent overrides and legacy names |
 | `LLM_API_BASE`, `LLM_API_KEY` | Optional LiteLLM gateway URL and key |
@@ -92,6 +113,10 @@ provider credentials using the variables expected by your LiteLLM provider. For 
 
 The optional `STRUCTURED_THINKING_BUDGET` and `COORDINATOR_THINKING_BUDGET` settings apply only to
 Gemini models. See [`adk/.env.example`](adk/.env.example) for the complete configuration list.
+ADK reads model/runtime settings from `adk/.env` in a source checkout. Export DigitalHub and
+provider-specific credential variables in the process environment so their SDKs can read them;
+copying the template does not export those variables. MCP and REST do not automatically load this
+file. For installed deployments, prefer process environment configuration.
 
 ## MCP host integration
 
@@ -101,9 +126,10 @@ workspace's `.compliance/state.json`, together with their provenance. Analyses a
 switching projects archives the previous project's results instead of mixing them, and several
 host processes can share one workspace safely. DigitalHub entity lookup and specification tools are enabled
 by default; configure DigitalHub credentials in the environment. Delegated internal LLM analysis is
-opt-in: start the server with `compliance-mcp --delegated` (requires the `server` extra, or `mcp`
-with `api`, plus `STRUCTURED_MODEL` and provider credentials) to also expose `analyze_*` tools. Use
-`--workspace PATH` to select the workspace and `--no-dh` to disable DigitalHub tools.
+opt-in: run `uv run --extra server compliance-mcp --delegated` with `STRUCTURED_MODEL` and provider
+credentials to also expose `analyze_*`, `generate_metric_evaluation_code`, and
+`generate_compliance_report_code`. Use `--workspace PATH` to select the state/input workspace
+and `--no-dh` to disable DigitalHub tools, including report retrieval/publication.
 
 DigitalHub project selection is explicit, not environment-based. For specification and entity
 operations, name the project in the request (for example, "retrieve dataset applications-2024 in
@@ -130,7 +156,10 @@ host-specific MCP configuration. The ADK coordinator and all three host agents s
 Install the MCP extra first (as above), then use the relevant bundle. The host process must be able to resolve
 the `compliance-mcp` executable through its `PATH`; for a source checkout, configure the host to
 launch the command through `uv run --project <repository> --extra mcp compliance-mcp`.
-Replace `<repository>` with the absolute path to this checkout.
+Replace `<repository>` with the absolute path to this checkout. Append
+`--workspace /absolute/path/to/target-workspace` to select the IDE workspace explicitly rather than
+relying on a host's launch directory. Merge configuration into existing files; do not overwrite
+other servers, agents or skills.
 
 - **Copilot/VS Code:** copy `integrations/copilot/.github/skills/` into the workspace's
   `.github/skills/`, copy `integrations/copilot/.github/agents/` into `.github/agents/`, and merge
@@ -139,7 +168,7 @@ Replace `<repository>` with the absolute path to this checkout.
 - **Claude Code:** load `integrations/claude-code/` with `claude --plugin-dir` or install it as a
   plugin. Its manifest exposes the `compliance-mcp` executable, bundled skills and
   `ai-compliance:compliance-assistant` agent. Ask Claude to delegate to that agent; it preloads
-  the six plugin skills and inherits the plugin's MCP tools.
+  all eight plugin skills and inherits the plugin's MCP tools.
 - **OpenCode:** copy `integrations/opencode/.opencode/skills/` and
   `integrations/opencode/.opencode/agents/` into the workspace's `.opencode/` directory, then merge
   `integrations/opencode/opencode.json` into the workspace OpenCode configuration. Switch to
@@ -148,7 +177,19 @@ Replace `<repository>` with the absolute path to this checkout.
 Each host launches the MCP server from its process environment. Set DigitalHub credentials there as
 required; no credentials are stored in the bundles. Analysis state remains in the active workspace's
 `.compliance/` directory. Regenerate or verify checked-in bundles with
-`python scripts/sync_host_plugins.py` and `python scripts/sync_host_plugins.py --check`.
+`uv run python scripts/sync_host_plugins.py` and `uv run python scripts/sync_host_plugins.py --check`.
+
+The eight skills are `compliance-framework`, `compliance-specifications`, `entity-details`,
+`project-context`, `dataset-analysis`, `model-analysis`, `metric-evaluation-code`, and
+`compliance-report`. Select the bundled assistant, then ask for the relevant workflow; do not
+expect the delegated `generate_*` tools in default MCP mode. Generated source is returned/stored
+as an artifact, not automatically written to an executable file or run in a terminal.
+For full configuration examples for all three hosts, see the
+[IDE setup instructions](docs/compliance-platform-usage-guide.md#coding-agent-hosts-through-mcp).
+
+MCP can load JSON evidence using paths relative to its selected workspace (maximum 1,000,000
+bytes; no URLs, absolute paths or symlinks). Other resource schemes require an explicitly
+configured authorized reader in an embedding application; they are not enabled by these bundles.
 
 The unified distribution builds as one wheel or source distribution. The ADK extra installs Google
 ADK; the API, MCP, and server extras do not.
@@ -167,13 +208,15 @@ The version in `pyproject.toml` is the single source: the MCP server, ACP agent 
 Card, Claude plugin manifest and marketplace all report it (`compliance_core.version`).
 
 - **Manual release preparation**: bump the version in `pyproject.toml`, regenerate host bundles with
-  `python scripts/sync_host_plugins.py`, run the tests and build with `uv build`. Use
+  `uv run python scripts/sync_host_plugins.py`, run the tests and build with `uv build`. Use
   `scripts/check_wheel_extras.sh` to install each extra in a clean environment and verify that
   `mcp`, `api` and `server` do not pull in Google ADK. Publishing packages, host bundles and container
   images is a separate manual step; no automated publishing is configured.
 - **Release host bundles** launch the published version without a local install:
   `uvx --from "ai-compliance-platform[mcp]==X.Y.Z" compliance-mcp`. Generate them locally with
-  `python scripts/sync_host_plugins.py --output <dir> --launcher uvx`. The checked-in bundles keep
+  `uv run python scripts/sync_host_plugins.py --output <dir> --launcher uvx`. This launcher requires
+  that version to be published and accessible on the configured index; it is not the local-checkout
+  installation path. The checked-in bundles keep
   running `compliance-mcp` from `PATH` for source checkouts.
 - **A2A container** (`deploy/a2a/Dockerfile`): `uv build` then
   `docker build -f deploy/a2a/Dockerfile -t compliance-a2a .`. It runs as a non-root user, keeps
@@ -189,9 +232,9 @@ Use `uv sync --extra acp --extra a2a` to install the optional protocol adapters,
 coordinator model and provider credentials as in the ADK setup. Unlike host-driven MCP, these
 adapters run their own model.
 
-- `compliance-acp`: Agent Client Protocol over stdio, with persistent conversations, history replay,
+- `uv run --extra acp compliance-acp`: Agent Client Protocol over stdio, with persistent conversations, history replay,
   text/tool updates, cancellation and per-write editor permissions.
-- `compliance-a2a`: A2A 1.0 JSON-RPC/HTTP and SSE, with Agent Card discovery, durable tasks,
+- `uv run --extra a2a compliance-a2a`: A2A 1.0 JSON-RPC/HTTP and SSE, with Agent Card discovery, durable tasks,
   input-required clarification, validated JSON artifacts and deferred per-write approval.
 
 DigitalHub operations require an explicit user-selected project; DigitalHub enforces access using
@@ -199,6 +242,10 @@ the agent process's configured credentials, without a protocol-specific project 
 Writes default to disabled. A2A additionally
 requires `COMPLIANCE_PROTOCOL_BEARER_TOKEN` (at least 32 characters). Analyses are kept per
 project, so a conversation may switch between DigitalHub projects.
+Set `COMPLIANCE_PROTOCOL_ALLOW_WRITES=true` only when approval-gated specification/report
+publication is intended. ACP/A2A do not provide editor-file or arbitrary URL loading: supply
+canonical results inline or use authorized local files under the agent process's working directory
+(not the editor's session directory). Other reference schemes require an injected authorized reader.
 
 This is a single-tenant, single-worker deployment baseline. See the
 [protocol setup, configuration, client examples and deployment boundaries](packages/compliance-protocols/README.md).
@@ -212,10 +259,13 @@ uv sync --extra api
 uv run --extra api compliance-api
 ```
 
-Configure `STRUCTURED_MODEL` and provider credentials (or `LLM_API_BASE` and `LLM_API_KEY` for a
-LiteLLM gateway) in the API process environment. Optional API keys, CORS, and request limits are
+For analysis/code generation, configure `STRUCTURED_MODEL` and provider credentials (or
+`LLM_API_BASE` and `LLM_API_KEY` for a LiteLLM gateway) in the API process environment.
+Optional API keys, CORS, and request limits are
 documented in [`packages/compliance-api/.env.example`](packages/compliance-api/.env.example). This
 service uses LiteLLM and does not install Google ADK.
+The CLI reads configuration from the process environment; `.env.example` is a reference, not an
+automatically loaded dotenv file. Deterministic report endpoints work without model credentials.
 
 - OpenAPI documentation: <http://127.0.0.1:8100/docs>
 - Liveness: `GET /health`
@@ -223,6 +273,16 @@ service uses LiteLLM and does not install Google ADK.
 - Project context: `POST /v1/compliance/context`
 - Dataset compliance: `POST /v1/compliance/datasets`
 - Model compliance: `POST /v1/compliance/models`
+- Evaluator code generation: `POST /v1/compliance/metric-evaluation/code`
+- Standalone/combined reporting code generation: `POST /v1/compliance/reports/code`
+- Deterministic report construction: `POST /v1/compliance/reports`
+- Report validation: `POST /v1/compliance/reports/validate`
+
+Analysis and code-generation responses use `data`/`meta`. Report construction returns
+`reports`, `issues`, `objective_references`, `assessments`, `provenance`, and `target`; validation
+returns `valid` with errors or a normalized report. HTTP does not implicitly publish reports.
+The default server accepts inline results; file/resource references require an authorized
+`evaluation_input_reader` passed to `create_app` by an embedding application.
 
 Example project request:
 
@@ -245,24 +305,27 @@ error responses with request IDs.
 
 ## Interactive Development UI
 
-Install the ADK package separately when using Google ADK:
+Use the unified distribution's ADK extra when using Google ADK:
 
 ```bash
-uv run --project . --extra adk --directory adk adk web --port 8000
+uv run --extra adk adk web adk --port 8000
 ```
 
 The ADK UI discovers the coordinator and the three structured agent entry points. It is for development.
+Evaluator/report-code generation is available through the coordinator; no additional standalone
+`adk web` launcher directories are provided for these operations. The development UI is
+unauthenticated; keep it on a trusted local interface.
 A React console is not included in this checkout; client
 applications can integrate with the versioned endpoints.
 
 ## Tests
 
 Tests use scripted models and fakes, so they do not require provider credentials or make real LLM
-calls. After syncing all workspace packages:
+calls. From the repository root:
 
 ```bash
-uv sync --all-extras
-uv run pytest
+uv sync --extra dev
+uv run --extra dev pytest
 ```
 
 ## Result quality
@@ -292,7 +355,7 @@ retries, warnings, tokens and latency:
 
 ```bash
 uv sync --extra api
-uv run python scripts/run_evals.py --model openai/gpt-4.1 --model gemini/gemini-2.5-pro \
+uv run --extra api python scripts/run_evals.py --model openai/gpt-4.1 --model gemini/gemini-2.5-pro \
   --out eval-report.json --markdown eval-report.md
 ```
 

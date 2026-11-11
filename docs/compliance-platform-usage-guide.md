@@ -11,13 +11,16 @@ agents, and the optional Google ADK integration. The Python components ship in o
 | `compliance_core` | Building a Python integration or using the contracts, catalog, knowledge reader, validators, and state abstractions directly | No agent runtime required. Choose a state store and engine in your application. |
 | `compliance_skills` | Giving an agent a portable, repeatable compliance workflow | Skills are Markdown instructions; a host must expose the named tools. |
 | `compliance_mcp` | Integrating with Copilot/VS Code, Claude Code, OpenCode, or another MCP client | Host-driven analysis is the default and uses the host model. Results are saved to workspace-local `.compliance/state.json`. |
-| `compliance_api` | Calling compliance analysis from a service or script over HTTP | Uses the LiteLLM engine. Requires a configured model/provider. Does not persist analysis state. |
-| `compliance_dh` | Connecting core tools to DigitalHub entities and specification extensions | DigitalHub SDK adapter; no Google ADK dependency. Enabled by default in MCP. |
+| `compliance_api` | Calling analysis, code generation or deterministic reporting over HTTP | Analysis/code generation use LiteLLM; report building/validation need no model. No persistent analysis workspace or implicit report publication. |
+| `compliance_dh` | Connecting core tools to DigitalHub entities and specification/report extensions | DigitalHub SDK adapter; no Google ADK dependency. Enabled by default in MCP. |
 | `compliance_adk` | Running the existing Google ADK agents or `adk web` | Install the `adk` extra and configure a model/provider. |
+| `compliance_protocols` | Exposing the ADK coordinator over ACP stdio or A2A HTTP/SSE | Install `acp`/`a2a`; own model, durable conversations and approval-gated writes. |
 
 The API and MCP extras do not install Google ADK. The `server` extra combines the API and MCP
-dependencies without ADK; the `adk` extra adds Google ADK. The distribution is not yet published,
-so commands below assume a checkout of this repository.
+dependencies without ADK; the `adk` extra adds Google ADK. Commands below use a local checkout
+and do not require a published package. Run them from the checkout root unless a command specifies
+an absolute `--project` path. Install/configuration instructions are below; scenarios are examples
+of requests after the relevant host or service has been configured.
 
 ## End-to-end scenarios for the compliance assistant
 
@@ -137,8 +140,13 @@ Then:
 > Attach the reviewed reports to `loan-scorer-v1` in project `credit`, using the named run
 > `validation-2026-11-11`. Do not replace any differently named report.
 
-For an artifact/resource reference, supply an identifier accessible through the host's authorized
-reader. The service does not fetch arbitrary URLs or read arbitrary server paths. Provide an
+MCP and standalone ADK support regular JSON files relative to their configured workspace, up to
+1,000,000 bytes; absolute paths, symlinks and URLs are rejected. The default REST server requires
+inline results; source references need an authorized `evaluation_input_reader` injected into
+`create_app`. ACP/A2A do not transfer editor files; absent an injected reader, their shared loader
+accepts local files within the agent process's working directory (2 MiB limit), not the client's
+session directory. For other artifact/resource schemes, an embedding application must inject
+an authorized reader; checked-in host bundles do not provide one. Provide an
 explicit field mapping for noncanonical results; include metric IDs, actual computation timestamps,
 objective references/snapshots and target identity. A filename is not evidence of those facts.
 Missing or inaccessible content, unsupported formats and ambiguous mappings are reported explicitly.
@@ -201,7 +209,7 @@ An objective reference must identify the actual supplied snapshot. Preserve auth
 available; framework-generated snapshot references are not catalog IDs. Add result entries for
 other metrics/objectives rather than combining multiple values under an arbitrary scalar condition.
 
-Preview needs no model or DigitalHub connection:
+Install the base project with `uv sync` first. Preview needs no model or DigitalHub connection:
 
 ```bash
 uv run compliance-report preview \
@@ -227,6 +235,11 @@ DigitalHub adapter cannot provide and therefore fails before publication. The CL
 and returns a nonzero exit status for operational errors. It never evaluates source supplied in
 the result file. Shell reporting code can wrap these commands; generated Python can call the
 same core report builder and publisher directly.
+
+The CLI accepts canonical UTF-8 JSON arrays (or `{"results": [...]}`) from a local path or
+`--results -` for standard input, with a 10 MiB input limit. This external CLI has a different
+file-access boundary from MCP's workspace reader. Only canonical/mapped JSON is supported by
+the evidence loader, not CSV or arbitrary formats.
 
 ### Equivalent HTTP workflows
 
@@ -285,15 +298,25 @@ save workflow or the externally invoked reporting publisher, not an implicit HTT
 
 ## Install and configure
 
-Install only the dependencies needed by the integration you plan to use:
+Prerequisites: Python 3.11 or newer, `uv`, and a local checkout. Run from the checkout root.
+Select the dependencies needed by the process you plan to use (these commands are alternatives):
 
 ```bash
+uv sync                   # core and report preview CLI
 uv sync --extra api       # REST API
 uv sync --extra mcp       # host-driven MCP server
 uv sync --extra server    # API and MCP server
 uv sync --extra adk       # Google ADK integration
-uv sync --extra dev       # tests and all adapters
+uv sync --extra acp --extra a2a  # protocol adapters and persistence dependencies
+uv sync --extra dev       # test dependencies and adapter SDKs
 ```
+
+Repeat the required extras on `uv run` too: for example, `uv run --extra mcp compliance-mcp`,
+`uv run --extra server compliance-mcp --delegated`, and `uv run --extra dev pytest`.
+Each `uv` invocation can resynchronize the environment for its selected extras; do not rely on an
+earlier `uv sync --extra ...` to keep an optional runtime installed for a later plain `uv run`.
+To use pip instead, install this unified project from its root, e.g.
+`python -m pip install ".[mcp]"`; component directories are not separately installable packages.
 
 Set secrets through the process environment or your organization's secret manager; do not commit
 tokens or provider keys. MCP uses the host's model for host-driven analysis, so the MCP process does
@@ -305,15 +328,22 @@ reuse a project already established in workspace context, or supply a full `stor
 For project specifications, `entity` is the explicit project identifier. Ask when the project is
 missing or ambiguous.
 
-The MCP workspace defaults to the process working directory. Set `COMPLIANCE_WORKSPACE` if the
-agent should write analysis state to a different project directory. State files can contain
+MCP and the REST CLI read environment variables; they do not automatically load `adk/.env` or
+`packages/compliance-api/.env.example`. The ADK settings loader reads `adk/.env` in a source
+checkout, but provider-specific and DigitalHub SDK credentials must still be exported to the
+process environment. Keep existing configuration/secrets when copying templates.
+
+The MCP workspace defaults to the process working directory. Set `--workspace PATH` or
+`COMPLIANCE_WORKSPACE` to select the state and result-file root explicitly. `uv --project`
+selects the Python checkout, not the workspace to assess or a DigitalHub project. State files can contain
 workspace or dataset information; inspect them locally and do not commit or share them without
 review.
 
 ## Standalone REST API
 
-The API accepts project, dataset, and model inputs directly. It runs its own LiteLLM tool-calling
-engine, independent of MCP hosts and Google ADK.
+The API accepts project/dataset/model inputs and both code-generation requests directly. These use
+its LiteLLM engine, independent of MCP hosts and Google ADK. Deterministic report routes use shared
+core functions and can run without model/provider configuration.
 
 1. Install the API extra:
 
@@ -321,7 +351,8 @@ engine, independent of MCP hosts and Google ADK.
    uv sync --extra api
    ```
 
-2. Configure a LiteLLM model ID and provider credentials. For example, with a LiteLLM gateway:
+2. For analysis/code generation, configure a LiteLLM model ID and provider credentials. For example,
+   with a LiteLLM gateway:
 
    ```bash
    export STRUCTURED_MODEL="your-litellm-model-id"
@@ -342,7 +373,9 @@ engine, independent of MCP hosts and Google ADK.
 The service listens on `127.0.0.1:8100`. `/health` is a liveness check, `/ready` checks that the
 knowledge bundle is loaded, and `/docs` exposes the OpenAPI interface. If `API_KEYS` is configured,
 send one of the configured keys in the `X-API-Key` header. The API creates a request ID and returns
-it in both the response header and metadata/error body.
+it in the response header and analysis/code-generation metadata or structured error bodies.
+Report construction/validation use the distinct response shapes described in
+[Equivalent HTTP workflows](#equivalent-http-workflows); they do not return a `data`/`meta` envelope.
 
 ### Project context request
 
@@ -442,7 +475,8 @@ advice; a `PRELIMINARY` classification requires review by qualified people.
 
 ### Verify API execution
 
-- Confirm `GET /health` returns `{"status":"ok"}` and `GET /ready` returns `{"status":"ready"}`.
+- Confirm `GET /health` returns `{"status":"ok"}` and `GET /ready` includes `"status":"ready"`,
+  `okf_version`, and `concepts`. Readiness checks the bundle, not provider or DigitalHub access.
 - Confirm the analysis response has a request ID and a non-empty `meta.grounding` list for an input
   that calls knowledge tools. Grounding paths should correspond to the returned requirements,
   regulations, or metrics.
@@ -455,13 +489,16 @@ advice; a `PRELIMINARY` classification requires review by qualified people.
 
 ## Coding-agent hosts through MCP
 
-The MCP server exposes core knowledge, schema, validation, result-recording, entity, and
-DigitalHub specification tools. Host-driven analysis is the default: the host model reads the
+The MCP server exposes core knowledge, schema, validation, analysis/code/report recording, entity,
+and DigitalHub specification/report tools. Host-driven analysis and code generation are the
+default: the host model reads the
 portable skill, calls the tools, produces the structured result, and asks the core to validate and
 record it. No separate LLM key is needed by MCP. The default `FileStateStore` writes to
 `.compliance/state.json` in the selected workspace. Analyses are kept per project; the flat
 `analysis_*` keys hold the active project and `analysis_workspaces` the others. Each tool call holds
-a lock on `.compliance/state.lock`, so several hosts can share a workspace.
+a lock on `.compliance/state.lock` for local state updates, so several hosts can share a workspace.
+Code artifacts and report evidence use project-scoped `evaluation_codes` and `evaluation_reports`
+stores. Report evidence may be recorded locally before an explicit DigitalHub save.
 
 Install the extra once for command-line testing:
 
@@ -472,31 +509,63 @@ uv run --extra mcp compliance-mcp
 
 For an MCP host, configure the host to launch the server on demand. The generated host manifests use
 `compliance-mcp` directly, which works when the executable is on the host's `PATH`. Since this
-distribution is not published yet, a source checkout can launch it with `uv` instead. Replace
+index-based installation is not assumed here, a source checkout can launch it with `uv` instead. Replace
 `/absolute/path/to/ai-compliance-agent` with the checkout path. Keep the MCP process environment
-configured with `DHCORE_ENDPOINT`, the DigitalHub credential, and optionally `COMPLIANCE_WORKSPACE`.
+configured with `DHCORE_ENDPOINT` and the DigitalHub credential. Use an explicit `--workspace`
+argument below (or `COMPLIANCE_WORKSPACE`) for state and evidence-file lookup.
 Select the DigitalHub project explicitly in the user request or conversation context.
+
+All hosts share these eight canonical skills:
+
+- `compliance-framework`: concepts and catalog navigation.
+- `compliance-specifications`: subject specification retrieval/publication.
+- `entity-details`: registered dataitem/model details.
+- `project-context`, `dataset-analysis`, `model-analysis`: structured assessments.
+- `metric-evaluation-code`: Python evaluator generation.
+- `compliance-report`: standalone/combined report executables and reports from supplied results.
+
+Host-driven workflows do not require `analyze_*` or delegated `generate_*` tools. To enable them,
+replace the MCP launch extra with `server`, append `--delegated`, and set `STRUCTURED_MODEL`
+and provider credentials in the MCP process environment. `--no-dh` removes DigitalHub tools,
+including report retrieval/publication; local validation, code artifacts and report building remain.
+
+The generated agent definitions restrict file edits/terminal execution (Claude/OpenCode explicitly
+deny writes/bash; Copilot grants read/search and MCP tools). Expect source artifacts in responses
+and workspace state, not automatically created executable files. Save/review generated source
+yourself and run it outside the assistant.
 
 ### VS Code / GitHub Copilot
 
-1. Copy `integrations/copilot/.github/skills/` into the repository where you use Copilot as
-   `.github/skills/`.
-2. Copy `integrations/copilot/.vscode/mcp.json` to that repository's `.vscode/mcp.json`.
-3. For a local checkout, set the server command to `uv` and its arguments to:
+1. Copy the contents of `integrations/copilot/.github/skills/` into the target workspace's
+   `.github/skills/`, preserving the individual skill directories.
+2. Copy `integrations/copilot/.github/agents/compliance-assistant.agent.md` into the target
+   workspace's `.github/agents/`.
+3. Merge the `ai-compliance` server from `integrations/copilot/.vscode/mcp.json` into the target
+   workspace's `.vscode/mcp.json`; preserve other servers and settings. For a local checkout:
 
    ```json
-   [
-     "run",
-     "--project",
-     "/absolute/path/to/ai-compliance-agent",
-     "--extra",
-     "mcp",
-     "compliance-mcp"
-   ]
+   {
+     "servers": {
+       "ai-compliance": {
+         "type": "stdio",
+         "command": "uv",
+         "args": [
+           "run", "--project", "/absolute/path/to/ai-compliance-agent",
+           "--extra", "mcp", "compliance-mcp",
+           "--workspace", "/absolute/path/to/target-workspace"
+         ]
+       }
+     }
+   }
    ```
 
-4. Ensure the Copilot model is enabled for tools/MCP, then ask it to use the `project-context`,
-   `dataset-analysis`, or `model-analysis` skill.
+4. Ensure `uv` is on VS Code's process `PATH` or set `command` to its absolute executable path.
+   Start/restart the `ai-compliance` MCP server in VS Code, review any trust/tool prompts, and
+   select a Copilot model that supports tools.
+5. Select **compliance-assistant** in the agent picker. Ask for project/data/model analysis,
+   evaluator code, or either reporting workflow; the assistant loads the matching bundled skill.
+   Verify schema/validation/recording calls in the tool transcript. Copying skills alone does not
+   install the custom agent or start MCP.
 
 ### Claude Code
 
@@ -506,9 +575,11 @@ Start Claude Code with the checked-in plugin:
 claude --plugin-dir /absolute/path/to/ai-compliance-agent/integrations/claude-code
 ```
 
-The plugin contains the portable skills and an MCP server entry in
+The plugin contains the `ai-compliance:compliance-assistant` agent, all eight portable skills,
+and an MCP server entry in
 `integrations/claude-code/.claude-plugin/plugin.json`. For a checkout where `compliance-mcp` is
-not on `PATH`, change that server entry to:
+not on `PATH`, change only `mcpServers.ai-compliance` in that manifest to the following object;
+preserve the manifest's `name`, `version`, and other metadata:
 
 ```json
 {
@@ -519,37 +590,59 @@ not on `PATH`, change that server entry to:
     "/absolute/path/to/ai-compliance-agent",
     "--extra",
     "mcp",
-    "compliance-mcp"
+    "compliance-mcp",
+    "--workspace",
+    "/absolute/path/to/target-workspace"
   ]
 }
 ```
 
-Use the plugin's project/dataset/model skills in the conversation. Confirm Claude Code is showing
-MCP tool calls; a final answer without the validation and record calls is not sufficient evidence.
+Ask Claude to delegate to **ai-compliance:compliance-assistant**; it preloads the eight plugin
+skills and inherits plugin MCP tools. Skills are namespaced, e.g. `ai-compliance:metric-evaluation-code`
+and `ai-compliance:compliance-report`. Restart/reload the plugin after changing the launcher,
+and confirm MCP connects. `uv` and credentials must be available to the Claude process.
+A final answer without the required validation/record calls is not sufficient evidence.
+
+The repository also contains a marketplace descriptor:
+
+```text
+/plugin marketplace add scc-digitalhub/ai-compliance-agent
+/plugin install ai-compliance@ai-compliance
+```
+
+This installs the plugin bundle, not the Python distribution. Its default MCP command remains
+`compliance-mcp`; install the checkout's MCP extra and expose that executable on the host's `PATH`,
+or configure an equivalent `uv` launcher in the installed plugin. For local launcher customization,
+`--plugin-dir` with the checkout is the most direct option.
 
 ### OpenCode
 
-1. Copy `integrations/opencode/.opencode/skills/` into the target workspace's `.opencode/skills/`.
-2. Merge the `mcp` block in `integrations/opencode/opencode.json` into the workspace OpenCode
-   configuration. For a local checkout, use:
+1. Copy the contents of `integrations/opencode/.opencode/skills/` into the target workspace's
+   `.opencode/skills/`.
+2. Copy `integrations/opencode/.opencode/agents/compliance-assistant.md` into the target workspace's
+   `.opencode/agents/`.
+3. Merge the `mcp` block in `integrations/opencode/opencode.json` into the workspace's
+   `opencode.json`, preserving other entries. For a local checkout:
 
    ```json
    {
-     "type": "local",
-     "command": [
-       "uv",
-       "run",
-       "--project",
-       "/absolute/path/to/ai-compliance-agent",
-       "--extra",
-       "mcp",
-       "compliance-mcp"
-     ],
-     "enabled": true
+     "mcp": {
+       "ai-compliance": {
+         "type": "local",
+         "command": [
+           "uv", "run", "--project", "/absolute/path/to/ai-compliance-agent",
+           "--extra", "mcp", "compliance-mcp",
+           "--workspace", "/absolute/path/to/target-workspace"
+         ],
+         "enabled": true
+       }
+     }
    }
    ```
 
-3. Restart or reload OpenCode so it discovers the skills and MCP tools.
+4. Make `uv` and credentials available to the OpenCode process. Restart/reload OpenCode, verify
+   the MCP server connects, and switch to the **compliance-assistant** primary agent. Use any
+   of the eight bundled skills through that agent.
 
 ### Example host conversation and expected tool evidence
 
@@ -583,9 +676,11 @@ different DigitalHub error must be reported and resolved rather than silently ig
    `validate_project_context(request=<original project>, output=<candidate>)`. A successful
    response has `"valid": true`, `"errors": []`, and a `"normalized"` result. If invalid, the host
    corrects the candidate and validates again.
-5. `record_compliance_analysis(kind="project", request=<original project>, output=<candidate>)`
+5. `record_compliance_analysis(kind="project", request=<original project>, output=<candidate>,
+   grounding=<actual OKF concept paths read>)`
    validates again and records it in the workspace. Success includes `"valid": true` and
-   `"stored": true`.
+   `"stored": true`. `grounding` must contain existing bundle paths actually consulted; a list of
+   IDs or invented paths is not accepted. Use the paths returned by knowledge tools.
 6. The final host response follows the skill's output contract: a JSON object with `result` and
    `assumptions`. An illustrative assessment might be `HIGH` with status `PRELIMINARY` if the
    retrieved evidence supports it; exact regulations, IDs, classification, and rationale must come
@@ -608,7 +703,8 @@ is a separate action requiring user authorization.
    python -c 'import json; s=json.load(open(".compliance/state.json")); print(s["analysis_project_context"]["risk_classification"])'
    ```
 
-   If `COMPLIANCE_WORKSPACE` is set, inspect its `.compliance/state.json` instead. Do not commit this
+   If `--workspace` or `COMPLIANCE_WORKSPACE` selects another root, inspect its `.compliance/state.json`
+   instead. Do not commit this
    file by default; it may contain sensitive analysis inputs.
 3. Check that the final answer's references and IDs match the knowledge-tool results and that
    validation warnings were addressed or disclosed. A plausible-sounding final answer without the
@@ -616,7 +712,7 @@ is a separate action requiring user authorization.
 4. To check that generated skills have not drifted from their canonical source, run:
 
    ```bash
-   python scripts/sync_host_plugins.py --check
+   uv run python scripts/sync_host_plugins.py --check
    ```
 
 ## Google ADK integration
@@ -627,14 +723,47 @@ server.
 
 ```bash
 uv sync --extra adk
-cp adk/.env.example adk/.env
-# Set STRUCTURED_MODEL, COORDINATOR_MODEL, and provider credentials in adk/.env.
-uv run --project . --extra adk --directory adk adk web --port 8000
+test -e adk/.env || cp adk/.env.example adk/.env
+# Set STRUCTURED_MODEL and COORDINATOR_MODEL in adk/.env.
+# Export provider-specific and DigitalHub SDK credentials in the process environment.
+uv run --extra adk adk web adk --port 8000
 ```
 
 Open `http://127.0.0.1:8000` and select the coordinator or structured project, dataset, and model
 agents. As with other agent runtimes, inspect the agent's tool-call events and confirm validation
 succeeds before treating an output as complete.
+
+The coordinator supports evaluator/report-code generation and deterministic reports; these do not
+have additional standalone UI launcher directories. Set `COMPLIANCE_WORKSPACE` explicitly for
+result-file loading if the default working directory is not your intended workspace. The ADK UI is
+for trusted local development and is unauthenticated; do not expose it on an untrusted interface.
+
+## ACP and A2A integrations
+
+These are optional ADK coordinator transports, not host-driven MCP clients. Configure
+`COORDINATOR_MODEL`, `STRUCTURED_MODEL` (for delegated analysis/code generation), provider
+credentials and DigitalHub credentials as needed in the process environment:
+
+```bash
+uv sync --extra acp --extra a2a
+uv run --extra acp compliance-acp
+# For A2A, first export COMPLIANCE_PROTOCOL_BEARER_TOKEN (at least 32 characters).
+uv run --extra a2a compliance-a2a
+```
+
+The ACP command is launched by the editor and uses stdio for protocol frames. For a source checkout,
+merge the [Zed example](../integrations/acp/zed-settings.json), replacing its command with `uv`
+and arguments with
+`["run", "--project", "/absolute/path/to/ai-compliance-agent", "--extra", "acp", "compliance-acp"]`.
+A2A listens on `127.0.0.1:8101` by default, serves discovery at
+`/.well-known/agent-card.json`, and accepts authenticated JSON-RPC at `/a2a` with
+`A2A-Version: 1.0`.
+
+Writes are disabled by default; enabling `COMPLIANCE_PROTOCOL_ALLOW_WRITES=true` still requires
+approval of each exact named specification/report write. Editor `cwd` does not select a DigitalHub
+project, grant arbitrary file access, or change the shared loader's process-local root.
+See the [protocol adapter guide](../packages/compliance-protocols/README.md) for all transport,
+credential, state, approval and deployment settings.
 
 ## Core and extension points
 
