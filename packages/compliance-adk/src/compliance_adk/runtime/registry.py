@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from google.adk.models.base_llm import BaseLlm
 
-from ..agents.specs import ALL_SPECS
+from ..agents.specs import STRUCTURED_SPECS
 from ..config import Settings, get_settings
 from compliance_core.knowledge import OkfBundle, get_bundle
 from .runner import StructuredRunner
@@ -18,7 +18,9 @@ class RunnerRegistry:
     ):
         settings = settings or get_settings()
         self.bundle = bundle or get_bundle()
-        self._runners = {s.key: StructuredRunner(s, settings, model, self.bundle) for s in ALL_SPECS}
+        self._runners = {
+            s.key: StructuredRunner(s, settings, model, self.bundle) for s in STRUCTURED_SPECS
+        }
 
     def get(self, key: str) -> StructuredRunner:
         return self._runners[key]

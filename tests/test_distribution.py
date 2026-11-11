@@ -80,6 +80,15 @@ def test_protocol_adapters_have_optional_dependencies_and_entry_points():
     assert config["project"]["scripts"]["compliance-a2a"] == "compliance_protocols.a2a:main"
 
 
+def test_reporting_cli_is_packaged_without_heavy_metric_dependencies():
+    config = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    assert config["project"]["scripts"]["compliance-report"] == "compliance_core.report_cli:main"
+    assert not any(
+        dependency.startswith(("pandas", "scikit-learn", "fairlearn", "google-adk"))
+        for dependency in config["project"]["dependencies"]
+    )
+
+
 def test_runtime_metadata_reports_the_single_distribution_version():
     from compliance_core.version import framework_version
 

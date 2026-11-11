@@ -113,3 +113,17 @@ def test_adk_specs_are_the_core_definitions():
     for adk_spec, definition in zip(specs.ALL_SPECS, core.ANALYSES):
         assert adk_spec.key == definition.key and adk_spec.output_schema is definition.output_model
         assert adk_spec.input_schema is definition.request_model and adk_spec.role == definition.key
+
+
+def test_code_generation_specs_are_registered_with_structured_model_fallback(make_registry):
+    from compliance_adk.agents import specs
+
+    registry, _ = make_registry()
+    assert {
+        "metric_evaluation_code",
+        "compliance_report_code",
+    }.issubset({spec.key for spec in specs.STRUCTURED_SPECS})
+    for key in ("metric_evaluation_code", "compliance_report_code"):
+        runner = registry.get(key)
+        assert runner.model_name == "scripted"
+        assert runner.spec.key == key

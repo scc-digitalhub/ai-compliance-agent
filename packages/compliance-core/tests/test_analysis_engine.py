@@ -8,13 +8,23 @@ import pytest
 
 from compliance_core.analysis_engine import (
     ANALYSES,
+    CODE_GENERATIONS,
     DATASET,
     PROJECT_CONTEXT,
+    STRUCTURED_OPERATIONS,
+    STRUCTURED_OPERATIONS_BY_KEY,
     AnalysisTrace,
     OutputRejected,
     build_response,
+    check_output,
     run_validated,
 )
+from compliance_core.contracts.evaluation_code import (
+    MetricEvaluationCodeArtifact,
+    MetricEvaluationCodeOutput,
+    MetricEvaluationCodeRequest,
+)
+from compliance_core.contracts.report_code import ReportCodeArtifact, ReportCodeOutput, ReportCodeRequest
 from compliance_core.errors import OutputValidationError
 from compliance_core.knowledge import get_bundle
 
@@ -81,3 +91,71 @@ def test_response_carries_trace_and_grounding():
 def test_core_defines_each_analysis_once():
     assert {definition.key for definition in ANALYSES} == {"project_context", "dataset", "model"}
     assert DATASET.request_model.__name__ == "DatasetAnalysisRequest"
+
+
+def test_code_generation_operations_share_structured_result_assumptions_contract():
+    assert {definition.key for definition in CODE_GENERATIONS} == {
+        "metric_evaluation_code",
+        "compliance_report_code",
+    }
+    assert len(STRUCTURED_OPERATIONS) == len(ANALYSES) + len(CODE_GENERATIONS)
+    assert set(STRUCTURED_OPERATIONS_BY_KEY) == {
+        "project_context",
+        "dataset",
+        "model",
+        "metric_evaluation_code",
+        "compliance_report_code",
+    }
+
+    metric = STRUCTURED_OPERATIONS_BY_KEY["metric_evaluation_code"]
+    report = STRUCTURED_OPERATIONS_BY_KEY["compliance_report_code"]
+    assert metric.output_model.model_fields.keys() == {"result", "assumptions"}
+    assert report.output_model.model_fields.keys() == {"result", "assumptions"}
+
+
+def test_code_generation_outputs_are_static_validated_without_execution():
+    cases = (
+        (
+            STRUCTURED_OPERATIONS_BY_KEY["metric_evaluation_code"],
+            MetricEvaluationCodeRequest(
+                project="credit",
+                entity_kind="model",
+                entity="credit-model",
+                objective_ref="accuracy-objective",
+                objective={
+                    "metric": {"id": "accuracy"},
+                    "condition": {"threshold": {"operator": "GEQ", "value": 0.8}},
+                },
+            ),
+            MetricEvaluationCodeOutput(
+                result=MetricEvaluationCodeArtifact(
+                    status="needs_input", missing_inputs=["explicit predictions"],
+                ),
+                assumptions=["The model needs bound evaluation inputs."],
+            ),
+        ),
+        (
+            STRUCTURED_OPERATIONS_BY_KEY["compliance_report_code"],
+            ReportCodeRequest(
+                project="credit",
+                entity_kind="model",
+                entity="credit-model",
+                language="python",
+            ),
+            ReportCodeOutput(
+                result=ReportCodeArtifact(
+                    status="needs_input",
+                    language="python",
+                    mode="standalone",
+                    missing_inputs=["measurement source"],
+                ),
+                assumptions=["The result source was not supplied."],
+            ),
+        ),
+    )
+    for definition, request, output in cases:
+        checked, errors, _ = check_output(
+            definition, output.model_dump_json(), request, get_bundle(),
+        )
+        assert checked is not None, errors
+        assert checked.assumptions == output.assumptions

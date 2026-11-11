@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import urlparse
 from typing import Any, Callable
 
 import digitalhub as sdk
@@ -153,13 +154,79 @@ def save_entity_extension(
 
 def get_extension_schema(extension_kind: str) -> dict[str, Any]:
     """Return the JSON schema for a supported compliance extension."""
+    from compliance_core.contracts.reports import ReportSpec
+
     schemas = {
         "ai-compliance": ComplianceContextOut,
         "data-compliance": DataComplianceOut,
         "model-compliance": ModelComplianceOut,
+        "compliance-report": ReportSpec,
     }
     model = schemas.get(extension_kind)
     return model.model_json_schema() if model else {}
+
+
+def _report_target(entity: str, project: str | None) -> None:
+    if entity.startswith(STORE_KEY_PREFIX) and project and urlparse(entity).netloc != project:
+        raise ValueError("The project argument conflicts with the store:// key")
+
+
+def get_report_extension(
+    entity: str, entity_kind: str, name: str, *, client: Any | None = None,
+    project: str | None = None,
+) -> dict[str, Any]:
+    """Read one named compliance-report extension without mixing report identities."""
+    _report_target(entity, project)
+    if not name.strip():
+        raise ValueError("A report name is required")
+    try:
+        found = _read_entity(entity, entity_kind, client, project)
+    except EntityNotExistsError:
+        return {}
+    matches = [
+        ext for ext in getattr(found, "extensions", None) or []
+        if ext.get("kind") == "compliance-report" and ext.get("name") == name
+    ]
+    if len(matches) > 1:
+        raise ValueError(f"Duplicate report extension name '{name}'")
+    return dict(matches[0].get("spec") or {}) if matches else {}
+
+
+def save_report_extensions(
+    entity: str, entity_kind: str, reports: dict[str, dict[str, Any]], *,
+    client: Any | None = None, project: str | None = None,
+) -> None:
+    """Validate all reports and stage a single update, preserving other extensions."""
+    from compliance_core.contracts.reports import ReportSpec
+
+    _report_target(entity, project)
+    if not reports or any(not name.strip() for name in reports):
+        raise ValueError("At least one named report is required")
+    normalized = {
+        name: ReportSpec.model_validate(report).model_dump(mode="json", exclude_none=True)
+        for name, report in reports.items()
+    }
+    found = _read_entity(entity, entity_kind, client, project)
+    current = list(getattr(found, "extensions", None) or [])
+    staged = list(current)
+    for name, report in normalized.items():
+        matches = [
+            ext for ext in current
+            if ext.get("kind") == "compliance-report" and ext.get("name") == name
+        ]
+        if len(matches) > 1:
+            raise ValueError(f"Duplicate report extension name '{name}'")
+        replacement = {**(matches[0] if matches else {}), "kind": "compliance-report", "name": name, "spec": report}
+        staged = [
+            ext for ext in staged
+            if not (ext.get("kind") == "compliance-report" and ext.get("name") == name)
+        ]
+        staged.append(replacement)
+    if staged == current:
+        return
+    _, updater = _entity_api(entity_kind, client)
+    found.extensions = staged
+    updater(found)
 
 
 __all__ = [
@@ -170,4 +237,6 @@ __all__ = [
     "get_project_extension",
     "save_entity_extension",
     "save_project_extension",
+    "get_report_extension",
+    "save_report_extensions",
 ]

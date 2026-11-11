@@ -13,11 +13,17 @@ import pytest
 from fastapi.testclient import TestClient
 
 from compliance_core.contracts import AnalysisMeta, AnalysisResponse
+from compliance_core.contracts.evaluation_code import (
+    MetricEvaluationCodeArtifact,
+    MetricEvaluationCodeOutput,
+    MetricEvaluationCodeRequest,
+)
 from compliance_core.knowledge import get_bundle
+from compliance_core.contracts.report_code import ReportCodeArtifact, ReportCodeOutput, ReportCodeRequest
 
 from compliance_api.app import create_app
 from compliance_api.config import ApiSettings
-from compliance_api.engine import LiteLlmEngine
+from compliance_api.engine import AnalysisRegistry, LiteLlmEngine
 from compliance_api.specs import ALL_SPECS, PROJECT_CONTEXT
 
 
@@ -243,6 +249,157 @@ def test_api_serves_the_core_analysis_definitions():
     from compliance_core.analysis_engine import ANALYSES
 
     assert ALL_SPECS is ANALYSES
+
+
+def test_code_generation_model_roles_use_structured_model_fallback():
+    from compliance_api.config import ApiSettings
+
+    shared = ApiSettings(structured_model="shared-model")
+    assert shared.model_name_for("metric_evaluation_code") == "shared-model"
+    assert shared.model_name_for("compliance_report_code") == "shared-model"
+
+
+class _EvaluationRouteRegistry:
+    bundle = get_bundle()
+
+    def get(self, key: str):
+        return _EvaluationRouteEngine(key)
+
+
+class _EvaluationRouteEngine:
+    def __init__(self, key: str):
+        self.key = key
+
+    async def run(self, operation, request, request_id=None):
+        assert operation == self.key
+        if self.key == "metric_evaluation_code":
+            assert isinstance(request, MetricEvaluationCodeRequest)
+            data = MetricEvaluationCodeOutput(
+                result=MetricEvaluationCodeArtifact(
+                    status="needs_input", missing_inputs=["explicit data binding"],
+                )
+            ).result
+        else:
+            assert self.key == "compliance_report_code"
+            assert isinstance(request, ReportCodeRequest)
+            data = ReportCodeOutput(
+                result=ReportCodeArtifact(
+                    status="needs_input",
+                    language=request.language,
+                    mode=request.mode,
+                    missing_inputs=["result source"],
+                )
+            ).result
+        return AnalysisResponse[type(data)](
+            data=data,
+            meta=AnalysisMeta(
+                request_id=request_id or "test",
+                agent=f"{self.key}_agent",
+                model="fake",
+                okf_version=get_bundle().version,
+                latency_ms=1,
+                attempts=1,
+                assumptions=["test assumption"],
+            ),
+        )
+
+
+def _error_envelope() -> dict:
+    return {
+        "project": "credit",
+        "entity": "model-1",
+        "objective_ref": "obj-1",
+        "objective": {
+            "name": "Accuracy threshold",
+            "description": "Check the declared accuracy result",
+            "metric": {"id": "metric-accuracy", "name": "Accuracy", "kind": "PRIMITIVE", "scale": "RATIO"},
+            "condition": {"threshold": {"operator": "GEQ", "value": 0.8}},
+        },
+        "status": "ERROR",
+        "error": "External evaluator failed",
+    }
+
+
+def test_evaluation_code_routes_use_fake_registry():
+    with TestClient(create_app(ApiSettings(), _EvaluationRouteRegistry())) as test_client:
+        metric = test_client.post(
+            "/v1/compliance/metric-evaluation/code",
+            json={
+                "project": "credit",
+                "entity_kind": "model",
+                "entity": "model-1",
+                "objective_ref": "obj-1",
+                "objective": {
+                    "metric": {
+                        "id": "metric-accuracy",
+                        "name": "Accuracy",
+                        "kind": "PRIMITIVE",
+                        "scale": "RATIO",
+                    },
+                    "condition": {"threshold": {"operator": "GEQ", "value": 0.8}},
+                },
+            },
+        )
+        report_code = test_client.post(
+            "/v1/compliance/reports/code",
+            json={
+                "project": "credit",
+                "entity_kind": "model",
+                "entity": "model-1",
+                "language": "python",
+            },
+        )
+    assert metric.status_code == 200
+    assert metric.json()["data"]["status"] == "needs_input"
+    assert metric.json()["meta"]["assumptions"] == ["test assumption"]
+    assert report_code.status_code == 200
+    assert report_code.json()["data"]["mode"] == "standalone"
+
+
+def test_report_routes_build_and_validate_inline_results():
+    with TestClient(create_app(ApiSettings(), _EvaluationRouteRegistry())) as test_client:
+        built = test_client.post(
+            "/v1/compliance/reports",
+            json={"results": [_error_envelope()], "variants": ["TEST"]},
+        )
+        assert built.status_code == 200, built.text
+        report = built.json()["reports"]["TEST"]
+        validated = test_client.post("/v1/compliance/reports/validate", json={"report": report})
+
+    assert validated.status_code == 200
+    assert validated.json()["valid"] is True
+    assert validated.json()["report"]["kind"] == "TEST"
+
+
+def test_report_route_requires_injected_reader_for_source_references():
+    with TestClient(create_app(ApiSettings(), _EvaluationRouteRegistry())) as test_client:
+        response = test_client.post(
+            "/v1/compliance/reports",
+            json={"source": "results.json", "variants": ["TEST"]},
+        )
+    assert response.status_code == 422
+
+
+def test_report_route_uses_only_an_explicitly_injected_reader():
+    payload = json.dumps({"results": [_error_envelope()]}).encode()
+    app = create_app(
+        ApiSettings(),
+        _EvaluationRouteRegistry(),
+        evaluation_input_reader=lambda source: payload if source == "approved:run-1" else b"",
+    )
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/v1/compliance/reports",
+            json={"source": "approved:run-1", "variants": ["TEST"]},
+        )
+    assert response.status_code == 200, response.text
+    assert response.json()["input_source"]["identity"] == "approved:run-1"
+
+
+def test_api_registry_registers_code_generation_operations_without_provider_calls():
+    registry = AnalysisRegistry(ApiSettings(structured_model="scripted"))
+    assert registry.get("metric_evaluation_code").spec.key == "metric_evaluation_code"
+    assert registry.get("compliance_report_code").spec.key == "compliance_report_code"
 
 
 def test_run_evals_cli_compares_models_with_scripted_completions(monkeypatch, tmp_path):

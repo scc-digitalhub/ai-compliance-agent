@@ -8,7 +8,9 @@ from typing import Literal
 from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ModelRole = Literal["project_context", "dataset", "model"]
+ModelRole = Literal[
+    "project_context", "dataset", "model", "metric_evaluation_code", "compliance_report_code"
+]
 
 
 class ApiSettings(BaseSettings):
@@ -55,10 +57,17 @@ class ApiSettings(BaseSettings):
             "project_context": self.project_context_model,
             "dataset": self.dataset_model,
             "model": self.model_analysis_model,
+            "metric_evaluation_code": None,
+            "compliance_report_code": None,
         }[role] or self.structured_model
         if not model:
+            hint = (
+                "STRUCTURED_MODEL"
+                if role in ("metric_evaluation_code", "compliance_report_code")
+                else "STRUCTURED_MODEL or its per-analysis override"
+            )
             raise ValueError(
-                f"No model configured for '{role}'; set STRUCTURED_MODEL or its per-analysis override."
+                f"No model configured for '{role}'; set {hint}."
             )
         return model
 

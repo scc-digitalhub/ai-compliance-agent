@@ -11,6 +11,8 @@ from google.adk.skills.models import Skill
 from .agents.entity_tools import ENTITY_TOOL_REGISTRY
 from .agents.host_tools import HOST_TOOL_REGISTRY
 from .agents.knowledge_tools import TOOL_REGISTRY as OKF_TOOL_REGISTRY
+from .agents.metric_evaluation_tools import TOOL_REGISTRY as METRIC_EVALUATION_TOOL_REGISTRY
+from .agents.report_tools import TOOL_REGISTRY as REPORT_TOOL_REGISTRY
 from .agents.specification_tools import SPECIFICATION_TOOL_REGISTRY
 from .config import get_settings
 from compliance_core.errors import ConfigurationError
@@ -21,6 +23,8 @@ TOOL_REGISTRY: dict[str, Callable[..., Any]] = {
     **SPECIFICATION_TOOL_REGISTRY,
     **ENTITY_TOOL_REGISTRY,
     **HOST_TOOL_REGISTRY,
+    **METRIC_EVALUATION_TOOL_REGISTRY,
+    **REPORT_TOOL_REGISTRY,
 }
 
 

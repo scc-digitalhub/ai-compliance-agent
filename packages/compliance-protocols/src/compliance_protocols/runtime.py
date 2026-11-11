@@ -32,7 +32,7 @@ from compliance_core.specification_tools import (
 )
 from compliance_core.state import MappingStateStore, entity_project
 from compliance_core.tools import ToolEnv
-from compliance_dh.repositories import DhEntityCatalog, DhSpecificationRepository
+from compliance_dh.repositories import DhEntityCatalog, DhReportRepository, DhSpecificationRepository
 
 from .config import ProtocolSettings
 
@@ -67,6 +67,7 @@ class Turn:
     status: Status = "completed"
     artifacts: list[dict[str, Any]] = field(default_factory=list)
     authorized_write: str | None = None
+    authorized_overwrite: bool = False
     error: str | None = None
     grounding: dict[str, None] = field(default_factory=dict)
 
@@ -83,6 +84,11 @@ class TurnResult:
 
 
 def _digest(operation: dict[str, Any]) -> str:
+    if "report" in operation:
+        target = {key: operation[key] for key in ("kind", "entity", "project", "name", "report")}
+        target["overwrite"] = operation.get("overwrite") is True
+        encoded = json.dumps(target, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        return hashlib.sha256(encoded.encode()).hexdigest()
     """Fingerprint of the approved write; provenance is generated at save time and excluded."""
     body, _ = split_provenance(operation["specification"])
     target = {key: operation[key] for key in ("kind", "entity", "project")}
@@ -94,6 +100,8 @@ def _save_arguments(operation: dict[str, Any], source: str | None) -> dict[str, 
     """A session analysis is saved from the workspace, keeping its provenance; the approval digest
     still guarantees that exactly the approved specification is written."""
     arguments = dict(operation)
+    if "report" in arguments:
+        return arguments
     if source == "session":
         arguments["specification"] = None
     return arguments
@@ -152,18 +160,49 @@ class ScopedEntities:
         selected = self.policy.resolve(kind, entity, project)
         return self.catalog.get(kind, entity, project=selected)
 
+class ScopedReports:
+    """Enforce approval at the persistence boundary, not just at the tool callback."""
+
+    supports_atomic_batch = False
+
+    def __init__(self, policy: ProjectPolicy, repository):
+        self.policy, self.repository = policy, repository
+
+    def get(self, kind, entity, name, project=None):
+        selected = self.policy.resolve(kind, entity, project)
+        return self.repository.get(kind, entity, name, project=selected)
+
+    def save(self, kind, entity, name, report, project=None):
+        selected = self.policy.resolve(kind, entity, project)
+        turn = CURRENT.get()
+        operation = {
+            "kind": kind, "entity": entity, "project": selected, "name": name,
+            "report": report, "overwrite": turn.authorized_overwrite,
+        }
+        if not self.policy.settings.allow_writes or turn.authorized_write != _digest(operation):
+            raise PermissionError("This exact report write has not been approved")
+        turn.authorized_write = None
+        self.repository.save(kind, entity, name, report, project=selected)
+
+    def save_batch(self, kind, entity, reports, project=None, *, strict_atomic=False):
+        raise PermissionError("Batch writes require individual report approvals in this transport")
+
 
 class ConversationRuntime:
     def __init__(
         self, settings: ProtocolSettings, *, agent: LlmAgent | None = None,
         specifications: DhSpecificationRepository | None = None,
         entities: DhEntityCatalog | None = None,
+        reports: DhReportRepository | None = None,
+        input_reader: Callable[[str], bytes] | None = None,
     ):
         self.settings = settings
         directory = settings.prepare_directory()
         self.sessions = DatabaseSessionService(db_url=f"sqlite+aiosqlite:///{directory / 'sessions.db'}")
         self.specifications = specifications or DhSpecificationRepository()
         self.entities = entities or DhEntityCatalog()
+        self.reports = reports or DhReportRepository()
+        self.input_reader = input_reader
         self.agent = agent or build_coordinator_agent()
         original_instruction = self.agent.instruction
 
@@ -192,6 +231,8 @@ class ConversationRuntime:
             state=state, bundle=get_bundle(),
             specifications=ScopedSpecifications(policy, self.specifications),
             entities=ScopedEntities(policy, self.entities), analysis_engine=AdkAnalysisEngine(),
+            reports=ScopedReports(policy, self.reports),
+            input_reader=self.input_reader,
         )
 
     async def create(self, cwd: str | None = None, session_id: str | None = None) -> str:
@@ -218,6 +259,16 @@ class ConversationRuntime:
     async def before_tool(self, tool, args: dict[str, Any], tool_context: ToolContext):
         turn = CURRENT.get()
         await turn.notify({"type": "tool_start", "id": tool_context.function_call_id, "name": tool.name})
+        if tool.name == "save_compliance_report":
+            return await self.before_report_write(args, tool_context)
+        if tool.name == "get_compliance_report":
+            try:
+                ProjectPolicy(MappingStateStore(tool_context.state), self.settings).resolve(
+                    args["kind"], args["entity"], args.get("project")
+                )
+            except (ValueError, PermissionError) as exc:
+                turn.status = "input_required"
+                return {"code": "project_required_or_denied", "error": str(exc)}
         if tool.name in ("get_entity_details", "get_compliance_specification", "save_compliance_specification"):
             try:
                 ProjectPolicy(MappingStateStore(tool_context.state), self.settings).resolve(
@@ -290,6 +341,52 @@ class ConversationRuntime:
         turn.status = "input_required"
         return {"code": "approval_required", "approval": approval}
 
+    async def before_report_write(self, args, tool_context):
+        from compliance_core.report_tools import prepare_compliance_report
+
+        turn = CURRENT.get()
+        if not self.settings.allow_writes:
+            return {"code": "writes_disabled", "error": "DigitalHub writes are disabled by deployment policy"}
+        state = tool_context.state
+        if state.get(PENDING) and state[PENDING]["expires_at"] < time.time():
+            state[PENDING] = None
+        if state.get(PENDING):
+            turn.status = "input_required"
+            return {"code": "approval_required", "approval": state[PENDING]}
+        try:
+            selected = ProjectPolicy(MappingStateStore(state), self.settings).resolve(
+                args["kind"], args["entity"], args.get("project"),
+            )
+            prepared = prepare_compliance_report(
+                MappingStateStore(state), args["kind"], args["entity"], args["name"],
+                args.get("report"), selected,
+            )
+            operation = {
+                "kind": args["kind"], "entity": args["entity"], "project": selected,
+                "name": args["name"], "report": prepared["report"],
+                "overwrite": args.get("overwrite") is True,
+            }
+        except (ValueError, PermissionError, KeyError) as exc:
+            turn.status = "input_required"
+            return {"code": "invalid_write", "error": str(exc)}
+        approval = {
+            "id": uuid.uuid4().hex, "operation": operation,
+            "source": "argument", "expires_at": time.time() + self.settings.approval_ttl_s,
+        }
+        if turn.permission is not None:
+            if not await turn.permission(approval):
+                return {"code": "permission_denied", "error": "The user did not approve this report write"}
+            if approval["expires_at"] < time.time():
+                turn.status = "input_required"
+                return {"code": "approval_expired", "error": "This write approval expired; request it again"}
+            args.update(operation)
+            turn.authorized_overwrite = operation["overwrite"]
+            turn.authorized_write = _digest(operation)
+            return None
+        state[PENDING] = approval
+        turn.status = "input_required"
+        return {"code": "approval_required", "approval": approval}
+
     async def after_tool(self, tool, args, tool_context, tool_response):
         turn = CURRENT.get()
         def collect_paths(value):
@@ -327,6 +424,12 @@ class ConversationRuntime:
                 "meta": {"okf_version": get_bundle().version, "grounding": list(turn.grounding)},
             })
         if tool.name == "get_compliance_specification" and "specification" in tool_response:
+            turn.artifacts.append({"tool": tool.name, **tool_response})
+        if tool.name in (
+            "record_metric_evaluation_code", "record_compliance_report_code",
+            "build_compliance_report", "record_compliance_report", "get_compliance_report",
+            "save_compliance_report", "generate_metric_evaluation_code", "generate_compliance_report_code",
+        ) and "error" not in tool_response and tool_response.get("valid") is not False:
             turn.artifacts.append({"tool": tool.name, **tool_response})
         return None
 
@@ -400,7 +503,12 @@ class ConversationRuntime:
             return TurnResult("completed", "Write rejected; nothing was saved.", [])
         operation = pending["operation"]
         turn.authorized_write = _digest(operation)
-        result = save_compliance_specification(
+        turn.authorized_overwrite = operation.get("overwrite") is True
+        save = save_compliance_specification
+        if "report" in operation:
+            from compliance_core.report_tools import save_compliance_report
+            save = save_compliance_report
+        result = save(
             self.environment_for_state(session.state), **_save_arguments(operation, pending.get("source")),
         )
         await self.sessions.append_event(session, Event(

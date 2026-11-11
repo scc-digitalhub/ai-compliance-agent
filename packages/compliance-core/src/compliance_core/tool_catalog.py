@@ -7,6 +7,9 @@ from .analysis_tools import ANALYSIS_TOOL_SPECS
 from .entity_tools import TOOL_SPEC as ENTITY_TOOL_SPEC
 from .host_tools import RECORD_ANALYSIS_TOOL_SPEC
 from .knowledge_tools import TOOL_SPECS as KNOWLEDGE_TOOL_SPECS
+from .metric_evaluation_tools import TOOL_SPECS as METRIC_EVALUATION_TOOL_SPECS
+from .report_code_tools import TOOL_SPECS as REPORT_CODE_TOOL_SPECS
+from .report_tools import TOOL_SPECS as REPORT_TOOL_SPECS
 from .specification_tools import SPECIFICATION_TOOL_SPECS
 from .tools import ToolEnv, ToolSpec
 from .validation_tools import (
@@ -76,6 +79,9 @@ TOOL_SPECS = (
     ENTITY_TOOL_SPEC,
     *SPECIFICATION_TOOL_SPECS,
     *ANALYSIS_TOOL_SPECS,
+    *METRIC_EVALUATION_TOOL_SPECS,
+    *REPORT_CODE_TOOL_SPECS,
+    *REPORT_TOOL_SPECS,
 )
 TOOL_CATALOG = {spec.name: spec for spec in TOOL_SPECS}
 

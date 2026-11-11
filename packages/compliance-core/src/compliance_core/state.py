@@ -28,9 +28,14 @@ ACTIVE_KEY = "analysis_active_project"
 WORKSPACES_KEY = "analysis_workspaces"
 ENTITIES_KEY = "dh_entities"
 REVISIONS_KEY = "dh_spec_revisions"
+CODES_KEY = "evaluation_codes"
+REPORTS_KEY = "evaluation_reports"
 
-SCOPED_KEYS = (PROJECT_KEY, CONTEXT_KEY, DATASETS_KEY, MODELS_KEY, PROVENANCE_KEY)
-_EMPTY: dict[str, Any] = {PROJECT_KEY: None, CONTEXT_KEY: None, DATASETS_KEY: {}, MODELS_KEY: {}, PROVENANCE_KEY: {}}
+SCOPED_KEYS = (PROJECT_KEY, CONTEXT_KEY, DATASETS_KEY, MODELS_KEY, PROVENANCE_KEY, CODES_KEY, REPORTS_KEY)
+_EMPTY: dict[str, Any] = {
+    PROJECT_KEY: None, CONTEXT_KEY: None, DATASETS_KEY: {}, MODELS_KEY: {},
+    PROVENANCE_KEY: {}, CODES_KEY: {}, REPORTS_KEY: {},
+}
 
 
 def _clean(name: Any) -> str | None:
@@ -107,7 +112,7 @@ def activate_project(state: StateStore, name: str) -> None:
         restored = archived
     else:
         restored = {**snapshot, **archived}
-        for key in (DATASETS_KEY, MODELS_KEY, PROVENANCE_KEY):
+        for key in (DATASETS_KEY, MODELS_KEY, PROVENANCE_KEY, CODES_KEY, REPORTS_KEY):
             restored[key] = {**snapshot.get(key, {}), **archived.get(key, {})}
     for key in SCOPED_KEYS:
         value = restored.get(key)
@@ -153,6 +158,8 @@ class ComplianceWorkspace:
     provenance: dict[str, dict[str, Any]] = field(default_factory=dict)
     active_project: str | None = None
     other_projects: dict[str, dict[str, Any]] = field(default_factory=dict)
+    evaluation_codes: dict[str, dict[str, Any]] = field(default_factory=dict)
+    evaluation_reports: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     @classmethod
     def from_store(cls, state: Mapping[str, Any]) -> "ComplianceWorkspace":
@@ -165,6 +172,8 @@ class ComplianceWorkspace:
             provenance=state.get(PROVENANCE_KEY) or {},
             active_project=state.get(ACTIVE_KEY),
             other_projects=state.get(WORKSPACES_KEY) or {},
+            evaluation_codes=state.get(CODES_KEY) or {},
+            evaluation_reports=state.get(REPORTS_KEY) or {},
         )
 
     def write_to(self, state: MutableMapping[str, Any]) -> None:
@@ -176,6 +185,8 @@ class ComplianceWorkspace:
         state[PROVENANCE_KEY] = self.provenance
         state[ACTIVE_KEY] = self.active_project
         state[WORKSPACES_KEY] = self.other_projects
+        state[CODES_KEY] = self.evaluation_codes
+        state[REPORTS_KEY] = self.evaluation_reports
 
 
 class InMemoryStateStore(MutableMapping[str, Any]):

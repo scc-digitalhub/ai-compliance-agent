@@ -16,6 +16,11 @@ def test_mcp_server_exposes_host_driven_tools_without_engine() -> None:
 
     assert "record_compliance_analysis" in tools
     assert "get_output_schema" in tools
+    assert "get_metric_computation" in tools
+    assert "build_compliance_report" in tools
+    assert "validate_compliance_report" in tools
+    assert "generate_metric_evaluation_code" not in tools
+    assert "generate_compliance_report_code" not in tools
     assert "analyze_project_context" not in tools
     assert "get_entity_details" not in tools
     assert "env" not in tools["record_compliance_analysis"].parameters["properties"]
@@ -27,7 +32,37 @@ def test_mcp_server_exposes_host_driven_tools_without_engine() -> None:
     assert tools["record_compliance_analysis"].annotations.read_only_hint is False
     assert [resource.uri for resource in resources] == ["okf://bundle/index"]
     assert [template.uri_template for template in templates] == ["okf://bundle/{path}"]
-    assert [prompt.name for prompt in prompts] == ["compliance_analysis"]
+    assert {prompt.name for prompt in prompts} == {
+        "compliance_analysis",
+        "metric_evaluation_code",
+        "compliance_report",
+    }
+
+
+def test_workspace_input_reader_is_bounded_and_confined(tmp_path) -> None:
+    from compliance_mcp.server import _MAX_INPUT_BYTES, _workspace_input_reader
+
+    reader = _workspace_input_reader(tmp_path)
+    (tmp_path / "results.json").write_bytes(b'{"results":[]}')
+    assert reader("results.json") == b'{"results":[]}'
+
+    with pytest.raises(ValueError, match="workspace-relative"):
+        reader(str(tmp_path / "results.json"))
+    with pytest.raises(ValueError, match="workspace-relative"):
+        reader("https://example.invalid/results.json")
+
+    outside = tmp_path.parent / f"{tmp_path.name}-outside.json"
+    outside.write_bytes(b"{}")
+    try:
+        (tmp_path / "escape.json").symlink_to(outside)
+        with pytest.raises(ValueError, match="inside"):
+            reader("escape.json")
+    finally:
+        outside.unlink(missing_ok=True)
+
+    (tmp_path / "large.json").write_bytes(b"x" * (_MAX_INPUT_BYTES + 1))
+    with pytest.raises(ValueError, match="limit"):
+        reader("large.json")
 
 
 def test_digitalhub_tools_are_enabled_by_default_and_can_be_disabled() -> None:
@@ -41,12 +76,29 @@ def test_digitalhub_tools_are_enabled_by_default_and_can_be_disabled() -> None:
         "get_entity_details",
         "get_compliance_specification",
         "save_compliance_specification",
+        "get_compliance_report",
+        "save_compliance_report",
     }.issubset(default_tools)
     assert {
         "get_entity_details",
         "get_compliance_specification",
         "save_compliance_specification",
+        "get_compliance_report",
+        "save_compliance_report",
     }.isdisjoint(disabled_tools)
+
+
+def test_default_mcp_env_wires_report_repository_and_bounded_reader(tmp_path) -> None:
+    from compliance_dh.repositories import DhReportRepository
+    from compliance_mcp.server import _default_env
+
+    enabled = _default_env(tmp_path, True)
+    disabled = _default_env(tmp_path, False)
+    assert isinstance(enabled.reports, DhReportRepository)
+    (tmp_path / "input.json").write_bytes(b"{}")
+    assert enabled.input_reader("input.json") == b"{}"
+    assert disabled.reports is None
+    assert disabled.input_reader is not None
 
 
 def test_digitalhub_tool_schemas_expose_explicit_project() -> None:
@@ -76,10 +128,15 @@ def test_cli_delegated_option_exposes_the_litellm_analysis_tools(monkeypatch, tm
     server = _main_server(monkeypatch, tmp_path, "--delegated", "--no-dh")
     tools = {tool.name for tool in server._tool_manager.list_tools()}
     assert {"analyze_project_context", "analyze_dataset", "analyze_model"} <= tools
+    assert {
+        "generate_metric_evaluation_code",
+        "generate_compliance_report_code",
+    } <= tools
     assert "get_entity_details" not in tools
 
     default = {tool.name for tool in _main_server(monkeypatch, tmp_path)._tool_manager.list_tools()}
     assert "analyze_dataset" not in default and "get_entity_details" in default
+    assert "generate_metric_evaluation_code" not in default
 
 
 def test_cli_delegated_option_requires_a_configured_model(monkeypatch, tmp_path) -> None:

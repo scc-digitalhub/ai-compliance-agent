@@ -174,6 +174,38 @@ def validate_model(result: Any, request: Any, bundle: Any) -> list[Issue]:
     return _check_objectives(result.objectives, bundle, request)
 
 
+def _validate_generated_code(
+    request: Any, artifact: Any, validator: Any,
+) -> list[Issue]:
+    outcome = validator(request, artifact)
+    if not isinstance(outcome, Mapping) or not isinstance(outcome.get("valid"), bool):
+        return [_error("static code validator returned an invalid response")]
+    issues: list[Issue] = []
+    for item in outcome.get("errors", []):
+        message = item.get("message") if isinstance(item, Mapping) else item
+        issues.append(_error(str(message or "generated code failed static validation")))
+    for item in outcome.get("warnings", []):
+        message = item.get("message") if isinstance(item, Mapping) else item
+        issues.append(_warning(str(message or "generated code has a static validation warning")))
+    if not outcome["valid"] and not any(issue.severity == "error" for issue in issues):
+        issues.append(_error("generated code failed static validation"))
+    return issues
+
+
+def validate_metric_evaluation_code(result: Any, request: Any, bundle: Any) -> list[Issue]:
+    """Run the non-executing evaluator artifact validator during structured output checking."""
+    from .metric_evaluation_tools import validate_metric_evaluation_code as validate_artifact
+
+    return _validate_generated_code(request, result, validate_artifact)
+
+
+def validate_compliance_report_code(result: Any, request: Any, bundle: Any) -> list[Issue]:
+    """Run the non-executing reporting artifact validator during structured output checking."""
+    from .report_code_tools import validate_compliance_report_code as validate_artifact
+
+    return _validate_generated_code(request, result, validate_artifact)
+
+
 def grounding_issues(paths: Iterable[str] | None, bundle: Any) -> list[Issue]:
     """Cited OKF sources must be given and must exist in the bundle."""
     paths = [path for path in (paths or []) if isinstance(path, str) and path.strip()]
@@ -197,6 +229,17 @@ VALIDATORS = {
     "project_context": validate_context,
     "dataset": validate_dataset,
     "model": validate_model,
+    "metric_evaluation_code": validate_metric_evaluation_code,
+    "compliance_report_code": validate_compliance_report_code,
 }
 
-__all__ = ["Issue", "VALIDATORS", "grounding_issues", "validate_context", "validate_dataset", "validate_model"]
+__all__ = [
+    "Issue",
+    "VALIDATORS",
+    "grounding_issues",
+    "validate_compliance_report_code",
+    "validate_context",
+    "validate_dataset",
+    "validate_metric_evaluation_code",
+    "validate_model",
+]

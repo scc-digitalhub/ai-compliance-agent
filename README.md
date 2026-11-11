@@ -47,6 +47,17 @@ can include project context from an earlier analysis. Responses have a `data` ob
 assumptions, warnings, OKF paths consulted, token usage, and the bundle version. Results are decision
 support, not legal advice.
 
+The assistant also generates catalog-grounded Python metric evaluators and reporting executables.
+Reporting supports either generated Python/shell workflows (including a single external executable
+that evaluates, builds reports, and publishes them) or agent-built reports from supplied evaluation
+files/references. Shared deterministic helpers produce OKF `EVALUATION` measurements and separate
+`TEST` objective assessments. Named `compliance-report` extensions preserve prior evidence and
+require explicit project/target selection. Generated code is statically checked, never executed by
+the service; external publishing uses the caller's runtime credentials. The current DigitalHub SDK
+does not guarantee transactional conditional updates, so strict atomic publication is not claimed.
+See the [end-to-end usage scenarios](docs/compliance-platform-usage-guide.md#end-to-end-scenarios-for-the-compliance-assistant)
+for project/data/model analysis, evaluator generation, both reporting flavours, and combined runs.
+
 ## Requirements
 
 - Python 3.11 or newer

@@ -22,11 +22,19 @@ from .contracts import (
     ProjectInput,
     TokenUsage,
 )
+from .contracts.evaluation_code import MetricEvaluationCodeOutput, MetricEvaluationCodeRequest
+from .contracts.report_code import ReportCodeOutput, ReportCodeRequest
 from .errors import ComplianceError, OutputValidationError, UpstreamModelError, UpstreamRateLimited
 from .knowledge import OkfBundle
 from .validation import VALIDATORS, Issue
 
-AnalysisKey = Literal["project_context", "dataset", "model"]
+AnalysisKey = Literal[
+    "project_context",
+    "dataset",
+    "model",
+    "metric_evaluation_code",
+    "compliance_report_code",
+]
 
 ANALYST_INSTRUCTIONS = """\
 You are an AI compliance analyst with deep knowledge of the EU AI Act, GDPR, NIST AI RMF,
@@ -80,6 +88,31 @@ MODEL = AnalysisDefinition(
 )
 ANALYSES: tuple[AnalysisDefinition, ...] = (PROJECT_CONTEXT, DATASET, MODEL)
 ANALYSES_BY_KEY: dict[str, AnalysisDefinition] = {definition.key: definition for definition in ANALYSES}
+
+METRIC_EVALUATION_CODE = AnalysisDefinition(
+    key="metric_evaluation_code",
+    agent_name="metric_evaluation_code_agent",
+    skill_name="metric-evaluation-code",
+    description="Generates and statically validates a metric evaluation code artifact.",
+    request_model=MetricEvaluationCodeRequest,
+    output_model=MetricEvaluationCodeOutput,
+)
+COMPLIANCE_REPORT_CODE = AnalysisDefinition(
+    key="compliance_report_code",
+    agent_name="compliance_report_code_agent",
+    skill_name="compliance-report",
+    description="Generates and statically validates a standalone or combined compliance reporting artifact.",
+    request_model=ReportCodeRequest,
+    output_model=ReportCodeOutput,
+)
+CODE_GENERATIONS: tuple[AnalysisDefinition, ...] = (
+    METRIC_EVALUATION_CODE,
+    COMPLIANCE_REPORT_CODE,
+)
+STRUCTURED_OPERATIONS: tuple[AnalysisDefinition, ...] = (*ANALYSES, *CODE_GENERATIONS)
+STRUCTURED_OPERATIONS_BY_KEY: dict[str, AnalysisDefinition] = {
+    definition.key: definition for definition in STRUCTURED_OPERATIONS
+}
 
 _FENCE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL)
 _PATH_TOOLS = {"read_okf_concept", "list_okf_directory"}
@@ -229,10 +262,15 @@ __all__ = [
     "AnalysisKey",
     "AnalysisTrace",
     "Conversation",
+    "CODE_GENERATIONS",
+    "COMPLIANCE_REPORT_CODE",
     "DATASET",
+    "METRIC_EVALUATION_CODE",
     "MODEL",
     "OutputRejected",
     "PROJECT_CONTEXT",
+    "STRUCTURED_OPERATIONS",
+    "STRUCTURED_OPERATIONS_BY_KEY",
     "build_response",
     "check_output",
     "correction_message",

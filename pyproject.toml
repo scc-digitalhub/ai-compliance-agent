@@ -71,6 +71,7 @@ compliance-api = "compliance_api.app:main"
 compliance-mcp = "compliance_mcp.server:main"
 compliance-acp = "compliance_protocols.acp:main"
 compliance-a2a = "compliance_protocols.a2a:main"
+compliance-report = "compliance_core.report_cli:main"
 
 [tool.setuptools]
 include-package-data = true

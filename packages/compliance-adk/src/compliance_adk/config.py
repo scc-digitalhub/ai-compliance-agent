@@ -18,7 +18,14 @@ if PACKAGE_DIR.parent.name == "src" and PACKAGE_DIR.parent.parent.name == "compl
     ADK_DIR = PACKAGE_DIR.parents[3] / "adk"
 DEFAULT_SKILLS_PATH = Path(str(files("compliance_skills").joinpath("skills")))
 
-ModelRole = Literal["project_context", "dataset", "model", "coordinator"]
+ModelRole = Literal[
+    "project_context",
+    "dataset",
+    "model",
+    "metric_evaluation_code",
+    "compliance_report_code",
+    "coordinator",
+]
 
 
 class Settings(CoreSettings):
@@ -65,6 +72,8 @@ class Settings(CoreSettings):
             "project_context": self.project_context_model,
             "dataset": self.dataset_model,
             "model": self.model_analysis_model,
+            "metric_evaluation_code": None,
+            "compliance_report_code": None,
             "coordinator": self.coordinator_model,
         }[role]
         name = specific or (None if role == "coordinator" else self.structured_model)

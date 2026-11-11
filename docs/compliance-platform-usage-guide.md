@@ -19,6 +19,270 @@ The API and MCP extras do not install Google ADK. The `server` extra combines th
 dependencies without ADK; the `adk` extra adds Google ADK. The distribution is not yet published,
 so commands below assume a checkout of this repository.
 
+## End-to-end scenarios for the compliance assistant
+
+The following prompts work with the portable assistant in MCP hosts and with the ADK/ACP/A2A
+coordinator. Replace example project/entity identifiers with your own. The assistant uses the
+matching skill, retrieves existing specifications before re-analysis, and asks for missing inputs.
+Analysis selects objectives; it does not measure a dataset or certify legal compliance.
+
+### 1. Analyse a project, then its data and model
+
+Start by establishing the project:
+
+> In DigitalHub project `credit`, analyse our consumer-loan decision-support system for EU use.
+> Its classification model estimates repayment risk for loan officers; people review the final
+> decision. Build the project compliance context, explaining risk classification, applicable
+> requirements, protected groups, and oversight. Do not save it yet.
+
+If a specification already exists, review it and explicitly request re-analysis if needed. Then:
+
+> Save the reviewed project compliance specification in project `credit`.
+
+Analyse a registered dataset with the established project context:
+
+> Retrieve dataitem `loan-training-v1` in project `credit` and analyse its data compliance.
+> It is TRAINING data containing age, income and repayment labels. Reuse the project context;
+> identify protected attributes and propose data-quality, fairness and privacy objectives.
+> Explain the suggested thresholds and assumptions. Do not compute any metric yet.
+
+For an unregistered dataset, provide its scope, schema, sensitivity, description and any known
+protected attributes directly instead of asking for a DigitalHub lookup.
+
+Analyse the model:
+
+> Retrieve model `loan-scorer-v1` in project `credit`. It performs CLASSIFICATION to predict
+> repayment risk. Analyse its compliance using the project context and the dataset analysis.
+> Propose appropriate accuracy, fairness, calibration and robustness objectives.
+
+Review thresholds before asking to save each entity's specification. Saving an analysis changes
+its compliance specification, not its evaluation evidence. Existing specifications are never
+re-run or overwritten merely because you request an evaluation.
+
+### 2. Generate a dataset evaluator without running it
+
+> For dataitem `loan-training-v1` in project `credit`, generate a Python evaluator for the
+> Dataset Completeness objective in its reviewed specification. The input is an in-memory pandas
+> DataFrame loaded by our pipeline. Assess only columns `age`, `income` and `repaid`, use their
+> overall non-null fraction, and compare it with the objective's existing threshold.
+> Return the function, input/result contract, required dependencies, invocation example and
+> catalog grounding. Do not execute it and do not attach a report.
+
+The evaluator takes the assessed entity or its explicitly documented in-memory representation.
+It returns a structured measurement and objective assessment, not just console output.
+Dependencies belong to your external evaluation environment; the assistant does not install or
+execute them. Inspect generated source before running it. Static validation checks structure and
+bindings, not mathematical correctness or safety of arbitrary Python.
+
+### 3. Generate a model evaluator with explicit evaluation inputs
+
+> Generate Python evaluation code for the accuracy and equalized-odds objectives of
+> `loan-scorer-v1` in project `credit`. Our external pipeline passes the model, a held-out feature
+> DataFrame, true labels and the `age_group` sensitive-feature series. Use the model's `predict`
+> method, binary labels 0/1 with positive label 1, and the reviewed objective conditions.
+> Return per-objective functions and their result schemas, without executing or publishing.
+
+Model metadata alone cannot establish accuracy or fairness. If labels, evaluation data, protected
+group bindings or a multi-output metric selector are missing, the assistant returns required
+inputs (`needs_input`) or an explicit unsupported reason rather than inventing a score.
+
+### 4. Generate standalone reporting code for existing results
+
+> Our pipeline already computes the objective/metric results for model `loan-scorer-v1` in
+> project `credit`. Generate Python reporting code that reads `results.json`, validates metric IDs,
+> timestamps and objective snapshots, builds separate EVALUATION and TEST report specifications,
+> and attaches them as named compliance-report extensions on this model. Use run name
+> `validation-2026-11-11`; preserve prior reports. Include a no-write preview and an explicit
+> publish invocation, runtime dependencies, and structured success/failure output.
+
+For a shell-oriented pipeline:
+
+> Generate a shell reporting wrapper instead, using the packaged compliance-report CLI and
+> the same result contract. Quote all file paths and identifiers. Credentials must come from the
+> runtime's DigitalHub SDK configuration, never from literals in the generated script.
+
+Reporting code uses shared deterministic report/condition helpers. It can consume results from
+another evaluator; generating evaluator code is not a prerequisite. Unsupported languages or
+ambiguous input formats require clarification rather than a runnable-looking placeholder.
+
+### 5. Generate one executable for evaluation and publication
+
+> Generate one Python executable for `loan-scorer-v1` in project `credit` that evaluates the
+> selected accuracy and fairness objectives, gathers their results, constructs the report
+> specifications and attaches them to this model. Use our explicit held-out-data/label/group
+> bindings from above. Stage and validate all reports before publication. Provide preview and
+> publish invocations and preserve unrelated extensions. I will review and run it outside the
+> assistant.
+
+This workflow does not require returning to the assistant between evaluation and reporting.
+The per-metric functions compute; a separate generated entry point assembles and publishes.
+A compliance `FAIL` can be a successfully published outcome; an execution failure is different.
+An operational computation/validation failure must not publish partial success evidence.
+
+One executable invocation is not a distributed transaction. Report extensions can be staged
+into one entity update, but the current DigitalHub SDK does not guarantee conditional atomic
+publication. Requests for strict transaction guarantees must be rejected when unsupported.
+Do not assume rollback across model execution, files, multiple entities or remote side effects.
+Stable run/report names and conflict checks support safe retries; review uncertain write outcomes.
+
+### 6. Have the assistant build and attach a report from a file or reference
+
+> Read `evaluation/results.json` in this workspace. These are externally computed results for
+> `loan-scorer-v1` in project `credit`. Build an EVALUATION report and a separate TEST report
+> against the reviewed objective snapshots. Show source provenance and validation issues first;
+> do not save until I approve.
+
+Then:
+
+> Attach the reviewed reports to `loan-scorer-v1` in project `credit`, using the named run
+> `validation-2026-11-11`. Do not replace any differently named report.
+
+For an artifact/resource reference, supply an identifier accessible through the host's authorized
+reader. The service does not fetch arbitrary URLs or read arbitrary server paths. Provide an
+explicit field mapping for noncanonical results; include metric IDs, actual computation timestamps,
+objective references/snapshots and target identity. A filename is not evidence of those facts.
+Missing or inaccessible content, unsupported formats and ambiguous mappings are reported explicitly.
+Source identity and content fingerprints are retained; generated code is not required in this flavour.
+
+### Report and permission boundaries
+
+- `EVALUATION` records metric measurements. `TEST` records comparisons with objective conditions,
+  with `PASS`, `FAIL`, `INCONCLUSIVE` or `ERROR`. They are separate report specifications.
+- Generating a publishing executable does not execute it or approve an immediate agent-side write.
+  External execution uses your runtime credentials and declared publication policy.
+- Agent-side DigitalHub writes remain explicit. ACP/A2A deployments must enable writes and approve
+  the exact prepared operation; pending approval is not a successful save.
+- Retrieve/review a conflicting named report before confirming replacement. Do not overwrite
+  evidence just to make a retry succeed.
+- Host-driven code generation uses the host model. Delegated generation is opt-in. Deterministic
+  report construction needs neither a model nor generated-source execution.
+
+### Canonical result file and reporting CLI
+
+Save this illustrative result array as `results.json`, replacing the objective snapshot, reference,
+target and measured value with your actual reviewed specification and external measurement.
+The timestamp is when the metric was computed, not when the report was requested:
+
+```json
+[
+  {
+    "project": "credit",
+    "entity": "loan-scorer-v1",
+    "objective_ref": "objective::accuracy-check",
+    "objective": {
+      "name": "Accuracy at least 0.9",
+      "metric": {
+        "id": "metric-accuracy",
+        "name": "Classification Accuracy",
+        "kind": "PRIMITIVE",
+        "scale": "RATIO"
+      },
+      "condition": {"threshold": {"operator": "GEQ", "value": 0.9}},
+      "priority": "MANDATORY",
+      "severity": "HIGH",
+      "requirements": []
+    },
+    "metric_result": {
+      "metric": {
+        "id": "metric-accuracy",
+        "name": "Classification Accuracy",
+        "kind": "PRIMITIVE",
+        "scale": "RATIO"
+      },
+      "value": 0.93,
+      "computed_at": "2026-11-11T08:00:00Z"
+    },
+    "provenance": {"producer": "external-validation-pipeline", "run": "validation-2026-11-11"}
+  }
+]
+```
+
+An objective reference must identify the actual supplied snapshot. Preserve authoritative IDs when
+available; framework-generated snapshot references are not catalog IDs. Add result entries for
+other metrics/objectives rather than combining multiple values under an arbitrary scalar condition.
+
+Preview needs no model or DigitalHub connection:
+
+```bash
+uv run compliance-report preview \
+  --results results.json --project credit --entity-kind model --entity loan-scorer-v1 \
+  --variants EVALUATION,TEST \
+  --report-name EVALUATION=validation-2026-11-11-measurements \
+  --report-name TEST=validation-2026-11-11-checks
+```
+
+After review, use the same arguments with `publish`:
+
+```bash
+uv run --extra mcp compliance-report publish \
+  --results results.json --project credit --entity-kind model --entity loan-scorer-v1 \
+  --variants EVALUATION,TEST \
+  --report-name EVALUATION=validation-2026-11-11-measurements \
+  --report-name TEST=validation-2026-11-11-checks
+```
+
+Supply DigitalHub credentials through the SDK's runtime configuration. Use `--overwrite` only after
+reviewing an intentional replacement. `--strict-atomic` requests a guarantee that the current
+DigitalHub adapter cannot provide and therefore fails before publication. The CLI outputs JSON
+and returns a nonzero exit status for operational errors. It never evaluates source supplied in
+the result file. Shell reporting code can wrap these commands; generated Python can call the
+same core report builder and publisher directly.
+
+### Equivalent HTTP workflows
+
+The REST service exposes the following additional operations under `/v1/compliance`:
+
+| Endpoint | Input and result |
+|---|---|
+| `POST /metric-evaluation/code` | An objective, target and explicit bindings; returns a statically validated Python evaluator artifact. Requires the configured model. |
+| `POST /reports/code` | Target, `language` (`python` or `shell`), `mode` (`standalone` or `combined`), input contract and optional evaluator artifacts; returns reporting executable artifacts. Requires the configured model. |
+| `POST /reports` | `{"results": [...], "variants": ["EVALUATION", "TEST"]}`; builds deterministic report specifications without a model call. |
+| `POST /reports/validate` | `{"report": {...}}`; validates the report specification without running code or persisting it. |
+
+For example, prepare evaluator/report requests from the canonical file above:
+
+```python
+import json
+from pathlib import Path
+
+results = json.loads(Path("results.json").read_text())
+first = results[0]
+evaluator_request = {
+    "project": "credit",
+    "entity_kind": "model",
+    "entity": "loan-scorer-v1",
+    "objective_ref": first["objective_ref"],
+    "objective": first["objective"],
+    "bindings": {"predict_method": "predict", "label_field": "repaid"},
+    "evaluation_data": {
+        "features": "evaluation_data['features']",
+        "labels": "evaluation_data['labels']",
+        "prediction_method": "predict"
+    }
+}
+Path("evaluator-request.json").write_text(json.dumps(evaluator_request))
+Path("report-request.json").write_text(json.dumps({
+    "results": results,
+    "variants": ["EVALUATION", "TEST"]
+}))
+```
+
+```bash
+curl --fail-with-body --silent --show-error \
+  -X POST http://127.0.0.1:8100/v1/compliance/metric-evaluation/code \
+  -H 'Content-Type: application/json' --data-binary @evaluator-request.json
+
+curl --fail-with-body --silent --show-error \
+  -X POST http://127.0.0.1:8100/v1/compliance/reports \
+  -H 'Content-Type: application/json' --data-binary @report-request.json
+```
+
+Add your configured `X-API-Key` header when authentication is enabled. The evaluator bindings describe
+your external runtime's data; this request does not upload data or run `predict` in the service.
+Review any `needs_input`/`unsupported` response rather than treating it as executable success.
+REST report construction returns specifications; attachment uses the explicit tool/coordinator
+save workflow or the externally invoked reporting publisher, not an implicit HTTP side effect.
+
 ## Install and configure
 
 Install only the dependencies needed by the integration you plan to use:

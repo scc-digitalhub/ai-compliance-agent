@@ -23,6 +23,25 @@ class SpecificationRepository(Protocol):
 class EntityCatalog(Protocol):
     def get(self, kind: EntityKind, entity: str, project: str | None = None) -> dict[str, Any]: ...
 
+class ReportRepository(Protocol):
+    """Named report extensions; strict atomicity must be explicitly supported."""
+
+    supports_atomic_batch: bool
+
+    def get(
+        self, kind: EntityKind, entity: str, name: str, project: str | None = None,
+    ) -> dict[str, Any]: ...
+
+    def save(
+        self, kind: EntityKind, entity: str, name: str, report: dict[str, Any],
+        project: str | None = None,
+    ) -> None: ...
+
+    def save_batch(
+        self, kind: EntityKind, entity: str, reports: dict[str, dict[str, Any]],
+        project: str | None = None, *, strict_atomic: bool = False,
+    ) -> None: ...
+
 
 class AnalysisEngine(Protocol):
     async def run(
@@ -41,6 +60,7 @@ __all__ = [
     "EntityCatalog",
     "EntityKind",
     "GroundingRecorder",
+    "ReportRepository",
     "SpecificationKind",
     "SpecificationRepository",
 ]

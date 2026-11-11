@@ -6,6 +6,7 @@ import re
 import secrets
 import uuid
 from contextlib import asynccontextmanager
+from collections.abc import Callable
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -18,13 +19,19 @@ from compliance_core.errors import ComplianceError
 from .config import ApiSettings, get_settings
 from .engine import AnalysisRegistry
 from .routers.analysis import router as analysis_router
+from .routers.evaluation import router as evaluation_router
 
 logger = logging.getLogger(__name__)
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 _PUBLIC_PATHS = {"/health", "/ready", "/docs", "/docs/oauth2-redirect", "/redoc", "/openapi.json"}
 
 
-def create_app(settings: ApiSettings | None = None, registry: Any | None = None) -> FastAPI:
+def create_app(
+    settings: ApiSettings | None = None,
+    registry: Any | None = None,
+    *,
+    evaluation_input_reader: Callable[[str], bytes] | None = None,
+) -> FastAPI:
     settings = settings or get_settings()
 
     @asynccontextmanager
@@ -47,6 +54,7 @@ def create_app(settings: ApiSettings | None = None, registry: Any | None = None)
             allow_headers=["*"],
         )
     app.state.settings = settings
+    app.state.evaluation_input_reader = evaluation_input_reader
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
@@ -110,6 +118,7 @@ def create_app(settings: ApiSettings | None = None, registry: Any | None = None)
         }
 
     app.include_router(analysis_router)
+    app.include_router(evaluation_router)
     return app
 
 

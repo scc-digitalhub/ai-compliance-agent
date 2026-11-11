@@ -4,9 +4,12 @@ from __future__ import annotations
 import asyncio
 import inspect
 import logging
+import os
+import stat
 from functools import wraps
 from pathlib import Path
 from typing import Any, get_type_hints
+from urllib.parse import urlsplit
 
 from compliance_core.knowledge import get_bundle
 from compliance_core.settings import get_core_settings
@@ -26,20 +29,85 @@ the OKF knowledge tools to ground the analysis, obtain the required JSON Schema 
 get_output_schema, then generate the structured result yourself. Call record_compliance_analysis
 to validate and store it in this workspace. Correct validation errors before saving. DigitalHub
 lookups and persistence are available by default; save only when the user asks to persist results
-there. Delegated LLM analysis is opt-in.
+there. Metric-evaluation and reporting code generation are also host-driven by default; validate artifacts
+statically and never execute generated source. For reports, either load authorized result data and
+build reports directly, or generate a standalone/combined reporting executable. Delegated LLM
+analysis and code generation are opt-in.
 """
+
+_MAX_INPUT_BYTES = 1_000_000
+
+
+def _workspace_input_reader(workspace: Path):
+    root = workspace.resolve()
+
+    def read(source: str) -> bytes:
+        parsed = urlsplit(source)
+        relative = Path(source)
+        if (
+            parsed.scheme
+            or parsed.netloc
+            or relative.is_absolute()
+            or not source
+            or any(part in ("", ".", "..") for part in relative.parts)
+        ):
+            raise ValueError("Only workspace-relative local result paths are supported")
+        candidate = root / relative
+        try:
+            resolved = candidate.resolve(strict=True)
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise ValueError(f"Result path is unavailable: {exc}") from exc
+        if not resolved.is_relative_to(root):
+            raise ValueError("Result path must remain inside the configured workspace")
+        directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            for component in relative.parts[:-1]:
+                child = os.open(
+                    component,
+                    os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                    dir_fd=directory,
+                )
+                os.close(directory)
+                directory = child
+            descriptor = os.open(
+                relative.parts[-1],
+                os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                dir_fd=directory,
+            )
+            with os.fdopen(descriptor, "rb") as stream:
+                details = os.fstat(stream.fileno())
+                if not stat.S_ISREG(details.st_mode):
+                    raise ValueError("Result path must identify a regular workspace file")
+                if details.st_size > _MAX_INPUT_BYTES:
+                    raise ValueError(f"Result file exceeds the {_MAX_INPUT_BYTES}-byte limit")
+                content = stream.read(_MAX_INPUT_BYTES + 1)
+            if len(content) > _MAX_INPUT_BYTES:
+                raise ValueError(f"Result file exceeds the {_MAX_INPUT_BYTES}-byte limit")
+            return content
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise ValueError(f"Result path could not be read safely: {exc}") from exc
+        finally:
+            os.close(directory)
+
+    return read
 
 
 def _default_env(workspace: Path, enable_dh: bool) -> ToolEnv:
     env = ToolEnv(
         state=FileStateStore(workspace / ".compliance"),
         bundle=get_bundle(),
+        input_reader=_workspace_input_reader(workspace),
     )
     if enable_dh:
-        from compliance_dh.repositories import DhEntityCatalog, DhSpecificationRepository
+        from compliance_dh.repositories import (
+            DhEntityCatalog,
+            DhReportRepository,
+            DhSpecificationRepository,
+        )
 
         env.entities = DhEntityCatalog()
         env.specifications = DhSpecificationRepository()
+        env.reports = DhReportRepository()
     return env
 
 
@@ -97,7 +165,7 @@ def create_server(
     tool_env = env or _default_env(workspace_path, enable_dh)
     if enable_delegated_analysis and tool_env.analysis_engine is None:
         raise ValueError(
-            "enable_delegated_analysis requires a configured analysis_engine in ToolEnv"
+            "enable_delegated_analysis requires a configured structured analysis_engine in ToolEnv"
         )
 
     server = MCPServer(
@@ -154,10 +222,35 @@ def create_server(
             "the user asks; use save_compliance_specification for that explicit persistence."
         )
 
+    def metric_evaluation_code() -> str:
+        return (
+            "Generate metric evaluation code using the requested catalog metric and explicit "
+            "entity/data bindings. Retrieve its computation guidance, obtain the artifact schema, "
+            "then statically validate and record the result. Do not execute generated code or "
+            "claim that its output has been computed."
+        )
+
+    def compliance_report() -> str:
+        return (
+            "Build a compliance report from explicitly supplied or authorized result data, or "
+            "generate a standalone/combined reporting executable. Resolve result sources only "
+            "through supported bounded readers, preserve provenance, validate report schemas, and "
+            "record artifacts locally. Never execute generated source. Attach reports to "
+            "DigitalHub only when explicitly requested."
+        )
+
     server.prompt(
         name="compliance_analysis",
         description="Start a host-driven compliance analysis for a project, dataset, or model.",
     )(compliance_analysis)
+    server.prompt(
+        name="metric_evaluation_code",
+        description="Generate and statically validate a metric evaluation artifact.",
+    )(metric_evaluation_code)
+    server.prompt(
+        name="compliance_report",
+        description="Build reports from supplied results or generate reporting code.",
+    )(compliance_report)
     return server
 
 
@@ -166,7 +259,7 @@ def _delegated_engine():
         from compliance_api.engine import create_delegated_engine
     except ImportError as exc:
         raise RuntimeError(
-            "Delegated analysis needs LiteLLM; install the 'server' extra "
+            "Delegated analysis and code generation need LiteLLM; install the 'server' extra "
             "(or 'mcp' together with 'api')."
         ) from exc
     return create_delegated_engine()
@@ -180,8 +273,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--workspace", help="Workspace whose .compliance/ directory holds analysis state")
     parser.add_argument(
         "--delegated", action="store_true",
-        help="Also expose analyze_* tools that run the internal LiteLLM analysis engine "
-        "(requires STRUCTURED_MODEL and provider credentials)",
+        help="Also expose delegated analysis and code-generation tools backed by LiteLLM "
+        "(requires model configuration and provider credentials)",
     )
     parser.add_argument("--no-dh", action="store_true", help="Disable DigitalHub entity and specification tools")
     args = parser.parse_args(argv)

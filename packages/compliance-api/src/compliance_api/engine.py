@@ -243,11 +243,12 @@ class AnalysisRegistry:
         *,
         completion: Callable[..., Any] | None = None,
     ):
-        from .specs import ALL_SPECS
+        from .specs import STRUCTURED_SPECS
 
         self.bundle = get_bundle()
         self._engines = {
-            spec.key: LiteLlmEngine(spec, settings, completion=completion) for spec in ALL_SPECS
+            spec.key: LiteLlmEngine(spec, settings, completion=completion)
+            for spec in STRUCTURED_SPECS
         }
 
     def get(self, key: AnalysisKey) -> LiteLlmEngine:
