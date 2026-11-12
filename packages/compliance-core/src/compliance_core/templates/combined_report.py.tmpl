@@ -1,731 +1,108 @@
-#!/usr/bin/env python3
 """Self-contained compliance evaluation and report publication.
 
-Generated from the combined report template. The script runs the embedded metric evaluators
-against the bound DigitalHub entity, builds the requested OKF report variants and, in publish mode
-only, writes them as named ``compliance-report`` extensions through the DigitalHub SDK in one
-entity update. It has no dependency on the compliance packages; credentials and endpoint
-configuration come from the DigitalHub runtime environment.
-
-Usage:
-    python ${script_name} preview [--inputs INPUTS.json]
-    python ${script_name} publish [--inputs INPUTS.json] [--overwrite]
-
-INPUTS.json optionally maps an evaluator function name to the keyword arguments (explicitly
-bound auxiliary evaluation data) passed to it, e.g. {"evaluate_x": {"evaluation_data": {...}}}.
-Preview performs no writes. Publication is not a transaction: the specification revision check
-and the report write are separate SDK calls without compare-and-swap guarantees.
+Generated from the combined report template. ``run(project, entity, **kwargs)`` runs every embedded
+metric evaluator on ``entity`` (the analyzed DigitalHub DataItem or Model), builds the OKF reports and
+saves them on the entity as named ``compliance-report`` extensions, replacing existing ones.
+Additional keyword arguments are passed to every evaluator that accepts them.
 """
 from __future__ import annotations
 
-import argparse
-import copy
-import hashlib
+import inspect
 import json
-import math
 import operator
-import sys
-from datetime import datetime
-from pathlib import Path
 from typing import Any
-
-import digitalhub
 
 # --- Embedded metric evaluators ---------------------------------------------------------------
 
 ${evaluator_sources}
 
-# --- Target binding ---------------------------------------------------------------------------
+# --- Objectives and reports -------------------------------------------------------------------
 
-PROJECT = ${project}
-ENTITY_KIND = ${entity_kind}
-ENTITY = ${entity}
-ENTITY_VERSION = ${entity_version}
-VARIANTS = ${variants}
-REPORT_NAMES = ${report_names}
 OBJECTIVES = ${objectives}
+EVALUATORS = ${evaluators}
+REPORT_NAMES = ${report_names}
 
-# --- Report publishing runtime ----------------------------------------------------------------
-
-MAX_INPUT_BYTES = 10 * 1024 * 1024
-STORE_KEY_PREFIX = "store://"
-REPORT_EXTENSION_KIND = "compliance-report"
-SPECIFICATION_EXTENSION_KINDS = {"dataset": "data-compliance", "model": "model-compliance"}
-SDK_ENTITY_API = {"dataset": ("get_dataitem", "update_dataitem"), "model": ("get_model", "update_model")}
-CONDITION_OPERATORS = {
-    "GEQ": operator.ge, "LEQ": operator.le, "GT": operator.gt,
-    "LT": operator.lt, "EQ": operator.eq, "NEQ": operator.ne,
-}
-VERDICT_PRECEDENCE = ("ERROR", "FAIL", "INCONCLUSIVE", "PASS")
-ENVELOPE_FIELDS = {
-    "project", "entity", "objective_ref", "objective", "metric_result", "specification_revision",
-    "entity_version", "selector", "status", "error", "evidence", "provenance",
-}
+OPERATORS = {"GEQ": operator.ge, "LEQ": operator.le, "GT": operator.gt,
+             "LT": operator.lt, "EQ": operator.eq, "NEQ": operator.ne}
 
 
-class ReportError(ValueError):
-    """Expected validation or publication failure."""
-
-
-def _finite_json(value: Any) -> Any:
-    if value is None or isinstance(value, (str, bool, int)):
-        return value
-    if isinstance(value, float) and math.isfinite(value):
-        return value
-    if isinstance(value, list):
-        return [_finite_json(item) for item in value]
-    if isinstance(value, dict) and all(isinstance(key, str) for key in value):
-        return {key: _finite_json(item) for key, item in value.items()}
-    raise ReportError("values must be finite JSON data")
-
-
-def _numeric(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
-
-
-def _snapshot_hash(value: Any) -> str:
-    _finite_json(value)
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return hashlib.sha256(encoded.encode()).hexdigest()
-
-
-def _specification_revision(stored: dict[str, Any] | None) -> str | None:
-    if not stored:
-        return None
-    encoded = json.dumps(stored, sort_keys=True, separators=(",", ":"), default=str)
-    return hashlib.sha256(encoded.encode()).hexdigest()[:16]
-
-
-def _require_fields(value: Any, required: set[str], allowed: set[str], label: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise ReportError(f"{label} must be an object")
-    if set(value) - allowed:
-        raise ReportError(f"{label} has unsupported fields: {sorted(set(value) - allowed)}")
-    if required - set(value):
-        raise ReportError(f"{label} is missing fields: {sorted(required - set(value))}")
-    return value
-
-
-def _optional_float(value: Any, label: str) -> float | None:
-    if value is None:
-        return None
-    if not _numeric(value):
-        raise ReportError(f"{label} must be a finite number")
-    return float(value)
-
-
-def _validate_condition(condition: Any, depth: int = 0) -> dict[str, Any]:
-    _finite_json(condition)
-    if depth > 32 or not isinstance(condition, dict) or len(condition) != 1:
-        raise ReportError("exactly one condition variant is required (maximum depth 32)")
-    kind, body = next(iter(condition.items()))
-    if not isinstance(body, dict):
-        raise ReportError("condition body must be an object")
-    if kind == "threshold":
-        valid = (set(body) == {"operator", "value"} and body["operator"] in CONDITION_OPERATORS
-                 and _numeric(body["value"]))
-    elif kind == "range":
-        valid = (set(body) == {"lower", "upper", "inclusive"} and _numeric(body["lower"])
-                 and _numeric(body["upper"]) and body["lower"] <= body["upper"]
-                 and isinstance(body["inclusive"], bool))
-    elif kind == "categorical":
-        allowed = body.get("allowed")
-        valid = (set(body) == {"allowed"} and isinstance(allowed, list) and bool(allowed)
-                 and all(isinstance(item, str) for item in allowed) and len(allowed) == len(set(allowed)))
-    elif kind == "statistical":
-        valid = (set(body) == {"test", "significance", "hypothesis"} and isinstance(body["test"], str)
-                 and bool(body["test"]) and isinstance(body["hypothesis"], str)
-                 and _numeric(body["significance"]) and 0 < body["significance"] < 1)
-    elif kind == "composite":
-        valid = (set(body) == {"operator", "conditions"} and body["operator"] in ("AND", "OR")
-                 and isinstance(body["conditions"], list) and bool(body["conditions"]))
-        if valid:
-            for child in body["conditions"]:
-                _validate_condition(child, depth + 1)
-    else:
-        valid = False
-    if not valid:
-        raise ReportError(f"invalid {kind} condition")
-    return condition
-
-
-def _verdict(verdict: str, reason: str | None = None) -> dict[str, Any]:
-    return {"verdict": verdict, "passed": verdict == "PASS" if verdict in ("PASS", "FAIL") else None,
-            "issues": [{"code": "inconclusive", "message": reason}] if reason else []}
-
-
-def _aggregate_verdict(verdicts: list[str]) -> str:
-    if not verdicts:
-        raise ReportError("at least one objective check is required")
-    return next(value for value in VERDICT_PRECEDENCE if value in verdicts)
-
-
-def _evaluate_condition(value: Any, condition: dict[str, Any]) -> dict[str, Any]:
-    _validate_condition(condition)
-    _finite_json(value)
+def _passed(value: Any, condition: dict[str, Any]) -> bool | None:
+    """Return whether the value satisfies the condition, or None when it cannot be decided."""
     kind, body = next(iter(condition.items()))
     if kind == "composite":
-        children = [_evaluate_condition(value, child) for child in body["conditions"]]
-        verdicts = [child["verdict"] for child in children]
-        if body["operator"] == "AND":
-            verdict = "FAIL" if "FAIL" in verdicts else "PASS" if all(v == "PASS" for v in verdicts) else "INCONCLUSIVE"
-        else:
-            verdict = "PASS" if "PASS" in verdicts else "FAIL" if all(v == "FAIL" for v in verdicts) else "INCONCLUSIVE"
-        outcome = _verdict(verdict)
-        outcome["issues"] = [issue for child in children for issue in child["issues"]]
-        return outcome
-    if kind == "statistical":
-        return _verdict("INCONCLUSIVE", f"Named statistical test '{body['test']}' is not supported; "
-                                        "supplied scalar/evidence is not a test execution")
-    if kind in ("threshold", "range"):
-        if not _numeric(value):
-            return _verdict("INCONCLUSIVE", "Numeric objective requires a finite scalar; "
-                                            "provide an explicit selector for structured values")
-        if kind == "threshold":
-            passed = CONDITION_OPERATORS[body["operator"]](value, body["value"])
-        elif body["inclusive"]:
-            passed = body["lower"] <= value <= body["upper"]
-        else:
-            passed = body["lower"] < value < body["upper"]
-    else:
-        if not isinstance(value, str):
-            return _verdict("INCONCLUSIVE", "Categorical objective requires a string")
-        passed = value in body["allowed"]
-    return _verdict("PASS" if passed else "FAIL")
+        outcomes = [_passed(value, child) for child in body["conditions"]]
+        decisive = body["operator"] == "OR"
+        if decisive in outcomes:
+            return decisive
+        return None if None in outcomes else not decisive
+    if kind == "categorical":
+        return value in body["allowed"] if isinstance(value, str) else None
+    if kind not in ("threshold", "range") or isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if kind == "threshold":
+        return OPERATORS[body["operator"]](value, body["value"])
+    if body["inclusive"]:
+        return body["lower"] <= value <= body["upper"]
+    return body["lower"] < value < body["upper"]
 
 
-def _select_value(value: Any, selector: str | None) -> Any:
-    """Resolve an explicit RFC 6901 JSON pointer; no inferred keys or reductions."""
-    if selector is None or selector == "":
-        return value
-    if not selector.startswith("/"):
-        raise ReportError("selector must be an RFC 6901 JSON pointer")
-    current = value
-    for token in selector[1:].split("/"):
-        if "~" in token.replace("~0", "").replace("~1", ""):
-            raise ReportError("invalid JSON pointer escape")
-        key = token.replace("~1", "/").replace("~0", "~")
-        if isinstance(current, dict) and key in current:
-            current = current[key]
-        elif isinstance(current, list) and key.isdigit() and (key == "0" or not key.startswith("0")):
-            try:
-                current = current[int(key)]
-            except IndexError as exc:
-                raise ReportError(f"selector component '{key}' was not found") from exc
-        else:
-            raise ReportError(f"selector component '{key}' was not found")
-    return current
-
-
-def _metric_snapshot(metric: Any) -> dict[str, Any]:
-    metric = _require_fields(
-        metric, {"id", "name", "kind", "scale"},
-        {"id", "name", "description", "kind", "scale", "unit", "range"}, "metric",
-    )
-    if not all(isinstance(metric[key], str) for key in ("id", "name")):
-        raise ReportError("metric id and name must be strings")
-    if metric["kind"] not in ("PRIMITIVE", "COMPOSITE"):
-        raise ReportError("metric kind must be PRIMITIVE or COMPOSITE")
-    if metric["scale"] not in ("NOMINAL", "ORDINAL", "INTERVAL", "RATIO", "BOOLEAN"):
-        raise ReportError("metric scale is not supported")
-    normalized: dict[str, Any] = {key: metric[key] for key in ("id", "name")}
-    if metric.get("description") is not None:
-        if not isinstance(metric["description"], str):
-            raise ReportError("metric description must be a string")
-        normalized["description"] = metric["description"]
-    normalized["kind"] = metric["kind"]
-    normalized["scale"] = metric["scale"]
-    if metric.get("unit") is not None:
-        unit = _require_fields(metric["unit"], {"symbol", "name"}, {"symbol", "name"}, "metric unit")
-        if not all(isinstance(unit[key], str) for key in ("symbol", "name")):
-            raise ReportError("metric unit symbol and name must be strings")
-        normalized["unit"] = {"symbol": unit["symbol"], "name": unit["name"]}
-    if metric.get("range") is not None:
-        bounds = _require_fields(metric["range"], set(), {"lower", "upper", "discrete", "categories"}, "metric range")
-        value_range: dict[str, Any] = {}
-        for key in ("lower", "upper"):
-            number = _optional_float(bounds.get(key), f"metric range {key}")
-            if number is not None:
-                value_range[key] = number
-        discrete = bounds.get("discrete", False)
-        if not isinstance(discrete, bool):
-            raise ReportError("metric range discrete must be a boolean")
-        value_range["discrete"] = discrete
-        categories = bounds.get("categories")
-        if categories is not None:
-            if not isinstance(categories, list) or not all(isinstance(item, str) for item in categories):
-                raise ReportError("metric range categories must be a list of strings")
-            value_range["categories"] = list(categories)
-        normalized["range"] = value_range
-    return normalized
-
-
-def _timestamp(value: Any) -> str:
-    if not isinstance(value, str):
-        raise ReportError("computed_at must be an explicit timezone-aware timestamp")
+def _measure(evaluate: Any, entity: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
+    parameters = inspect.signature(evaluate).parameters
+    if not any(item.kind is inspect.Parameter.VAR_KEYWORD for item in parameters.values()):
+        kwargs = {key: value for key, value in kwargs.items() if key in parameters}
     try:
-        parsed = datetime.fromisoformat(value[:-1] + "+00:00" if value.endswith(("Z", "z")) else value)
-    except ValueError as exc:
-        raise ReportError(f"computed_at is not an ISO 8601 timestamp: {value}") from exc
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        raise ReportError("computed_at must be an explicit timezone-aware timestamp")
-    rendered = parsed.isoformat()
-    return rendered[:-6] + "Z" if rendered.endswith("+00:00") else rendered
+        return evaluate(entity, **kwargs)
+    except Exception as exc:
+        return {"status": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
 
 
-def _metric_result(raw: Any) -> dict[str, Any]:
-    raw = _require_fields(
-        raw, {"metric", "value", "computed_at"}, {"metric", "value", "computed_at", "confidence"},
-        "metric_result",
-    )
-    metric = _metric_snapshot(raw["metric"])
-    value = _finite_json(raw["value"])
-    result: dict[str, Any] = {"metric": metric, "value": value, "computed_at": _timestamp(raw["computed_at"])}
-    bounds = metric.get("range")
-    if bounds:
-        lower, upper = bounds.get("lower"), bounds.get("upper")
-        if lower is not None and upper is not None and lower > upper:
-            raise ReportError("metric range lower exceeds upper")
-
-        def check(item: Any) -> None:
-            if isinstance(item, dict):
-                for child in item.values():
-                    check(child)
-            elif _numeric(item):
-                if lower is not None and item < lower:
-                    raise ReportError("measurement is below metric range")
-                if upper is not None and item > upper:
-                    raise ReportError("measurement is above metric range")
-                if bounds["discrete"] and int(item) != item:
-                    raise ReportError("measurement must be discrete")
-            elif bounds.get("categories") is not None and item not in bounds["categories"]:
-                raise ReportError("measurement is outside metric categories")
-
-        check(value)
-    if raw.get("confidence") is not None:
-        interval = _require_fields(
-            raw["confidence"], {"lower", "upper", "level"}, {"lower", "upper", "level"}, "confidence",
-        )
-        confidence = {key: _optional_float(interval[key], f"confidence {key}") for key in ("lower", "upper", "level")}
-        if confidence["lower"] > confidence["upper"] or not 0 < confidence["level"] < 1:
-            raise ReportError("invalid confidence interval bounds or level")
-        if _numeric(value) and not confidence["lower"] <= value <= confidence["upper"]:
-            raise ReportError("confidence interval does not contain measured value")
-        result["confidence"] = confidence
-    return result
-
-
-def _measurement_envelope(raw: Any) -> dict[str, Any]:
-    """Validate and normalize one MeasurementEnvelope returned by an evaluator."""
-    raw = _require_fields(raw, {"project", "entity", "objective_ref", "objective"}, ENVELOPE_FIELDS, "measurement")
-    for key in ("project", "entity", "objective_ref"):
-        if not isinstance(raw[key], str) or not raw[key]:
-            raise ReportError(f"measurement {key} must be a non-empty string")
-    for key in ("specification_revision", "entity_version", "selector", "error"):
-        if raw.get(key) is not None and not isinstance(raw[key], str):
-            raise ReportError(f"measurement {key} must be a string")
-    if not isinstance(raw["objective"], dict):
-        raise ReportError("measurement objective must be an object")
-    status = raw.get("status", "SUCCESS")
-    if status not in ("SUCCESS", "ERROR", "INCOMPLETE"):
-        raise ReportError("measurement status must be SUCCESS, ERROR or INCOMPLETE")
-    envelope = {
-        "project": raw["project"],
-        "entity": raw["entity"],
-        "objective_ref": raw["objective_ref"],
-        "objective": _finite_json(raw["objective"]),
-        "metric_result": None if raw.get("metric_result") is None else _metric_result(raw["metric_result"]),
-        "specification_revision": raw.get("specification_revision"),
-        "entity_version": raw.get("entity_version"),
-        "selector": raw.get("selector"),
-        "status": status,
-        "error": raw.get("error"),
-        "evidence": _finite_json(raw.get("evidence", {})),
-        "provenance": _finite_json(raw.get("provenance", {})),
-    }
-    for key in ("evidence", "provenance"):
-        if not isinstance(envelope[key], dict):
-            raise ReportError(f"measurement {key} must be an object")
-    objective = envelope["objective"]
-    _validate_condition(objective.get("condition"))
-    metric = objective.get("metric")
-    if not isinstance(metric, dict) or not metric.get("id"):
-        raise ReportError("objective requires an embedded metric identity")
-    if objective.get("id") and objective["id"] != envelope["objective_ref"]:
-        raise ReportError("objective reference does not match authoritative objective id")
-    if status == "SUCCESS" and (envelope["metric_result"] is None or envelope["error"] is not None):
-        raise ReportError("successful result requires a measurement and no error")
-    if status != "SUCCESS" and not envelope["error"]:
-        raise ReportError("failed/incomplete result requires an explanation")
-    if envelope["metric_result"] and envelope["metric_result"]["metric"] != _metric_snapshot(metric):
-        raise ReportError("measurement metric does not match objective metric snapshot")
-    expected_hash = envelope["provenance"].get("objective_snapshot_hash")
-    if expected_hash is not None and expected_hash != _snapshot_hash(objective):
-        raise ReportError("objective snapshot changed")
-    return envelope
-
-
-def _evaluate_measurement(envelope: dict[str, Any]) -> dict[str, Any]:
-    if envelope["status"] != "SUCCESS":
-        verdict = "ERROR" if envelope["status"] == "ERROR" else "INCONCLUSIVE"
-        return {"objective_ref": envelope["objective_ref"], "verdict": verdict, "passed": None,
-                "issues": [{"code": envelope["status"].lower(), "message": envelope["error"]}],
-                "expected": envelope["objective"]["condition"]}
-    selected = _select_value(envelope["metric_result"]["value"], envelope["selector"])
-    assessment = _evaluate_condition(selected, envelope["objective"]["condition"])
-    return {**assessment, "objective_ref": envelope["objective_ref"], "measured": selected,
-            "expected": envelope["objective"]["condition"],
-            "metric_id": envelope["metric_result"]["metric"]["id"]}
-
-
-def _validate_report(report: dict[str, Any]) -> dict[str, Any]:
-    """Check the OKF compliance-report structure produced by this script."""
-    kind = report.get("kind")
-    content = report.get("content")
-    if kind not in ("EVALUATION", "TEST"):
-        raise ReportError("report kind must be EVALUATION or TEST")
-    if not isinstance(content, dict) or len(content) != 1 or kind.lower() not in content:
-        raise ReportError("report kind and content variant disagree")
-    objectives = report.get("objectives", [])
-    if len(set(objectives)) != len(objectives):
-        raise ReportError("objective references must be unique")
-    if kind == "TEST":
-        test = content["test"]
-        if test["verdict"] not in VERDICT_PRECEDENCE:
-            raise ReportError("invalid TEST verdict")
-        for check in test["results"]:
-            if not isinstance(check["measured"], str) or not isinstance(check["passed"], bool):
-                raise ReportError("invalid TEST result")
-            _validate_condition(check["expected"])
-        if test["verdict"] == "PASS" and (not test["results"] or not all(c["passed"] for c in test["results"])):
-            raise ReportError("PASS requires nonempty successful determinate checks")
-        if test["verdict"] == "FAIL" and not any(not c["passed"] for c in test["results"]):
-            raise ReportError("FAIL requires a failed determinate check")
-    return report
-
-
-def build_reports(measurements: list[Any], *, variants: list[str]) -> dict[str, Any]:
-    """Build separate EVALUATION/TEST reports from evaluator measurements."""
-    if not isinstance(measurements, (list, tuple)) or not measurements:
-        raise ReportError("at least one supplied measurement or explicit execution failure is required")
-    if isinstance(variants, str) or not variants or len(set(variants)) != len(variants):
-        raise ReportError("variants must be a nonempty unique list")
-    if any(variant not in ("EVALUATION", "TEST") for variant in variants):
-        raise ReportError("only EVALUATION and TEST reports can be built")
-    envelopes = [_measurement_envelope(item) for item in measurements]
-    targets = {(e["project"], e["entity"], e["entity_version"], e["specification_revision"]) for e in envelopes}
-    if len(targets) != 1:
-        raise ReportError("one report set must address one entity/project and versioned specification")
-    references: dict[str, str] = {}
-    metrics: dict[str, dict[str, Any]] = {}
-    metric_identities: dict[str, str] = {}
-    assessments = []
-    issues = []
-    mappings = []
-    for envelope in envelopes:
-        digest = _snapshot_hash(envelope["objective"])
-        if envelope["objective_ref"] in references:
-            raise ReportError("duplicate or conflicting results for an objective reference")
-        references[envelope["objective_ref"]] = digest
-        mappings.append({
-            "reference": envelope["objective_ref"], "snapshot_hash": digest,
-            "generated": envelope["objective_ref"].startswith("urn:compliance:objective-snapshot:"),
-            "project": envelope["project"], "entity": envelope["entity"],
-            "entity_version": envelope["entity_version"],
-            "specification_revision": envelope["specification_revision"],
-            "objective": envelope["objective"],
-        })
-        if envelope["metric_result"]:
-            metric = envelope["metric_result"]
-            identity = metric["metric"]["id"]
-            metric_snapshot = _snapshot_hash(metric["metric"])
-            if identity in metric_identities and metric_identities[identity] != metric_snapshot:
-                raise ReportError("conflicting metric snapshots")
-            metric_identities[identity] = metric_snapshot
-            if identity in metrics and metrics[identity] != metric:
-                raise ReportError("conflicting measurements for one metric")
-            metrics[identity] = metric
-        assessment = _evaluate_measurement(envelope)
-        assessments.append(assessment)
-        issues.extend({**issue, "objective_ref": envelope["objective_ref"]} for issue in assessment["issues"])
-    common = {"objectives": list(references)}
+def build_reports(measurements: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Build the EVALUATION/TEST reports from the measurement of each objective."""
+    metrics: dict[str, Any] = {}
+    checks, verdicts, issues = [], [], []
+    for reference, measurement in measurements.items():
+        condition = OBJECTIVES[reference]["condition"]
+        result = measurement.get("metric_result")
+        status = measurement.get("status", "SUCCESS")
+        if status != "SUCCESS" or not result:
+            verdicts.append("ERROR" if status == "ERROR" else "INCONCLUSIVE")
+            issues.append(f"{reference}: {measurement.get('error') or 'no measurement'}")
+            continue
+        metrics.setdefault(result["metric"]["id"], result)
+        passed = _passed(result["value"], condition)
+        if passed is None:
+            verdicts.append("INCONCLUSIVE")
+            issues.append(f"{reference}: the condition cannot be decided for the measured value")
+            continue
+        verdicts.append("PASS" if passed else "FAIL")
+        checks.append({"measured": json.dumps(result["value"], sort_keys=True, default=str),
+                       "expected": condition, "passed": passed})
     reports = {}
-    if "EVALUATION" in variants:
-        if not metrics:
-            issues.append({"code": "no_measurements",
-                           "message": "No successful measurement available for an EVALUATION report"})
-        else:
-            reports["EVALUATION"] = _validate_report({
-                "kind": "EVALUATION", "content": {"evaluation": {"metrics": list(metrics.values())}}, **common,
-            })
-    if "TEST" in variants:
-        checks = []
-        for envelope, assessment in zip(envelopes, assessments):
-            if assessment["passed"] is not None:
-                checks.append({
-                    "measured": json.dumps(assessment["measured"], ensure_ascii=False, sort_keys=True, allow_nan=False),
-                    "expected": assessment["expected"], "passed": assessment["passed"],
-                    "details": json.dumps({"objective_ref": envelope["objective_ref"],
-                                           "metric_id": envelope["objective"]["metric"]["id"]}, sort_keys=True),
-                })
-        explanations = [f"{issue.get('objective_ref', 'report')}: {issue['message']}" for issue in issues]
-        reports["TEST"] = _validate_report({
-            "kind": "TEST",
-            "content": {"test": {"results": checks,
-                                 "verdict": _aggregate_verdict([a["verdict"] for a in assessments]),
-                                 "summary": "; ".join(explanations) or "All requested objective checks are determinate."}},
-            **common,
-        })
-    first = envelopes[0]
-    return {"reports": reports, "issues": issues, "objective_references": mappings,
-            "assessments": assessments, "provenance": [e["provenance"] for e in envelopes],
-            "target": {"project": first["project"], "entity": first["entity"],
-                       "entity_version": first["entity_version"],
-                       "specification_revision": first["specification_revision"]}}
+    if "EVALUATION" in REPORT_NAMES and metrics:
+        reports["EVALUATION"] = {"kind": "EVALUATION", "objectives": list(measurements),
+                                 "content": {"evaluation": {"metrics": list(metrics.values())}}}
+    if "TEST" in REPORT_NAMES:
+        verdict = next(item for item in ("ERROR", "FAIL", "INCONCLUSIVE", "PASS") if item in verdicts)
+        reports["TEST"] = {"kind": "TEST", "objectives": list(measurements), "content": {"test": {
+            "results": checks, "verdict": verdict,
+            "summary": "; ".join(issues) or "All objective checks are determinate."}}}
+    return reports
 
 
-# --- DigitalHub SDK access --------------------------------------------------------------------
-
-def _check_target(entity_kind: str, entity: str, project: str) -> None:
-    if entity_kind not in SDK_ENTITY_API:
-        raise ReportError("entity_kind must be 'dataset' or 'model'.")
-    if not project.strip() or not entity.strip():
-        raise ReportError("An explicit project and entity are required.")
-    if entity.startswith(STORE_KEY_PREFIX) and entity[len(STORE_KEY_PREFIX):].split("/", 1)[0] != project:
-        raise ReportError("The project conflicts with the store:// key.")
-
-
-def read_entity(entity_kind: str, entity: str, project: str) -> Any:
-    """Read the dataset (dataitem) or model through the DigitalHub SDK."""
-    getter = getattr(digitalhub, SDK_ENTITY_API[entity_kind][0])
-    if entity.startswith(STORE_KEY_PREFIX):
-        return getter(entity)
-    return getter(entity, project=project)
+def publish(entity: Any, reports: dict[str, dict[str, Any]]) -> None:
+    """Save the reports as named extensions on the entity, replacing existing ones."""
+    names = {REPORT_NAMES[kind] for kind in reports}
+    kept = [ext for ext in entity.extensions or []
+            if not (ext.get("kind") == "compliance-report" and ext.get("name") in names)]
+    entity.extensions = kept + [{"kind": "compliance-report", "name": REPORT_NAMES[kind], "spec": {'name': REPORT_NAMES[kind], **report}}
+                                for kind, report in reports.items()]
+                                
+    entity.save(update=True)
 
 
-def _extensions(found: Any) -> list[dict[str, Any]]:
-    return list(getattr(found, "extensions", None) or [])
-
-
-def _named_report(found: Any, name: str) -> dict[str, Any]:
-    matches = [
-        ext for ext in _extensions(found)
-        if ext.get("kind") == REPORT_EXTENSION_KIND and ext.get("name") == name
-    ]
-    if len(matches) > 1:
-        raise ReportError(f"Duplicate report extension name '{name}'")
-    return dict(matches[0].get("spec") or {}) if matches else {}
-
-
-def _current_specification_revision(found: Any, entity_kind: str) -> str | None:
-    extension_kind = SPECIFICATION_EXTENSION_KINDS[entity_kind]
-    found_extension = next((ext for ext in _extensions(found) if ext.get("kind") == extension_kind), None)
-    return _specification_revision(dict(found_extension.get("spec") or {}) if found_extension else {})
-
-
-def _save_reports(entity_kind: str, entity: str, project: str, reports: dict[str, dict[str, Any]]) -> None:
-    """Stage every named report into a single entity update, preserving other extensions."""
-    found = read_entity(entity_kind, entity, project)
-    current = _extensions(found)
-    staged = list(current)
-    for name, report in reports.items():
-        matches = [ext for ext in current if ext.get("kind") == REPORT_EXTENSION_KIND and ext.get("name") == name]
-        if len(matches) > 1:
-            raise ReportError(f"Duplicate report extension name '{name}'")
-        replacement = {**(matches[0] if matches else {}), "kind": REPORT_EXTENSION_KIND, "name": name, "spec": report}
-        staged = [ext for ext in staged if not (ext.get("kind") == REPORT_EXTENSION_KIND and ext.get("name") == name)]
-        staged.append(replacement)
-    if staged == current:
-        return
-    found.extensions = staged
-    getattr(digitalhub, SDK_ENTITY_API[entity_kind][1])(found)
-
-
-def run_report_workflow(
-    measurements: list[Any], *, mode: str, project: str, entity_kind: str, entity: str,
-    entity_version: str | None = None, variants: list[str], names: dict[str, str],
-    overwrite: bool = False,
-) -> dict[str, Any]:
-    """Build and validate the complete report set; in publish mode write it with one SDK update."""
-    if mode not in ("preview", "publish"):
-        raise ReportError("mode must be 'preview' or 'publish'.")
-    _check_target(entity_kind, entity, project)
-    built = build_reports(measurements, variants=variants)
-    target = built["target"]
-    if target["project"] != project or target["entity"] != entity:
-        raise ReportError("Result target does not exactly match the explicitly requested project/entity.")
-    if entity_version is not None and target["entity_version"] != entity_version:
-        raise ReportError("Result entity_version does not match the explicitly requested target version.")
-    if set(built["reports"]) != set(variants):
-        raise ReportError(
-            "The complete requested report set could not be built: "
-            + "; ".join(issue["message"] for issue in built["issues"])
-        )
-    if (set(names) != set(variants) or any(not names[kind].strip() for kind in variants)
-            or len(set(names.values())) != len(names)):
-        raise ReportError("Every requested variant requires a unique, non-empty report name.")
-    prepared = {kind: _validate_report(built["reports"][kind]) for kind in variants}
-    expected_revision = target["specification_revision"]
-    result: dict[str, Any] = {
-        "status": "preview" if mode == "preview" else "staged",
-        "target": {"project": project, "entity_kind": entity_kind, "entity": entity,
-                   "entity_version": target["entity_version"]},
-        "reports": [{"kind": kind, "name": names[kind], "report": prepared[kind]} for kind in variants],
-        "issues": built["issues"],
-        "objective_references": built["objective_references"],
-        "provenance": built["provenance"],
-        "publication": {
-            "requested": mode == "publish",
-            "write_performed": False,
-            "strict_atomic": False,
-            "atomicity": "not applicable; preview mode performs no writes" if mode == "preview"
-            else "pending; adapter guarantee must be reported",
-        },
-        "revision_check": {
-            "status": "not_available",
-            "expected_revision": expected_revision,
-            "current_revision": None,
-            "reason": "Preview mode does not read the live specification.",
-        },
-    }
-    if mode == "preview":
-        return result
-
-    found = read_entity(entity_kind, entity, project)
-    revision_check = result["revision_check"]
-    if expected_revision is None:
-        revision_check["reason"] = "The supplied measurement has no specification_revision to compare."
-    else:
-        current_revision = _current_specification_revision(found, entity_kind)
-        if current_revision is None:
-            raise ReportError(
-                "The result names a specification revision, but no current target specification could be read."
-            )
-        if current_revision != expected_revision:
-            raise ReportError(
-                "The compliance specification changed after evaluation; regenerate against the current snapshot."
-            )
-        revision_check.update({
-            "status": "matched",
-            "current_revision": current_revision,
-            "reason": "Matched at pre-publication check; the SDK provides no compare-and-swap guarantee.",
-        })
-    existing = [names[kind] for kind in variants if _named_report(found, names[kind])]
-    if existing and not overwrite:
-        raise ReportError(
-            "Named report(s) already exist; pass --overwrite only after reviewing their replacement: "
-            + ", ".join(existing)
-        )
-    try:
-        _save_reports(entity_kind, entity, project, {names[kind]: prepared[kind] for kind in variants})
-    except ReportError:
-        raise
-    except Exception as exc:
-        raise ReportError(f"Report publication failed ({type(exc).__name__}).") from exc
-
-    try:
-        stored = read_entity(entity_kind, entity, project)
-    except Exception:
-        stored = None
-    result["status"] = "published"
-    result["receipts"] = [
-        {"kind": kind, "name": names[kind], "extension_kind": REPORT_EXTENSION_KIND, "saved": True,
-         "revision": _specification_revision(_named_report(stored, names[kind])) if stored is not None else None}
-        for kind in variants
-    ]
-    result["publication"] = {
-        "requested": True,
-        "write_performed": True,
-        "strict_atomic": False,
-        "atomicity": "one SDK entity update; transaction/concurrency atomicity is not guaranteed",
-    }
-    return result
-
-
-# --- Evaluation entry point -------------------------------------------------------------------
-
-def _subject(found: Any, interface: str) -> Any:
-    """Present the entity through the interface an evaluator declared, isolated per evaluator."""
-    if interface == "mapping":
-        return json.loads(json.dumps(found.to_dict(), default=str))
-    return copy.deepcopy(found)
-
-
-def _inputs_for(inputs: dict[str, Any], evaluator: str) -> dict[str, Any]:
-    bound = inputs.get(evaluator, {})
-    if not isinstance(bound, dict):
-        raise ReportError(f"Inputs for evaluator '{evaluator}' must be an object of keyword arguments.")
-    return bound
-
-
-def _measured(objective_ref: str, measurement: Any) -> dict[str, Any]:
-    """Accept an evaluator measurement only for its own objective snapshot."""
-    if hasattr(measurement, "model_dump"):
-        measurement = measurement.model_dump(mode="json", exclude_none=True)
-    if not isinstance(measurement, dict):
-        raise ReportError(f"Evaluator for '{objective_ref}' must return a MeasurementEnvelope object.")
-    if measurement.get("objective_ref") != objective_ref or measurement.get("objective") != OBJECTIVES[objective_ref]:
-        raise ReportError(f"Evaluator for '{objective_ref}' returned a different objective snapshot.")
-    return measurement
-
-
-def _read_inputs(source: str | None) -> dict[str, Any]:
-    if source is None:
-        return {}
-    if source == "-":
-        payload = sys.stdin.buffer.read(MAX_INPUT_BYTES + 1)
-    else:
-        with Path(source).expanduser().open("rb") as handle:
-            payload = handle.read(MAX_INPUT_BYTES + 1)
-    if len(payload) > MAX_INPUT_BYTES:
-        raise ReportError(f"Evaluator inputs exceed {MAX_INPUT_BYTES} bytes.")
-    try:
-        inputs = json.loads(payload)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ReportError(f"Evaluator inputs must be UTF-8 JSON: {exc}") from exc
-    if not isinstance(inputs, dict):
-        raise ReportError("Evaluator inputs must be a JSON object keyed by evaluator name.")
-    return inputs
-
-
-def run(mode: str, inputs: dict[str, Any] | None = None, *, overwrite: bool = False) -> dict[str, Any]:
-    """Run every embedded evaluator, then preview or publish the complete report set."""
-    inputs = inputs or {}
-    _check_target(ENTITY_KIND, ENTITY, PROJECT)
-    found = read_entity(ENTITY_KIND, ENTITY, PROJECT)
-    results = [
-${evaluator_calls}
-    ]
-    return run_report_workflow(
-        results, mode=mode, project=${project}, entity_kind=${entity_kind}, entity=${entity},
-        entity_version=${entity_version}, variants=${variants}, names=${report_names},
-        overwrite=overwrite,
-    )
-
-
-def main(argv: list[str] | None = None) -> int:
-    """Return 0 on successful preview/publication and 2 on failure."""
-    parser = argparse.ArgumentParser(description="Evaluate and preview/publish compliance reports.")
-    commands = parser.add_subparsers(dest="mode", required=True)
-    for mode in ("preview", "publish"):
-        command = commands.add_parser(mode, help=f"{mode.capitalize()} the validated report set")
-        command.add_argument("--inputs", help="JSON evaluator keyword arguments, or '-' for stdin")
-        if mode == "publish":
-            command.add_argument("--overwrite", action="store_true",
-                                 help="Replace existing named reports after reviewing them")
-    args = parser.parse_args(argv)
-    try:
-        output = run(args.mode, _read_inputs(args.inputs), overwrite=getattr(args, "overwrite", False))
-    except (ReportError, ValueError, TypeError, OSError) as exc:
-        print(json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False), file=sys.stderr)
-        return 2
-    except Exception as exc:
-        print(json.dumps({"status": "error", "error": f"Unexpected failure ({type(exc).__name__})."}),
-              file=sys.stderr)
-        return 2
-    print(json.dumps(output, ensure_ascii=False, sort_keys=True, allow_nan=False))
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+def run(project: str, entity: Any, **kwargs: Any) -> dict[str, dict[str, Any]]:
+    """Evaluate every objective on the entity, then save the resulting reports on it."""
+    measurements = {reference: _measure(evaluate, entity, kwargs) for reference, evaluate in EVALUATORS}
+    reports = build_reports(measurements)
+    publish(entity, reports)
+    return reports

@@ -4,12 +4,8 @@ import ast
 import asyncio
 import copy
 import importlib.util
-import json
-import sys
-import types
 from types import SimpleNamespace
 
-import pytest
 
 from compliance_core.contracts.evaluation_code import EntityInputContract, MetricEvaluationCodeArtifact
 from compliance_core.contracts.report_code import ReportCodeArtifact, ReportCodeOutput, ReportCodeRequest
@@ -142,22 +138,21 @@ _OBJECTIVE = {"id": _OBJECTIVE_REF, "metric": _METRIC,
 _EVALUATOR_SOURCE = (
     "from __future__ import annotations\n"
     "import json\n\n"
-    "OBJECTIVE = " + repr(_OBJECTIVE) + "\n\n"
     "def evaluate_completeness(entity, *, completeness=0.95):\n"
-    "    \"\"\"Return a measurement envelope for the requested entity.\"\"\"\n"
-    "    return {'project': entity['project'], 'entity': entity['name'],\n"
+    "    \"\"\"Return a measurement envelope for the given entity.\"\"\"\n"
+    "    return {'project': entity.project, 'entity': entity.name,\n"
     "            'objective_ref': " + repr(_OBJECTIVE_REF) + ", 'objective': " + repr(_OBJECTIVE) + ",\n"
     "            'metric_result': {'metric': " + repr(_METRIC) + ", 'value': completeness,\n"
-    "                              'computed_at': '2026-01-02T03:04:05+00:00'},\n"
+    "                              'computed_at': '2026-01-02T03:04:05Z'},\n"
     "            'provenance': {'run': json.dumps('combined')}}\n"
-).replace("OBJECTIVE = " + repr(_OBJECTIVE) + "\n\n", "")
+)
 
 
 def _combined_request(source=_EVALUATOR_SOURCE, **overrides):
     evaluator = MetricEvaluationCodeArtifact(
         status="ready", source_code=source, entry_point="evaluate_completeness",
         entity_contract=EntityInputContract(
-            kind="dataset", name="training-data", project="loans", interface="mapping",
+            kind="dataset", name="training-data", project="loans", interface="digitalhub",
         ),
         objective_ref=_OBJECTIVE_REF, objective=_OBJECTIVE, metric=_METRIC,
     )
@@ -173,39 +168,36 @@ def _combined_request(source=_EVALUATOR_SOURCE, **overrides):
 
 
 class _FakeEntity:
+    """Stands in for a DigitalHub DataItem/Model: extensions plus save(update=True)."""
+
     def __init__(self, extensions=None):
-        self.project, self.name, self.kind = "loans", "training-data", "table"
+        self.project, self.name = "loans", "training-data"
         self.extensions = list(extensions or [])
+        self.saved = []
 
-    def to_dict(self):
-        return {"project": self.project, "name": self.name, "kind": self.kind,
-                "extensions": copy.deepcopy(self.extensions)}
+    def save(self, update=False):
+        assert update is True
+        self.saved.append(copy.deepcopy(self.extensions))
+        return self
 
 
-def _load_combined(tmp_path, monkeypatch, request, entity):
+def _load_combined(tmp_path, request):
     artifact = render_combined_report_artifact(request)
     assert artifact.status == "ready", artifact.unsupported_reasons
     path = tmp_path / artifact.entry_point
     path.write_text(artifact.files[artifact.entry_point])
-    updates = []
-    sdk = types.ModuleType("digitalhub")
-
-    def get_dataitem(identifier, project=None, entity_id=None):
-        assert (identifier, project) == ("training-data", "loans")
-        return copy.deepcopy(entity)
-
-    def update_dataitem(found):
-        updates.append(copy.deepcopy(found.extensions))
-        entity.extensions = copy.deepcopy(found.extensions)
-        return found
-
-    sdk.get_dataitem, sdk.update_dataitem = get_dataitem, update_dataitem
-    sdk.get_model = sdk.update_model = None
-    monkeypatch.setitem(sys.modules, "digitalhub", sdk)
     spec = importlib.util.spec_from_file_location("rendered_compliance_report", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return artifact, module, updates
+    return module
+
+
+def _imported_roots(source):
+    tree = ast.parse(source)
+    roots = {alias.name.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.Import)
+             for alias in node.names}
+    return roots | {node.module.split(".")[0] for node in ast.walk(tree)
+                    if isinstance(node, ast.ImportFrom) and node.module}
 
 
 def test_combined_artifact_is_rendered_self_contained_and_valid():
@@ -218,40 +210,37 @@ def test_combined_artifact_is_rendered_self_contained_and_valid():
     assert not result["warnings"]
     assert list(artifact.files) == ["compliance_report.py"]
     source = artifact.files["compliance_report.py"]
-    tree = ast.parse(source)
-    imported = {alias.name.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.Import)
-                for alias in node.names}
-    imported |= {node.module.split(".")[0] for node in ast.walk(tree)
-                 if isinstance(node, ast.ImportFrom) and node.module}
-    assert "digitalhub" in imported
-    assert not any(name.startswith("compliance_") for name in imported)
+    assert not any(name.startswith("compliance_") for name in _imported_roots(source))
     assert "report_cli" not in source and "${" not in source
-    assert "digitalhub" in artifact.dependencies
-    assert artifact.invocation[0].startswith("python compliance_report.py preview")
+    assert "loans" not in source and "training-data" not in source
+    assert artifact.target == {}
+    assert artifact.invocation == ["compliance_report.py:run(project, entity, **kwargs)"]
 
 
-def test_combined_validator_rejects_report_cli_import():
+def test_combined_validator_rejects_compliance_imports_and_missing_handler():
     request = _combined_request()
     artifact = render_combined_report_artifact(request)
     source = artifact.files["compliance_report.py"].replace(
-        "import digitalhub\n", "import digitalhub\nfrom compliance_core.report_cli import main\n", 1,
-    )
+        "import inspect\n", "import inspect\nfrom compliance_core.report_cli import main\n", 1,
+    ).replace("def run(project: str, entity: Any, **kwargs: Any)", "def run(entity: Any)")
 
     result = validate_compliance_report_code(request, artifact.model_copy(update={"files": {
-        "compliance_report.py": source}}))
+        "compliance_report.py": source}, "source_hashes": {}}))
 
+    messages = [issue["message"] for issue in result["errors"]]
     assert not result["valid"]
-    assert any("compliance_" in issue["message"] for issue in result["errors"])
+    assert any("compliance packages" in message for message in messages)
+    assert any("run(project, entity, **kwargs)" in message for message in messages)
 
 
 def test_combined_rendering_reports_name_conflicts_as_unsupported():
-    source = _EVALUATOR_SOURCE + "\ndef run_report_workflow(*args, **kwargs):\n    return None\n"
+    source = _EVALUATOR_SOURCE + "\ndef publish(*args, **kwargs):\n    return None\n"
     request = _combined_request(source=source)
 
     artifact = render_combined_report_artifact(request)
 
     assert artifact.status == "unsupported"
-    assert any("run_report_workflow" in reason for reason in artifact.unsupported_reasons)
+    assert any("publish" in reason for reason in artifact.unsupported_reasons)
 
 
 def test_combined_generation_and_render_tool_do_not_need_engine(bundle):
@@ -270,17 +259,17 @@ def test_combined_generation_and_render_tool_do_not_need_engine(bundle):
     assert not spec.needs_llm
 
 
-def test_combined_build_reports_matches_core(tmp_path, monkeypatch):
-    _, module, _ = _load_combined(tmp_path, monkeypatch, _combined_request(), _FakeEntity())
+def test_combined_build_reports_matches_core_verdicts(tmp_path):
+    module = _load_combined(tmp_path, _combined_request())
+    module.OBJECTIVES = {
+        ref: {"id": ref, "metric": _METRIC, "condition": {"threshold": {"operator": "GEQ", "value": 0.8}}}
+        for ref in ("o:1", "o:2", "o:3")
+    }
 
     def envelope(value=0.9, reference="o:1", **extra):
-        objective = {"id": reference, "metric": _METRIC,
-                     "condition": {"threshold": {"operator": "GEQ", "value": 0.8}}}
         raw = {"project": "loans", "entity": "training-data", "objective_ref": reference,
-               "objective": objective, "specification_revision": "rev-1",
-               "metric_result": {"metric": _METRIC, "value": value,
-                                 "computed_at": "2026-01-02T03:04:05+00:00"},
-               "provenance": {"run": "r"}}
+               "objective": module.OBJECTIVES[reference],
+               "metric_result": {"metric": _METRIC, "value": value, "computed_at": "2026-01-02T03:04:05Z"}}
         raw.update(extra)
         return raw
 
@@ -291,51 +280,55 @@ def test_combined_build_reports_matches_core(tmp_path, monkeypatch):
         [envelope(reference="o:3", status="INCOMPLETE", error="missing", metric_result=None)],
     ]
     for measurements in scenarios:
-        expected = build_reports(copy.deepcopy(measurements), variants=["EVALUATION", "TEST"])
-        actual = module.build_reports(copy.deepcopy(measurements), variants=["EVALUATION", "TEST"])
-        for key in ("reports", "objective_references", "provenance", "target"):
-            assert json.loads(json.dumps(actual[key])) == json.loads(json.dumps(expected[key])), key
-        assert [i["message"] for i in actual["issues"]] == [i["message"] for i in expected["issues"]]
-    for invalid in ([envelope(), envelope(project="other", reference="o:2")],
-                    [envelope(0.5), envelope(reference="o:2")]):
-        with pytest.raises(ValueError):
-            build_reports(copy.deepcopy(invalid), variants=["TEST"])
-        with pytest.raises(ValueError):
-            module.build_reports(copy.deepcopy(invalid), variants=["TEST"])
+        expected = build_reports(copy.deepcopy(measurements), variants=["EVALUATION", "TEST"])["reports"]
+        actual = module.build_reports({item["objective_ref"]: item for item in copy.deepcopy(measurements)})
+        assert set(actual) == set(expected)
+        for kind, report in actual.items():
+            validate_report(report)
+            assert report["objectives"] == expected[kind]["objectives"]
+        if "EVALUATION" in expected:
+            assert actual["EVALUATION"]["content"] == expected["EVALUATION"]["content"]
+        expected_test, actual_test = expected["TEST"]["content"]["test"], actual["TEST"]["content"]["test"]
+        assert actual_test["verdict"] == expected_test["verdict"]
+        assert actual_test["results"] == [
+            {key: value for key, value in check.items() if key != "details"} for check in expected_test["results"]
+        ]
 
 
-def test_combined_script_previews_and_publishes_with_sdk(tmp_path, monkeypatch, capsys):
+def test_combined_run_evaluates_entity_and_overwrites_reports(tmp_path):
     other = {"kind": "data-compliance", "name": "spec", "spec": {"objectives": []}}
-    entity = _FakeEntity([other])
-    _, module, updates = _load_combined(tmp_path, monkeypatch, _combined_request(), entity)
+    stale = {"kind": "compliance-report", "name": "dataset-tests", "spec": {"stale": True}}
+    entity = _FakeEntity([other, stale])
+    module = _load_combined(tmp_path, _combined_request())
 
-    assert module.main(["preview"]) == 0
-    preview = json.loads(capsys.readouterr().out)
-    assert preview["status"] == "preview" and not updates
-    assert preview["publication"]["write_performed"] is False
+    reports = module.run("loans", entity, completeness=0.5, unrelated="ignored")
 
-    inputs = tmp_path / "inputs.json"
-    inputs.write_text(json.dumps({"evaluate_completeness": {"completeness": 0.5}}))
-    assert module.main(["publish", "--inputs", str(inputs)]) == 0
-    published = json.loads(capsys.readouterr().out)
-    assert published["status"] == "published" and len(updates) == 1
-    saved = {ext["name"]: ext["spec"] for ext in entity.extensions if ext["kind"] == "compliance-report"}
+    assert len(entity.saved) == 1
     assert entity.extensions[0] == other
-    for item in published["reports"]:
-        assert saved[item["name"]] == validate_report(item["report"]).model_dump(
-            mode="json", by_alias=True, exclude_none=True)
+    saved = {ext["name"]: ext["spec"] for ext in entity.extensions if ext["kind"] == "compliance-report"}
+    assert set(saved) == {"dataset-quality", "dataset-tests"}
+    assert saved["dataset-tests"] == reports["TEST"]
     assert saved["dataset-tests"]["content"]["test"]["verdict"] == "FAIL"
+    assert saved["dataset-quality"]["content"]["evaluation"]["metrics"][0]["value"] == 0.5
+    for report in saved.values():
+        validate_report(report)
 
-    assert module.main(["publish"]) == 2
-    assert "--overwrite" in capsys.readouterr().err and len(updates) == 1
-    assert module.main(["publish", "--overwrite"]) == 0
-    capsys.readouterr()
-    assert len(updates) == 2
-    assert saved_names(entity) == ["dataset-quality", "dataset-tests"]
+    module.run("loans", entity)
+    saved = {ext["name"]: ext["spec"] for ext in entity.extensions if ext["kind"] == "compliance-report"}
+    assert len(saved) == 2 and saved["dataset-tests"]["content"]["test"]["verdict"] == "PASS"
 
 
-def saved_names(entity):
-    return sorted(ext["name"] for ext in entity.extensions if ext["kind"] == "compliance-report")
+def test_combined_run_reports_evaluator_failures_as_error(tmp_path):
+    source = _EVALUATOR_SOURCE.replace("    return {'project'", "    raise RuntimeError('no data')\n    return {'project'")
+    entity = _FakeEntity()
+    module = _load_combined(tmp_path, _combined_request(source=source))
+
+    reports = module.run("loans", entity)
+
+    assert set(reports) == {"TEST"}
+    assert reports["TEST"]["content"]["test"]["verdict"] == "ERROR"
+    assert "no data" in reports["TEST"]["content"]["test"]["summary"]
+    validate_report(reports["TEST"])
 
 
 def test_record_and_delegated_generation_are_scoped_and_do_not_execute(bundle):

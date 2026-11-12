@@ -24,7 +24,7 @@ Capabilities
 - The metric-evaluation-code skill grounds evaluator generation in metric computations and explicit
   bindings. Generated code is statically checked and recorded, never run in the framework.
 - The compliance-report skill supports both generated standalone/combined executables (combined
-  ones are self-contained scripts rendered from a template with an inline DigitalHub publisher) and
+  ones are self-contained `run(project, entity, **kwargs)` scripts rendered from a template) and
   deterministic report construction from external results. Agent-side persistence requires an
   explicit user request; external publishers use runtime credentials and do not inherit agent
   transport approvals.

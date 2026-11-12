@@ -2,7 +2,7 @@
 
 Standalone artifacts delegate to the packaged ``compliance-report`` CLI. Combined artifacts are
 rendered from the packaged template into one self-contained Python script that embeds the
-evaluators and an inline DigitalHub SDK report publisher. No artifact generated here is imported,
+evaluators and saves the reports on the DigitalHub entity passed to its ``run`` handler. No artifact generated here is imported,
 executed, or published to DigitalHub.
 """
 from __future__ import annotations
@@ -200,13 +200,8 @@ def _combined_template() -> Template:
 
 @lru_cache(maxsize=1)
 def _template_bindings() -> tuple[dict[str, tuple[str, str]], frozenset[str]]:
-    placeholders = {
-        name: "None" for name in (
-            "project", "entity_kind", "entity", "entity_version", "variants", "report_names", "objectives",
-        )
-    }
     rendered = _combined_template().substitute(
-        placeholders, script_name=COMBINED_SCRIPT, evaluator_sources="", evaluator_calls="",
+        evaluator_sources="", objectives="None", evaluators="None", report_names="None",
     )
     imports, defined = _module_bindings(ast.parse(rendered))
     return imports, frozenset(defined)
@@ -217,7 +212,7 @@ def _literal(value: Any) -> str:
 
 
 def _render_combined_script(req: ReportCodeRequest) -> tuple[str | None, list[str]]:
-    """Render the evaluators and inline DigitalHub publisher into one script, or explain conflicts."""
+    """Render the evaluators and the inline report publisher into one script, or explain conflicts."""
     template_imports, template_names = _template_bindings()
     imports: dict[str, tuple[str, str]] = dict(template_imports)
     functions: dict[str, str] = {}
@@ -250,25 +245,14 @@ def _render_combined_script(req: ReportCodeRequest) -> tuple[str | None, list[st
                 functions.setdefault(node.name, code)
         if source not in sources:
             sources.append(source)
-        interface = evaluator.entity_contract.interface if evaluator.entity_contract else "mapping"
-        calls.append(
-            f"        _measured({evaluator.objective_ref!r}, "
-            f"{entry}(_subject(found, {interface!r}), **_inputs_for(inputs, {entry!r}))),"
-        )
+        calls.append(f"    ({evaluator.objective_ref!r}, {entry}),")
     if conflicts:
         return None, list(dict.fromkeys(conflicts))
-    expected_names = _expected_names(req)
     rendered = _combined_template().substitute(
-        script_name=COMBINED_SCRIPT,
         evaluator_sources="\n\n\n".join(sources),
-        evaluator_calls="\n".join(calls),
-        project=repr(req.project),
-        entity_kind=repr(req.entity_kind),
-        entity=repr(req.entity),
-        entity_version=repr(req.entity_version),
-        variants=repr(list(req.variants)),
-        report_names=repr(expected_names),
         objectives=_literal(_objective_snapshot_map(req.objective_snapshots)),
+        evaluators="[\n" + "\n".join(calls) + "\n]",
+        report_names=repr(_expected_names(req)),
     )
     return rendered, []
 
@@ -287,9 +271,8 @@ def render_combined_report_artifact(req: ReportCodeRequest) -> ReportCodeArtifac
         return ReportCodeArtifact(
             status="unsupported", language="python", mode="combined", unsupported_reasons=conflicts,
         )
-    target = _expected_target(req)
     names = _expected_names(req)
-    dependencies = {"digitalhub"}
+    dependencies: set[str] = set()
     for evaluator in req.evaluator_artifacts:
         dependencies.update(evaluator.dependencies)
     return ReportCodeArtifact(
@@ -298,20 +281,16 @@ def render_combined_report_artifact(req: ReportCodeRequest) -> ReportCodeArtifac
         mode="combined",
         files={COMBINED_SCRIPT: source},
         entry_point=COMBINED_SCRIPT,
-        invocation=[
-            f"python {COMBINED_SCRIPT} preview --inputs inputs.json",
-            f"python {COMBINED_SCRIPT} publish --inputs inputs.json",
-        ],
+        invocation=[f"{COMBINED_SCRIPT}:run(project, entity, **kwargs)"],
         dependencies=sorted(dependencies),
         input_contract=req.input_contract,
         output_contract={
-            "format": "json",
-            "stdout": "Report workflow result: target, reports, issues, revision_check, publication, receipts.",
-            "stderr": "{\"status\": \"error\", \"error\": ...} with exit code 2 on failure.",
-            "inputs": "Optional JSON object mapping evaluator function names to keyword arguments.",
+            "handler": "run(project, entity, **kwargs)",
+            "entity": "The analyzed DigitalHub DataItem or Model, passed unchanged to every evaluator.",
+            "kwargs": "Additional keyword arguments passed to every evaluator that accepts them.",
+            "returns": "The published reports keyed by report kind.",
         },
         objective_snapshots=req.objective_snapshots,
-        target=target,
         report_names=names,
         declared_effects=[
             {
@@ -319,7 +298,7 @@ def render_combined_report_artifact(req: ReportCodeRequest) -> ReportCodeArtifac
                 "extension_kind": "compliance-report",
                 "report_kind": variant,
                 "report_name": name,
-                **target,
+                "entity": "run(entity)",
             }
             for variant, name in names.items()
         ],
@@ -369,14 +348,6 @@ def validate_compliance_report_code(request: Any, artifact: Any) -> dict[str, An
         if set(snapshot_map) != evaluator_refs:
             errors.append(_issue("Combined objective snapshots must exactly cover the evaluator artifacts."))
         for evaluator in req.evaluator_artifacts:
-            contract = evaluator.entity_contract.model_dump(mode="json") if evaluator.entity_contract else {}
-            if (
-                contract.get("project") != req.project
-                or contract.get("kind") not in (req.entity_kind, "dataitem" if req.entity_kind == "dataset" else None)
-                or contract.get("name") != req.entity
-                or contract.get("entity_version") != req.entity_version
-            ):
-                errors.append(_issue("Evaluator target must exactly match the report executable target."))
             if (
                 evaluator.objective_ref not in snapshot_map
                 or evaluator.objective != snapshot_map.get(evaluator.objective_ref)
@@ -385,7 +356,7 @@ def validate_compliance_report_code(request: Any, artifact: Any) -> dict[str, An
     if code.language != req.language or code.mode != req.mode:
         errors.append(_issue("Artifact language and mode must match the request."))
     expected_target = _expected_target(req)
-    if code.target != expected_target:
+    if req.mode == "standalone" and code.target != expected_target:
         errors.append(_issue("Artifact target must exactly match the explicitly requested project/entity."))
     expected_names = _expected_names(req)
     if any(not req.report_names.get(variant) for variant in req.variants):
@@ -396,22 +367,22 @@ def validate_compliance_report_code(request: Any, artifact: Any) -> dict[str, An
         errors.append(_issue("Artifact objective snapshots must exactly match the request."))
     if code.input_contract != req.input_contract:
         errors.append(_issue("Artifact input contract must exactly match the request."))
+    # Combined scripts write to the entity passed to run(); only the report identities are bound.
+    effect_target = expected_target if req.mode == "standalone" else {"entity": "run(entity)"}
     for variant, name in expected_names.items():
         effect = {
             "operation": "publish_report",
             "extension_kind": "compliance-report",
             "report_kind": variant,
             "report_name": name,
-            **expected_target,
+            **effect_target,
         }
         if effect not in code.declared_effects:
             errors.append(_issue(f"Artifact must declare its write effect for {variant} report '{name}'."))
     for effect in code.declared_effects:
         if (
             effect.get("extension_kind") != "compliance-report"
-            or effect.get("project") != req.project
-            or effect.get("entity_kind") != req.entity_kind
-            or effect.get("entity") != req.entity
+            or any(effect.get(key) != value for key, value in effect_target.items())
             or effect.get("report_name") not in expected_names.values()
         ):
             errors.append(_issue("Artifact declares a write outside the explicitly selected report target."))
@@ -446,9 +417,9 @@ def validate_compliance_report_code(request: Any, artifact: Any) -> dict[str, An
     if code.language == "python" and code.entry_point in code.files:
         if code.entry_point not in parsed_trees:
             errors.append(_issue("Python entry_point is not a syntactically valid Python file."))
-    if not any("preview" in command for command in code.invocation):
+    if req.mode == "standalone" and not any("preview" in command for command in code.invocation):
         errors.append(_issue("Invocation metadata must document a no-write preview command."))
-    if not any("publish" in command for command in code.invocation):
+    if req.mode == "standalone" and not any("publish" in command for command in code.invocation):
         errors.append(_issue("Invocation metadata must document an explicit publish command."))
 
     if req.mode == "standalone":
@@ -462,104 +433,17 @@ def validate_compliance_report_code(request: Any, artifact: Any) -> dict[str, An
         if code.language == "shell" and "compliance-report" not in combined_source:
             errors.append(_issue("Standalone shell artifact must use the packaged compliance-report CLI."))
     else:
-        combined_source = "\n".join(code.files.values())
-        runtime_calls = [
-            node for tree in parsed_trees.values() for node in ast.walk(tree)
-            if isinstance(node, ast.Call)
-            and ((isinstance(node.func, ast.Name) and node.func.id == "run_report_workflow")
-                 or (isinstance(node.func, ast.Attribute) and node.func.attr == "run_report_workflow"))
-        ]
-        if not runtime_calls:
-            errors.append(_issue("Combined artifact must publish through shared run_report_workflow staging."))
-        elif len(runtime_calls) != 1:
-            errors.append(_issue("Combined artifact must stage the complete report set through exactly one runtime call."))
-        else:
-            call = runtime_calls[0]
-            for call in runtime_calls:
-                keywords = {item.arg: item.value for item in call.keywords if item.arg}
-                if not call.args and "results" not in keywords:
-                    errors.append(_issue("run_report_workflow must receive generated measurement results."))
-                for key, expected in {
-                    "project": req.project,
-                    "entity_kind": req.entity_kind,
-                    "entity": req.entity,
-                }.items():
-                    try:
-                        actual = ast.literal_eval(keywords.get(key)) if key in keywords else None
-                    except (ValueError, TypeError):
-                        actual = None
-                    if actual != expected:
-                        errors.append(_issue(f"Combined runtime must bind '{key}' to the explicit request target."))
-                if req.entity_version is not None:
-                    try:
-                        actual_version = ast.literal_eval(keywords.get("entity_version"))
-                    except (ValueError, TypeError):
-                        actual_version = None
-                    if actual_version != req.entity_version:
-                        errors.append(_issue("Combined runtime must bind entity_version to the requested target version."))
-                try:
-                    actual_variants = ast.literal_eval(keywords.get("variants")) if "variants" in keywords else None
-                    actual_names = ast.literal_eval(keywords.get("names")) if "names" in keywords else None
-                except (ValueError, TypeError):
-                    actual_variants, actual_names = None, None
-                if list(actual_variants or []) != req.variants:
-                    errors.append(_issue("Combined runtime variants must exactly match the request."))
-                if actual_names != expected_names:
-                    errors.append(_issue("Combined runtime names must exactly match the requested report names."))
-                if "mode" not in keywords:
-                    errors.append(_issue("Combined runtime must expose preview/publish mode to the caller."))
-            evaluator_names = {item.entry_point for item in req.evaluator_artifacts if item.entry_point}
-            runtime_line = runtime_calls[0].lineno
-            result_expression = (
-                runtime_calls[0].args[0] if runtime_calls[0].args
-                else {item.arg: item.value for item in runtime_calls[0].keywords if item.arg}.get("results")
-            )
-            result_calls = {
-                node.func.id if isinstance(node.func, ast.Name) else
-                node.func.attr if isinstance(node.func, ast.Attribute) else None
-                for node in ast.walk(result_expression) if isinstance(node, ast.Call)
-            } if result_expression is not None else set()
-            result_lines = [
-                node.lineno for node in ast.walk(result_expression)
-                if isinstance(node, ast.Call)
-                and (node.func.id if isinstance(node.func, ast.Name) else
-                     node.func.attr if isinstance(node.func, ast.Attribute) else None) in evaluator_names
-            ] if result_expression is not None else []
-            if isinstance(result_expression, ast.Name):
-                assigned = [
-                    node.value for tree in parsed_trees.values() for node in ast.walk(tree)
-                    if isinstance(node, (ast.Assign, ast.AnnAssign))
-                    and node.lineno < runtime_line
-                    and any(
-                        isinstance(target, ast.Name) and target.id == result_expression.id
-                        for target in (node.targets if isinstance(node, ast.Assign) else [node.target])
-                    )
-                ]
-                for value in assigned:
-                    result_calls.update(
-                        node.func.id if isinstance(node.func, ast.Name) else
-                        node.func.attr if isinstance(node.func, ast.Attribute) else None
-                        for node in ast.walk(value) if isinstance(node, ast.Call)
-                    )
-                    result_lines.extend(
-                        node.lineno for node in ast.walk(value)
-                        if isinstance(node, ast.Call)
-                        and (node.func.id if isinstance(node.func, ast.Name) else
-                             node.func.attr if isinstance(node.func, ast.Attribute) else None) in evaluator_names
-                    )
-            if not evaluator_names.issubset(result_calls):
-                errors.append(_issue("run_report_workflow must receive the collected output of every evaluator."))
-            if not result_lines or any(line >= runtime_line for line in result_lines):
-                errors.append(_issue("Every evaluator must run before the staged report publication call."))
+        referenced = {
+            node.id for tree in parsed_trees.values() for node in ast.walk(tree)
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        }
         for evaluator in req.evaluator_artifacts:
             if evaluator.source_code and not any(
                 _without_future_imports(evaluator.source_code) in source for source in code.files.values()
             ):
                 errors.append(_issue(f"Combined artifact does not carry evaluator source for '{evaluator.entry_point}'."))
-            if evaluator.entry_point and not re.search(
-                rf"\b{re.escape(evaluator.entry_point)}\s*\(", combined_source,
-            ):
-                errors.append(_issue(f"Combined entry point does not call evaluator '{evaluator.entry_point}'."))
+            if evaluator.entry_point and evaluator.entry_point not in referenced:
+                errors.append(_issue(f"Combined handler does not run evaluator '{evaluator.entry_point}'."))
         if len(code.files) != 1 or code.entry_point not in code.files:
             errors.append(_issue("Combined artifact must be a single self-contained Python script."))
         imported_roots = {
@@ -576,13 +460,13 @@ def validate_compliance_report_code(request: Any, artifact: Any) -> dict[str, An
                 "Combined artifact must be self-contained: inline the report publisher instead of "
                 "importing compliance packages."
             ))
-        if "digitalhub" not in imported_roots:
-            errors.append(_issue("Combined artifact must publish reports directly through the DigitalHub SDK."))
-        if not any(
-            isinstance(node, ast.FunctionDef) and node.name == "run_report_workflow"
-            for tree in parsed_trees.values() for node in tree.body
-        ):
-            errors.append(_issue("Combined artifact must define the inline run_report_workflow publisher."))
+        handlers = [
+            node for tree in parsed_trees.values() for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "run"
+        ]
+        if len(handlers) != 1 or [arg.arg for arg in handlers[0].args.args[:2]] != ["project", "entity"] \
+                or handlers[0].args.kwarg is None:
+            errors.append(_issue("Combined artifact must define the handler run(project, entity, **kwargs)."))
         if not errors:
             rendered, _ = _render_combined_script(req)
             if rendered is not None and code.files.get(code.entry_point) != rendered:
@@ -689,16 +573,6 @@ def _generation_precheck(req: ReportCodeRequest) -> dict[str, Any] | None:
                 "error": "Evaluator objectives do not match the explicitly requested objective snapshots.",
                 "code": "objective_snapshot_mismatch",
             }
-        if any(
-            not item.entity_contract
-            or item.entity_contract.project != req.project
-            or item.entity_contract.name != req.entity
-            or item.entity_contract.kind not in (req.entity_kind, "dataitem" if req.entity_kind == "dataset" else None)
-            or item.entity_contract.entity_version != req.entity_version
-            for item in req.evaluator_artifacts
-        ):
-            return {"error": "Evaluator target does not match the report executable target.",
-                    "code": "target_mismatch"}
     missing = [f"report name for {variant}" for variant in req.variants if not req.report_names.get(variant)]
     if missing:
         artifact = ReportCodeArtifact(
@@ -732,9 +606,10 @@ def _validate_and_record(
 
 
 _COMBINED_ASSUMPTIONS = [
-    "Each evaluator receives the DigitalHub entity through its declared interface; auxiliary keyword "
-    "arguments come only from the explicit --inputs JSON.",
-    "Credentials and endpoint configuration come from the DigitalHub SDK runtime environment.",
+    "run(project, entity, **kwargs) receives the analyzed DigitalHub DataItem or Model; every evaluator "
+    "gets that entity unchanged plus the keyword arguments it accepts.",
+    "Reports are saved on the entity with entity.save(update=True), replacing same-named reports; "
+    "credentials and endpoint configuration come from the DigitalHub runtime environment.",
 ]
 
 

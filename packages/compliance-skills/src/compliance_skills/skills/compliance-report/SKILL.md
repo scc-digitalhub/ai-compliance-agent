@@ -27,21 +27,23 @@ agent, framework, or service. Agent-built reports consume actual externally supp
    `compliance-report` CLI. Do not invent measurements or attach to another entity.
 5. Combined mode is rendered deterministically, not drafted: call `render_compliance_report_code`
    (or `generate_compliance_report_code`, which renders combined requests without the model). The
-   result is one self-contained `compliance_report.py` that embeds every evaluator and an inline
-   DigitalHub SDK publisher from the packaged template. It must not import `compliance_core` or any
-   other framework package; it reads the entity via `digitalhub`, runs each evaluator, stages all
-   results and calls its own `run_report_workflow` once. Evaluator name collisions with the
-   template are returned as unsupported; rename the evaluator helpers and render again.
+   result is one self-contained `compliance_report.py` that embeds every evaluator and the report
+   publisher from the packaged template; it must not import `compliance_core` or any other
+   framework package. Only the objective snapshots and report names are bound; the target is not.
+   Its handler `run(project, entity, **kwargs)` receives the analyzed DigitalHub DataItem or Model,
+   passes it unchanged to every evaluator together with the keyword arguments each accepts, builds
+   the reports and saves them on that entity (`entity.save(update=True)`), always replacing
+   same-named reports. Evaluator exceptions become ERROR results. Evaluator name collisions with
+   the template are returned as unsupported; rename the evaluator helpers and render again.
    Standalone host-driven generation: draft the executable, call `validate_compliance_report_code`
    with the exact request, correct errors, then call `record_compliance_report_code` only for a
    valid ready artifact. Delegated standalone generation is opt-in: call
    `generate_compliance_report_code` only when asked and when the structured engine is available.
    All approaches use the same result-plus-assumptions contract and static validation. Generation
    itself never writes a DigitalHub entity.
-6. Provide both a deterministic no-write preview and an explicit publish invocation. A combined
-   script runs as `python compliance_report.py preview [--inputs inputs.json]` and
-   `python compliance_report.py publish [--inputs inputs.json] [--overwrite]`, where the optional
-   inputs JSON maps evaluator names to keyword arguments. The packaged standalone
+6. A combined script has no CLI or preview mode; run its `run` handler, for example as a
+   DigitalHub Python function handler `compliance_report.py:run`. For standalone code, provide both
+   a deterministic no-write preview and an explicit publish invocation. The packaged standalone
    Python/shell workflow uses `compliance-report` with canonical results, for example:
 
    ```sh

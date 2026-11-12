@@ -113,20 +113,18 @@ ambiguous input formats require clarification rather than a runnable-looking pla
 > Generate one Python executable for `loan-scorer-v1` in project `credit` that evaluates the
 > selected accuracy and fairness objectives, gathers their results, constructs the report
 > specifications and attaches them to this model. Use our explicit held-out-data/label/group
-> bindings from above. Stage and validate all reports before publication. Provide preview and
-> publish invocations and preserve unrelated extensions. I will review and run it outside the
+> bindings from above and preserve unrelated extensions. I will review and run it outside the
 > assistant.
 
 This workflow does not require returning to the assistant between evaluation and reporting.
-The per-metric functions compute; a separate generated entry point assembles and publishes.
-A compliance `FAIL` can be a successfully published outcome; an execution failure is different.
-An operational computation/validation failure must not publish partial success evidence.
-
-One executable invocation is not a distributed transaction. Report extensions can be staged
-into one entity update, but the current DigitalHub SDK does not guarantee conditional atomic
-publication. Requests for strict transaction guarantees must be rejected when unsupported.
-Do not assume rollback across model execution, files, multiple entities or remote side effects.
-Stable run/report names and conflict checks support safe retries; review uncertain write outcomes.
+The combined script is rendered from a packaged template, not written by the model. It is
+self-contained (no compliance package imports) and binds only the objective snapshots and report
+names. Its handler `run(project, entity, **kwargs)` receives the analyzed DataItem or Model,
+passes it with the extra keyword arguments to each evaluator, builds the reports and saves them on
+that entity with one `entity.save(update=True)`, replacing same-named reports. There is no
+preview mode. A compliance `FAIL` is a normal published outcome; an evaluator exception is
+published as an `ERROR` verdict. The single save is not a distributed transaction, and strict
+atomic publication requests are rejected as unsupported.
 
 ### 6. Have the assistant build and attach a report from a file or reference
 
@@ -248,7 +246,7 @@ The REST service exposes the following additional operations under `/v1/complian
 | Endpoint | Input and result |
 |---|---|
 | `POST /metric-evaluation/code` | An objective, target and explicit bindings; returns a statically validated Python evaluator artifact. Requires the configured model. |
-| `POST /reports/code` | Target, `language` (`python` or `shell`), `mode` (`standalone` or `combined`), input contract and optional evaluator artifacts; returns reporting executable artifacts. Standalone requires the configured model; combined is rendered from a template into one self-contained Python script with an inline DigitalHub publisher. |
+| `POST /reports/code` | Target, `language` (`python` or `shell`), `mode` (`standalone` or `combined`), input contract and optional evaluator artifacts; returns reporting executable artifacts. Standalone requires the configured model; combined is rendered from a template into one self-contained Python script whose `run(project, entity, **kwargs)` handler evaluates the passed DigitalHub entity and saves the reports on it. |
 | `POST /reports` | `{"results": [...], "variants": ["EVALUATION", "TEST"]}`; builds deterministic report specifications without a model call. |
 | `POST /reports/validate` | `{"report": {...}}`; validates the report specification without running code or persisting it. |
 
