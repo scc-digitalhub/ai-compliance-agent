@@ -100,7 +100,7 @@ def publish(entity: Any, reports: dict[str, dict[str, Any]]) -> None:
     entity.save(update=True)
 
 
-def run(project: str, entity: Any, **kwargs: Any) -> dict[str, dict[str, Any]]:
+def run(project, entity: Any, **kwargs: Any) -> dict[str, dict[str, Any]]:
     """Evaluate every objective on the entity, then save the resulting reports on it."""
     measurements = {reference: _measure(evaluate, entity, kwargs) for reference, evaluate in EVALUATORS}
     reports = build_reports(measurements)
