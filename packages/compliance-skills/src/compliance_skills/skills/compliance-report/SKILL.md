@@ -1,9 +1,9 @@
 ---
 name: compliance-report
 description: Generate external report executables or build and optionally attach reports from real evaluation evidence.
-allowed-tools: get_report_code_schema get_session_report_codes generate_compliance_report_code validate_compliance_report_code record_compliance_report_code load_evaluation_results build_compliance_report validate_compliance_report record_compliance_report get_session_compliance_reports get_compliance_report save_compliance_report
+allowed-tools: get_report_code_schema get_session_report_codes generate_compliance_report_code render_compliance_report_code validate_compliance_report_code record_compliance_report_code load_evaluation_results build_compliance_report validate_compliance_report record_compliance_report get_session_compliance_reports get_compliance_report save_compliance_report
 metadata:
-  compliance-tools: get_report_code_schema, get_session_report_codes, generate_compliance_report_code, validate_compliance_report_code, record_compliance_report_code, load_evaluation_results, build_compliance_report, validate_compliance_report, record_compliance_report, get_session_compliance_reports, get_compliance_report, save_compliance_report
+  compliance-tools: get_report_code_schema, get_session_report_codes, generate_compliance_report_code, render_compliance_report_code, validate_compliance_report_code, record_compliance_report_code, load_evaluation_results, build_compliance_report, validate_compliance_report, record_compliance_report, get_session_compliance_reports, get_compliance_report, save_compliance_report
 ---
 
 This skill has two distinct procedures. Generated code is an artifact and is never executed by the
@@ -23,16 +23,25 @@ agent, framework, or service. Agent-built reports consume actual externally supp
    for every objective and requires Python.
 4. Use `get_report_code_schema()` and provide target bindings, report names, objective snapshots,
    input contract, evaluator artifacts (combined mode), dependencies, and explicitly declared
-   report-write effects. Combined Python must call the shared `run_report_workflow` facade with the
-   selected target/names and a caller-selected preview/publish mode; it stages all results before
-   one batch call. Standalone Python/shell delegates canonical results to the packaged CLI. Do not
-   invent measurements or attach to another entity.
-5. Host-driven generation: draft the executable, call `validate_compliance_report_code` with the
-   exact request, correct errors, then call `record_compliance_report_code` only for a valid ready
-   artifact. Delegated generation is opt-in: call `generate_compliance_report_code` only when asked
-   and when the structured engine is available. Both approaches use the same result-plus-assumptions
-   contract and static validation. Generation itself never writes a DigitalHub entity.
-6. Provide both a deterministic no-write preview and an explicit publish invocation. The packaged
+   report-write effects. Standalone Python/shell delegates canonical results to the packaged
+   `compliance-report` CLI. Do not invent measurements or attach to another entity.
+5. Combined mode is rendered deterministically, not drafted: call `render_compliance_report_code`
+   (or `generate_compliance_report_code`, which renders combined requests without the model). The
+   result is one self-contained `compliance_report.py` that embeds every evaluator and an inline
+   DigitalHub SDK publisher from the packaged template. It must not import `compliance_core` or any
+   other framework package; it reads the entity via `digitalhub`, runs each evaluator, stages all
+   results and calls its own `run_report_workflow` once. Evaluator name collisions with the
+   template are returned as unsupported; rename the evaluator helpers and render again.
+   Standalone host-driven generation: draft the executable, call `validate_compliance_report_code`
+   with the exact request, correct errors, then call `record_compliance_report_code` only for a
+   valid ready artifact. Delegated standalone generation is opt-in: call
+   `generate_compliance_report_code` only when asked and when the structured engine is available.
+   All approaches use the same result-plus-assumptions contract and static validation. Generation
+   itself never writes a DigitalHub entity.
+6. Provide both a deterministic no-write preview and an explicit publish invocation. A combined
+   script runs as `python compliance_report.py preview [--inputs inputs.json]` and
+   `python compliance_report.py publish [--inputs inputs.json] [--overwrite]`, where the optional
+   inputs JSON maps evaluator names to keyword arguments. The packaged standalone
    Python/shell workflow uses `compliance-report` with canonical results, for example:
 
    ```sh

@@ -118,6 +118,7 @@ compliance_core = [
     "data/okb/*.json",
     "data/okb/*.jsonld",
     "data/okb/schemas/*.json",
+    "templates/*.tmpl",
 ]
 compliance_skills = ["skills/**/*", "agents/*.md"]
 

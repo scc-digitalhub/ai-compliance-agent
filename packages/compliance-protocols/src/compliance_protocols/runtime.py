@@ -429,6 +429,7 @@ class ConversationRuntime:
             "record_metric_evaluation_code", "record_compliance_report_code",
             "build_compliance_report", "record_compliance_report", "get_compliance_report",
             "save_compliance_report", "generate_metric_evaluation_code", "generate_compliance_report_code",
+            "render_compliance_report_code",
         ) and "error" not in tool_response and tool_response.get("valid") is not False:
             turn.artifacts.append({"tool": tool.name, **tool_response})
         return None

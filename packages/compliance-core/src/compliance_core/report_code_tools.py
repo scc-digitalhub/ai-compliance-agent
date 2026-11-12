@@ -1,17 +1,25 @@
 """Generate, statically validate and record standalone/combined report executables.
 
-No artifact generated here is imported, executed, or published to DigitalHub.
+Standalone artifacts delegate to the packaged ``compliance-report`` CLI. Combined artifacts are
+rendered from the packaged template into one self-contained Python script that embeds the
+evaluators and an inline DigitalHub SDK report publisher. No artifact generated here is imported,
+executed, or published to DigitalHub.
 """
 from __future__ import annotations
 
 import ast
 import hashlib
 import json
+import keyword
+import pprint
 import re
 import shlex
 import subprocess
 from datetime import datetime, timezone
+from functools import lru_cache
+from importlib import resources
 from pathlib import PurePosixPath
+from string import Template
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -29,6 +37,9 @@ _CREDENTIAL_KEYS = {
     "password", "secret", "credential", "credentials", "token", "access_token",
     "api_key", "client_secret",
 }
+COMBINED_TEMPLATE = "templates/combined_report.py.tmpl"
+COMBINED_SCRIPT = "compliance_report.py"
+_COMPLIANCE_PACKAGE_PREFIX = "compliance_"
 
 
 def _validate_model(model: type[BaseModel], value: Any) -> BaseModel:
@@ -140,6 +151,182 @@ def _objective_snapshot_map(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _without_future_imports(source: str) -> str:
+    """Drop ``from __future__`` statements; the combined script declares them at its top."""
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return source.strip()
+    dropped = {
+        line
+        for node in tree.body
+        if isinstance(node, ast.ImportFrom) and node.module == "__future__"
+        for line in range(node.lineno - 1, node.end_lineno or node.lineno)
+    }
+    lines = source.splitlines(keepends=True)
+    return "".join(line for index, line in enumerate(lines) if index not in dropped).strip()
+
+
+def _import_bindings(node: ast.Import | ast.ImportFrom) -> dict[str, tuple[str, str]]:
+    if isinstance(node, ast.Import):
+        return {
+            alias.asname or alias.name.split(".", 1)[0]: (alias.name if alias.asname else alias.name.split(".", 1)[0], "")
+            for alias in node.names
+        }
+    return {alias.asname or alias.name: ("." * node.level + (node.module or ""), alias.name) for alias in node.names}
+
+
+def _module_bindings(tree: ast.Module) -> tuple[dict[str, tuple[str, str]], set[str]]:
+    """Return a module's top-level import bindings and its other top-level names."""
+    imports: dict[str, tuple[str, str]] = {}
+    defined: set[str] = set()
+    for node in tree.body:
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            if not (isinstance(node, ast.ImportFrom) and node.module == "__future__"):
+                imports.update(_import_bindings(node))
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            defined.add(node.name)
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            defined.update(target.id for target in targets if isinstance(target, ast.Name))
+    return imports, defined
+
+
+@lru_cache(maxsize=1)
+def _combined_template() -> Template:
+    source = resources.files("compliance_core").joinpath(COMBINED_TEMPLATE).read_text(encoding="utf-8")
+    return Template(source)
+
+
+@lru_cache(maxsize=1)
+def _template_bindings() -> tuple[dict[str, tuple[str, str]], frozenset[str]]:
+    placeholders = {
+        name: "None" for name in (
+            "project", "entity_kind", "entity", "entity_version", "variants", "report_names", "objectives",
+        )
+    }
+    rendered = _combined_template().substitute(
+        placeholders, script_name=COMBINED_SCRIPT, evaluator_sources="", evaluator_calls="",
+    )
+    imports, defined = _module_bindings(ast.parse(rendered))
+    return imports, frozenset(defined)
+
+
+def _literal(value: Any) -> str:
+    return pprint.pformat(value, width=100, sort_dicts=False)
+
+
+def _render_combined_script(req: ReportCodeRequest) -> tuple[str | None, list[str]]:
+    """Render the evaluators and inline DigitalHub publisher into one script, or explain conflicts."""
+    template_imports, template_names = _template_bindings()
+    imports: dict[str, tuple[str, str]] = dict(template_imports)
+    functions: dict[str, str] = {}
+    sources: list[str] = []
+    calls: list[str] = []
+    conflicts: list[str] = []
+    for evaluator in req.evaluator_artifacts:
+        entry = evaluator.entry_point or ""
+        if not entry.isidentifier() or keyword.iskeyword(entry):
+            conflicts.append(f"Evaluator entry point '{entry}' is not a valid Python function name.")
+            continue
+        source = _without_future_imports(evaluator.source_code or "")
+        try:
+            tree = ast.parse(source)
+        except (SyntaxError, ValueError) as exc:
+            conflicts.append(f"Evaluator '{entry}' is not syntactically valid Python: {exc}")
+            continue
+        evaluator_imports, defined = _module_bindings(tree)
+        for name in sorted(defined & template_names):
+            conflicts.append(f"Evaluator '{entry}' defines '{name}', which the inline report publisher reserves.")
+        for name, binding in evaluator_imports.items():
+            if name in template_names or imports.get(name, binding) != binding:
+                conflicts.append(f"Evaluator '{entry}' imports '{name}' with a conflicting binding.")
+            imports.setdefault(name, binding)
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                code = ast.get_source_segment(source, node) or node.name
+                if functions.get(node.name, code) != code:
+                    conflicts.append(f"Evaluators define different top-level functions named '{node.name}'.")
+                functions.setdefault(node.name, code)
+        if source not in sources:
+            sources.append(source)
+        interface = evaluator.entity_contract.interface if evaluator.entity_contract else "mapping"
+        calls.append(
+            f"        _measured({evaluator.objective_ref!r}, "
+            f"{entry}(_subject(found, {interface!r}), **_inputs_for(inputs, {entry!r}))),"
+        )
+    if conflicts:
+        return None, list(dict.fromkeys(conflicts))
+    expected_names = _expected_names(req)
+    rendered = _combined_template().substitute(
+        script_name=COMBINED_SCRIPT,
+        evaluator_sources="\n\n\n".join(sources),
+        evaluator_calls="\n".join(calls),
+        project=repr(req.project),
+        entity_kind=repr(req.entity_kind),
+        entity=repr(req.entity),
+        entity_version=repr(req.entity_version),
+        variants=repr(list(req.variants)),
+        report_names=repr(expected_names),
+        objectives=_literal(_objective_snapshot_map(req.objective_snapshots)),
+    )
+    return rendered, []
+
+
+def _expected_target(req: ReportCodeRequest) -> dict[str, Any]:
+    target = {"project": req.project, "entity_kind": req.entity_kind, "entity": req.entity}
+    if req.entity_version is not None:
+        target["entity_version"] = req.entity_version
+    return target
+
+
+def render_combined_report_artifact(req: ReportCodeRequest) -> ReportCodeArtifact:
+    """Deterministically build the single-file combined evaluator/report-publisher artifact."""
+    source, conflicts = _render_combined_script(req)
+    if source is None:
+        return ReportCodeArtifact(
+            status="unsupported", language="python", mode="combined", unsupported_reasons=conflicts,
+        )
+    target = _expected_target(req)
+    names = _expected_names(req)
+    dependencies = {"digitalhub"}
+    for evaluator in req.evaluator_artifacts:
+        dependencies.update(evaluator.dependencies)
+    return ReportCodeArtifact(
+        status="ready",
+        language="python",
+        mode="combined",
+        files={COMBINED_SCRIPT: source},
+        entry_point=COMBINED_SCRIPT,
+        invocation=[
+            f"python {COMBINED_SCRIPT} preview --inputs inputs.json",
+            f"python {COMBINED_SCRIPT} publish --inputs inputs.json",
+        ],
+        dependencies=sorted(dependencies),
+        input_contract=req.input_contract,
+        output_contract={
+            "format": "json",
+            "stdout": "Report workflow result: target, reports, issues, revision_check, publication, receipts.",
+            "stderr": "{\"status\": \"error\", \"error\": ...} with exit code 2 on failure.",
+            "inputs": "Optional JSON object mapping evaluator function names to keyword arguments.",
+        },
+        objective_snapshots=req.objective_snapshots,
+        target=target,
+        report_names=names,
+        declared_effects=[
+            {
+                "operation": "publish_report",
+                "extension_kind": "compliance-report",
+                "report_kind": variant,
+                "report_name": name,
+                **target,
+            }
+            for variant, name in names.items()
+        ],
+        source_hashes={COMBINED_SCRIPT: hashlib.sha256(source.encode("utf-8")).hexdigest()},
+    )
+
+
 def validate_compliance_report_code(request: Any, artifact: Any) -> dict[str, Any]:
     """Validate report executable syntax, target bindings and declared effects without running it."""
     errors: list[dict[str, str]] = []
@@ -197,9 +384,7 @@ def validate_compliance_report_code(request: Any, artifact: Any) -> dict[str, An
                 errors.append(_issue("Evaluator objective snapshot must exactly match the combined request snapshot."))
     if code.language != req.language or code.mode != req.mode:
         errors.append(_issue("Artifact language and mode must match the request."))
-    expected_target = {"project": req.project, "entity_kind": req.entity_kind, "entity": req.entity}
-    if req.entity_version is not None:
-        expected_target["entity_version"] = req.entity_version
+    expected_target = _expected_target(req)
     if code.target != expected_target:
         errors.append(_issue("Artifact target must exactly match the explicitly requested project/entity."))
     expected_names = _expected_names(req)
@@ -367,22 +552,43 @@ def validate_compliance_report_code(request: Any, artifact: Any) -> dict[str, An
             if not result_lines or any(line >= runtime_line for line in result_lines):
                 errors.append(_issue("Every evaluator must run before the staged report publication call."))
         for evaluator in req.evaluator_artifacts:
-            if evaluator.source_code and not any(evaluator.source_code in source for source in code.files.values()):
+            if evaluator.source_code and not any(
+                _without_future_imports(evaluator.source_code) in source for source in code.files.values()
+            ):
                 errors.append(_issue(f"Combined artifact does not carry evaluator source for '{evaluator.entry_point}'."))
             if evaluator.entry_point and not re.search(
                 rf"\b{re.escape(evaluator.entry_point)}\s*\(", combined_source,
             ):
                 errors.append(_issue(f"Combined entry point does not call evaluator '{evaluator.entry_point}'."))
-        imports_shared_runtime = any(
-            (isinstance(node, ast.ImportFrom) and node.module == "compliance_core.report_cli")
-            or (
-                isinstance(node, ast.Import)
-                and any(alias.name == "compliance_core.report_cli" for alias in node.names)
-            )
+        if len(code.files) != 1 or code.entry_point not in code.files:
+            errors.append(_issue("Combined artifact must be a single self-contained Python script."))
+        imported_roots = {
+            name.split(".", 1)[0]
             for tree in parsed_trees.values() for node in ast.walk(tree)
-        )
-        if not imports_shared_runtime:
-            errors.append(_issue("Combined artifact must import the shared report CLI/runtime package."))
+            for name in (
+                [alias.name for alias in node.names] if isinstance(node, ast.Import)
+                else [node.module or ""] if isinstance(node, ast.ImportFrom) and not node.level
+                else []
+            )
+        }
+        if any(root.startswith(_COMPLIANCE_PACKAGE_PREFIX) for root in imported_roots):
+            errors.append(_issue(
+                "Combined artifact must be self-contained: inline the report publisher instead of "
+                "importing compliance packages."
+            ))
+        if "digitalhub" not in imported_roots:
+            errors.append(_issue("Combined artifact must publish reports directly through the DigitalHub SDK."))
+        if not any(
+            isinstance(node, ast.FunctionDef) and node.name == "run_report_workflow"
+            for tree in parsed_trees.values() for node in tree.body
+        ):
+            errors.append(_issue("Combined artifact must define the inline run_report_workflow publisher."))
+        if not errors:
+            rendered, _ = _render_combined_script(req)
+            if rendered is not None and code.files.get(code.entry_point) != rendered:
+                warnings.append(_issue(
+                    "Combined script differs from the packaged template rendering; review the inline publisher."
+                ))
 
     normalized = code.model_dump(mode="json", exclude_none=True)
     normalized["source_hashes"] = {
@@ -422,12 +628,8 @@ def record_compliance_report_code(
     return {**validation, "stored": True}
 
 
-async def generate_compliance_report_code(env: ToolEnv, request: Any) -> dict[str, Any]:
-    """Delegate generation of a standalone or combined executable; never run or publish it."""
-    try:
-        req = _validate_model(ReportCodeRequest, request)
-    except (ValidationError, TypeError, ValueError) as exc:
-        return {"error": str(exc), "code": "invalid_request"}
+def _generation_precheck(req: ReportCodeRequest) -> dict[str, Any] | None:
+    """Return the non-ready response for a request that cannot be generated yet, else None."""
     if req.strict_atomic:
         artifact = ReportCodeArtifact(
             status="unsupported", language=req.language, mode=req.mode,
@@ -503,7 +705,63 @@ async def generate_compliance_report_code(env: ToolEnv, request: Any) -> dict[st
             status="needs_input", language=req.language, mode=req.mode, missing_inputs=missing,
         )
         return {"status": "needs_input", "artifact": artifact.model_dump(mode="json"), "assumptions": []}
+    return None
 
+
+def _validate_and_record(
+    env: ToolEnv, req: ReportCodeRequest, artifact: ReportCodeArtifact,
+    assumptions: list[str], provenance: dict[str, Any],
+) -> dict[str, Any]:
+    validation = validate_compliance_report_code(req, artifact)
+    if not validation["valid"]:
+        return {"status": "invalid", "artifact": artifact.model_dump(mode="json", exclude_none=True),
+                "assumptions": assumptions, "validation": validation}
+    if validation.get("ready"):
+        recorded = record_compliance_report_code(env, req, validation["normalized"], assumptions)
+        if not recorded.get("stored"):
+            return {"status": "invalid", "artifact": validation["normalized"], "validation": recorded,
+                    "assumptions": assumptions}
+    return {
+        "status": artifact.status,
+        "artifact": validation["normalized"],
+        "assumptions": assumptions,
+        "validation": validation,
+        "stored": bool(validation.get("ready")),
+        "provenance": {"bundle_version": env.bundle.version, **provenance},
+    }
+
+
+_COMBINED_ASSUMPTIONS = [
+    "Each evaluator receives the DigitalHub entity through its declared interface; auxiliary keyword "
+    "arguments come only from the explicit --inputs JSON.",
+    "Credentials and endpoint configuration come from the DigitalHub SDK runtime environment.",
+]
+
+
+def _render_and_record(env: ToolEnv, req: ReportCodeRequest) -> dict[str, Any]:
+    artifact = render_combined_report_artifact(req)
+    if artifact.status != "ready":
+        return {"status": artifact.status, "artifact": artifact.model_dump(mode="json"), "assumptions": []}
+    return _validate_and_record(
+        env, req, artifact, list(_COMBINED_ASSUMPTIONS), {"template": COMBINED_TEMPLATE, "model": None},
+    )
+
+
+async def generate_compliance_report_code(env: ToolEnv, request: Any) -> dict[str, Any]:
+    """Generate a report executable; never run or publish it.
+
+    Standalone artifacts are delegated to the structured engine. Combined artifacts are rendered
+    from the packaged template into one self-contained evaluator plus DigitalHub publisher script.
+    """
+    try:
+        req = _validate_model(ReportCodeRequest, request)
+    except (ValidationError, TypeError, ValueError) as exc:
+        return {"error": str(exc), "code": "invalid_request"}
+    precheck = _generation_precheck(req)
+    if precheck is not None:
+        return precheck
+    if req.mode == "combined":
+        return _render_and_record(env, req)
     if env.analysis_engine is None:
         return {"error": "The structured code-generation engine is not configured", "code": "integration_unavailable"}
     try:
@@ -518,28 +776,27 @@ async def generate_compliance_report_code(env: ToolEnv, request: Any) -> dict[st
     except ValidationError as exc:
         return {"error": "The report-code engine returned an invalid response", "code": "invalid_output",
                 "details": exc.errors(include_url=False)}
-    validation = validate_compliance_report_code(req, parsed.result)
-    if not validation["valid"]:
-        return {"status": "invalid", "artifact": parsed.result.model_dump(mode="json", exclude_none=True),
-                "assumptions": parsed.assumptions, "validation": validation}
-    if validation.get("ready"):
-        recorded = record_compliance_report_code(
-            env, req, validation["normalized"], parsed.assumptions,
-        )
-        if not recorded.get("stored"):
-            return {"status": "invalid", "artifact": validation["normalized"], "validation": recorded,
-                    "assumptions": parsed.assumptions}
-    return {
-        "status": parsed.result.status,
-        "artifact": validation["normalized"],
-        "assumptions": parsed.assumptions,
-        "validation": validation,
-        "stored": bool(validation.get("ready")),
-        "provenance": {
-            "bundle_version": env.bundle.version,
-            "model": getattr(response.meta, "model", None),
-        },
-    }
+    return _validate_and_record(
+        env, req, parsed.result, parsed.assumptions, {"model": getattr(response.meta, "model", None)},
+    )
+
+
+def render_compliance_report_code(env: ToolEnv, request: Any) -> dict[str, Any]:
+    """Render a combined request into one self-contained evaluator plus DigitalHub publisher script.
+
+    Uses the packaged template, then validates and records the artifact; never runs or publishes it.
+    """
+    try:
+        req = _validate_model(ReportCodeRequest, request)
+    except (ValidationError, TypeError, ValueError) as exc:
+        return {"error": str(exc), "code": "invalid_request"}
+    if req.mode != "combined":
+        return {"error": "Only combined requests are rendered from the template; standalone artifacts "
+                         "use the packaged compliance-report CLI.", "code": "unsupported_mode"}
+    precheck = _generation_precheck(req)
+    if precheck is not None:
+        return precheck
+    return _render_and_record(env, req)
 
 
 def validate_compliance_report_code_tool(env: ToolEnv, request: Any, artifact: Any) -> dict[str, Any]:
@@ -583,6 +840,8 @@ def get_session_report_codes(
 REPORT_CODE_TOOL_SPECS = (
     ToolSpec("generate_compliance_report_code", generate_compliance_report_code, "analysis",
              generate_compliance_report_code.__doc__ or "", False, needs_llm=True),
+    ToolSpec("render_compliance_report_code", render_compliance_report_code, "validation",
+             render_compliance_report_code.__doc__ or "", False),
     ToolSpec("get_report_code_schema", get_report_code_schema, "validation",
              get_report_code_schema.__doc__ or "", True),
     ToolSpec("get_session_report_codes", get_session_report_codes, "session",
@@ -603,6 +862,8 @@ __all__ = [
     "get_report_code_schema",
     "get_session_report_codes",
     "record_compliance_report_code",
+    "render_combined_report_artifact",
+    "render_compliance_report_code",
     "validate_compliance_report_code",
     "validate_compliance_report_code_tool",
 ]

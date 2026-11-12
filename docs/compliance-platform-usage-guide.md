@@ -248,7 +248,7 @@ The REST service exposes the following additional operations under `/v1/complian
 | Endpoint | Input and result |
 |---|---|
 | `POST /metric-evaluation/code` | An objective, target and explicit bindings; returns a statically validated Python evaluator artifact. Requires the configured model. |
-| `POST /reports/code` | Target, `language` (`python` or `shell`), `mode` (`standalone` or `combined`), input contract and optional evaluator artifacts; returns reporting executable artifacts. Requires the configured model. |
+| `POST /reports/code` | Target, `language` (`python` or `shell`), `mode` (`standalone` or `combined`), input contract and optional evaluator artifacts; returns reporting executable artifacts. Standalone requires the configured model; combined is rendered from a template into one self-contained Python script with an inline DigitalHub publisher. |
 | `POST /reports` | `{"results": [...], "variants": ["EVALUATION", "TEST"]}`; builds deterministic report specifications without a model call. |
 | `POST /reports/validate` | `{"report": {...}}`; validates the report specification without running code or persisting it. |
 
