@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EBA ML — Explainability for Credit Decisions
 description: ML models driving credit decisions must provide individual-level explanations that are understandable to the affected person and meet GDPR Art. 22 meaningful information requirements.

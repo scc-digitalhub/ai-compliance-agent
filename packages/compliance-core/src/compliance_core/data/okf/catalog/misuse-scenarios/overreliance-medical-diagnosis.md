@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Overreliance on AI Medical Diagnosis
 description: Clinicians accept AI diagnostic outputs without critical review, leading to missed diagnoses or incorrect treatment in cases where the AI model is operating outside its validated distribution.

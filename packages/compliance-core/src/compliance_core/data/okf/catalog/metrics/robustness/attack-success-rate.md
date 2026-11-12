@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Attack Success Rate
 description: Fraction of adversarial inputs that successfully cause a model misclassification or targeted output. Complement of adversarial accuracy.

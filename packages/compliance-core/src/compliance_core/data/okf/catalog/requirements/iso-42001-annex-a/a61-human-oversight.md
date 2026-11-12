@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: ISO/IEC 42001 A.6.1 — Human Oversight in AI Systems
 description: The organisation must design AI systems to support appropriate human oversight, ensuring humans can intervene, override, and monitor AI system behaviour.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU AI Act Art. 9 — Risk Management System
 description: Obligation on providers of high-risk AI systems to establish, implement, document, and maintain a risk management system throughout the system lifecycle.

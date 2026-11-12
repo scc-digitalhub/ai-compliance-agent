@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Subliminal Manipulation via AI
 description: Using an AI system to deploy subliminal, manipulative, or deceptive techniques targeting persons' subconscious to distort their behaviour against their interests.

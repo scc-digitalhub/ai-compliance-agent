@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: metric-evaluation-code
 description: Generate or validate catalog-grounded Python metric evaluators without executing them.
 allowed-tools: get_metric_computation get_evaluation_schema get_session_evaluation_codes generate_metric_evaluation_code validate_metric_evaluation_code record_metric_evaluation_code

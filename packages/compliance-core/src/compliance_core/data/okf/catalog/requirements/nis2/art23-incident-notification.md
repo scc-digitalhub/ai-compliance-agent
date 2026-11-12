@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: NIS2 Art. 23 — Incident Notification
 description: Essential and important entities must notify their CSIRT or competent authority of significant incidents within 24 hours (early warning) and 72 hours (notification), and provide a final report within one month.

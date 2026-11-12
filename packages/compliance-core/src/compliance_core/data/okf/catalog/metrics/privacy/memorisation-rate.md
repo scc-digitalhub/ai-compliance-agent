@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Training Data Memorisation Rate
 description: Fraction of training samples that can be approximately reconstructed or triggered verbatim from the model. Specifically relevant for LLMs and generative models.

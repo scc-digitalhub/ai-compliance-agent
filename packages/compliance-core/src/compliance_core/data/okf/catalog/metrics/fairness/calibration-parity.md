@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Calibration Parity (Group Calibration Gap)
 description: Maximum difference in Expected Calibration Error (ECE) across demographic groups. Zero means the model is equally calibrated for all groups.

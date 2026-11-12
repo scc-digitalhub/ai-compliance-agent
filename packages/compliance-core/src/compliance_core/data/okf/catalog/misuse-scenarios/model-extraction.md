@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Model Extraction / Theft
 description: An adversary systematically queries an AI system to reconstruct a functionally equivalent model, stealing intellectual property and enabling subsequent adversarial attacks.

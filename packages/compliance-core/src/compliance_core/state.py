@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Workspace and in-memory state stores shared by runtime adapters."""
 from __future__ import annotations
 

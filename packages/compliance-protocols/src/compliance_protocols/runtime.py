@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Durable, transport-neutral conversation runner with project and write boundaries."""
 from __future__ import annotations
 

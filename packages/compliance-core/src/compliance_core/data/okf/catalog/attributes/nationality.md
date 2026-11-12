@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Nationality
 description: Proxy for race/ethnicity. Relevant in migration AI (EU AI Act Annex III) and credit/employment AI. May correlate with language access barriers.

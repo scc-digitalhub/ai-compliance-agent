@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Specification Container
 title: ModelServiceComplianceSpec
 description: Compliance extension for a model service entity, inheriting all ComplianceSpec fields with no additional service-specific properties.

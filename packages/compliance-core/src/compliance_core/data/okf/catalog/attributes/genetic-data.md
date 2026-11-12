@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Genetic Data
 description: GDPR Art. 9 special category. Unique to an individual, immutable, and predictive of future health conditions. High risk in insurance and employment AI.

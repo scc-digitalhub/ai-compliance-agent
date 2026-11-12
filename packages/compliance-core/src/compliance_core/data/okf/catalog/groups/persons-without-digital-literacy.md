@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Persons with Low Digital Literacy
 description: Persons lacking the skills to critically engage with digital systems and AI outputs — at heightened risk of automation bias, manipulation, and inability to exercise rights against AI decisions.

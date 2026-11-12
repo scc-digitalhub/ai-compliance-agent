@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: entity-details
 description: Retrieves the details of datasets and models registered on the DH platform, so a compliance analysis can be requested by entity name.
 allowed-tools: get_entity_details

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Expected Calibration Error (ECE)
 description: Weighted average absolute difference between predicted confidence and empirical accuracy across probability bins. Perfect calibration = 0.

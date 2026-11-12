@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: ISO/IEC 42001 A.9.2 — Transparency and Documentation
 description: The organisation must maintain documentation sufficient for stakeholders to understand AI system capabilities, limitations, intended uses, and decision-making processes.

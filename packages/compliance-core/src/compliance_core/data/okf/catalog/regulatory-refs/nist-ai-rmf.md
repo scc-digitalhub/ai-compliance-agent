@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: RegulatoryRef
 title: NIST AI RMF
 description: NIST AI Risk Management Framework (AI 100-1, 2023) providing voluntary guidance for managing AI risks across the lifecycle.

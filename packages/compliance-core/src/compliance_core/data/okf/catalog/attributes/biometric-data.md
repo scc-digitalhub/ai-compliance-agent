@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Biometric Data for Unique Identification
 description: GDPR Art. 9 special category when used for unique identification. Face embeddings, fingerprints, iris scans, and voice prints are covered. Subject to EU AI Act biometric AI restrictions.

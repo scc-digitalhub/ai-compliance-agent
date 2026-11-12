@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Model Type
 title: MetricResult
 description: Observed value of a single metric within an evaluation report, with optional confidence interval.

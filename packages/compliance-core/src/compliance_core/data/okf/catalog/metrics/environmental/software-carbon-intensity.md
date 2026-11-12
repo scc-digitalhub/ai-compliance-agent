@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Software Carbon Intensity (SCI)
 description: Carbon emissions per functional unit of software execution: SCI = (E × I + M) / R. Standardised by the Green Software Foundation (GSF SCI v1.0).

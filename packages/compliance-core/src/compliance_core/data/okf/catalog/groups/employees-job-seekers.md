@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Employees and Job Seekers
 description: Persons in employment relationships or seeking employment — subject to high-risk AI under EU AI Act Annex III (employment, workers management, access to self-employment).

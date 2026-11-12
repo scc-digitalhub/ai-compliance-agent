@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Criminal Record / Conviction History
 description: GDPR Art. 10 restricts processing of personal data relating to criminal convictions and offences to official authority. High risk of perpetual exclusion when used in employment, housing, or credit AI.

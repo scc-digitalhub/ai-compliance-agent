@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Opt-in scenarios against a real DH Core (and, for the coordinator one, the real LLM). Run from adk/ with:
 
     python -m pytest manual_tests/test_dh_platform_scenarios.py -q -s

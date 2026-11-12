@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Theil Index (Between-group)
 description: Information-theoretic inequality measure of benefit distribution across demographic groups. Zero means perfectly equal benefit distribution.

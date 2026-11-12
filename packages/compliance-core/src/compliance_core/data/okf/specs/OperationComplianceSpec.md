@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Specification Container
 title: OperationComplianceSpec
 description: Compliance extension for an operation/function entity, classifying the operation by mode, type, category, and lifecycle phase, and linking it to the compliance objectives it validates or mitigates.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: RegulatoryRef
 title: UNESCO Recommendation on AI Ethics
 description: UNESCO Recommendation on the Ethics of Artificial Intelligence (2021) — first global normative framework on AI ethics, adopted by 193 member states.

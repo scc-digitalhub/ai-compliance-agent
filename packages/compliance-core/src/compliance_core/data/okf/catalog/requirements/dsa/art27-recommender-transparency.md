@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: DSA Art. 27 — Recommender System Transparency
 description: Platforms using recommender systems must explain in plain language the main parameters used and give users at least one option not based on profiling.

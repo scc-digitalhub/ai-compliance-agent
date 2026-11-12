@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Engine-neutral structured analysis: definitions, the validate-and-retry loop and responses.
 
 Runtime engines (ADK, LiteLLM, ...) only implement `Conversation.send`, which delivers one user

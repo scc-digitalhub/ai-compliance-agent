@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Persons with Disabilities
 description: Persons with physical, mental, intellectual, or sensory impairments that in interaction with barriers may hinder full participation — a protected group under EU AI Act and UNCRPD.

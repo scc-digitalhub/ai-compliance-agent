@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Grounded generation, static validation and workspace recording of evaluator code.
 
 Generated source is parsed as text only. This module never imports, compiles, or executes it.

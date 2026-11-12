@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: GDPR Art. 22 — Automated Individual Decision-making Including Profiling
 description: Data subjects have the right not to be subject to solely automated decisions producing legal or similarly significant effects, unless an exemption applies, in which case safeguards including human review must be provided.

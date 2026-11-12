@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # AI Compliance Framework — Bundle Update Log
 
 ## 2026-08-28

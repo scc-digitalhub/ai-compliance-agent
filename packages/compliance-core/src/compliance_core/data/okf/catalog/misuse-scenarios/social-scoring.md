@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Social Scoring Misuse
 description: Using an AI system to evaluate or classify natural persons or groups based on social behaviour or personal characteristics in social contexts, leading to detrimental treatment.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: l-Diversity
 description: Minimum number of distinct sensitive attribute values within each quasi-identifier equivalence class. Extends k-anonymity to prevent attribute disclosure attacks.

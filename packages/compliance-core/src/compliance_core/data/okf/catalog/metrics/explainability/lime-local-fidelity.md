@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: LIME Local Fidelity Score
 description: R² of the local linear surrogate fitted by LIME around a single prediction. Values close to 1 mean the surrogate accurately represents the model locally.

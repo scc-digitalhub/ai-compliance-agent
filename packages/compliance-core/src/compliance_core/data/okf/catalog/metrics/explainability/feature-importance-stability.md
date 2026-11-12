@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Feature Importance Stability (Rank Correlation)
 description: Spearman rank correlation of feature importance scores between two inference runs on slightly perturbed identical inputs. High stability means explanations are consistent and reliable.

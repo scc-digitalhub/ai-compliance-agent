@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # ISO/IEC 42001 Annex A Controls
 
 Concrete control objectives from ISO/IEC 42001:2023 Annex A, which provides the

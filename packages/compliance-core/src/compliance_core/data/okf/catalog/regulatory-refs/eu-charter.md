@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: RegulatoryRef
 title: EU Charter of Fundamental Rights
 description: Charter of Fundamental Rights of the European Union (2000/C 364/01) — legally binding since Lisbon Treaty (2009), establishing fundamental rights including privacy, data protection, and non-discrimination.

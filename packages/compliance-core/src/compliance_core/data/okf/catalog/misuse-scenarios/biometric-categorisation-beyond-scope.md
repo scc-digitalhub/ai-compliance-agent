@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Biometric Categorisation Beyond Permitted Scope
 description: Using a biometric AI system to infer race, political opinions, trade union membership, religious beliefs, sex life, or sexual orientation beyond the narrow permitted exceptions.

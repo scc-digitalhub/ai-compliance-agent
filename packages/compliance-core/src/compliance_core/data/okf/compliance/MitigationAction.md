@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Model Type
 title: MitigationAction
 description: Action engaged to resolve a compliance objective violation, with lifecycle status, owner, evidence, and residual risk assessment.

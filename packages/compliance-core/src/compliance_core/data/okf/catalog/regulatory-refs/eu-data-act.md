@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: RegulatoryRef
 title: EU Data Act
 description: Regulation (EU) 2023/2854 on harmonised rules on fair access to and use of data, establishing data portability and sharing obligations for connected products and services.

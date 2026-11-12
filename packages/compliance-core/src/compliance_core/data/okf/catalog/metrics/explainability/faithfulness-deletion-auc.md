@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Explanation Faithfulness — Deletion AUC
 description: Area under the prediction-vs-feature-deletion curve. Features are removed in order of importance; fast prediction drop indicates faithful explanations.

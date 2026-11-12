@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Creditworthiness Score
 description: AI-derived credit score used in lending decisions. High-risk AI under EU AI Act Annex III (access to essential services). Proxy discrimination risk via postcodes, names, and spending patterns.

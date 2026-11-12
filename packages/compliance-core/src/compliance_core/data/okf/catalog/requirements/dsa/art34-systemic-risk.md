@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: DSA Art. 34 — Systemic Risk Assessment
 description: VLOPs and VLOSEs must conduct annual risk assessments of systemic risks arising from their AI-powered services, including fundamental rights impacts and electoral integrity risks.

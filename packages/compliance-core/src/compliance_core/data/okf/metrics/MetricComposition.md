@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Model Type
 title: MetricComposition
 description: Aggregation specification for a composite metric, listing constituent metrics and the combining function.

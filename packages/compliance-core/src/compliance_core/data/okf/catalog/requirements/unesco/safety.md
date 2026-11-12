@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: UNESCO AI Ethics — Safety and Security
 description: AI systems must be technically robust, secure against attack, and safe for their intended and foreseeable uses throughout their lifecycle.

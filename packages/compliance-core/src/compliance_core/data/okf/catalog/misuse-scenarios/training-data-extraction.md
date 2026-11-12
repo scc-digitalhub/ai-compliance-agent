@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Training Data Extraction
 description: An adversary uses carefully crafted prompts to cause a language model to reproduce verbatim segments of its training data, potentially exposing personal data or confidential information.

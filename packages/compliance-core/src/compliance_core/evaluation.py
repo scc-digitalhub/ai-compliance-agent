@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Benchmark evaluation of structured analyses: run cases through an engine, score and compare.
 
 Scores per case: output validity, risk-level agreement, recall of expected catalog requirements and

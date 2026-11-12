@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Pregnancy and Maternity Status
 description: Protected under EU Directive 92/85/EEC and the Work-Life Balance Directive (2019/1158). A proxy target in recruitment and performance AI leading to indirect gender discrimination.

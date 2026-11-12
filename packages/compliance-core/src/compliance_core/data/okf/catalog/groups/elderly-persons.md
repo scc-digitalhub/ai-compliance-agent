@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Elderly Persons
 description: Persons of advanced age who may be more susceptible to manipulation, digital exclusion, or automation bias — recognised as vulnerable under EU AI Act Art. 5.

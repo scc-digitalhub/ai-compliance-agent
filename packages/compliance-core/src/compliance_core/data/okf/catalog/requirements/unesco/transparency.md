@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: UNESCO AI Ethics — Transparency and Explainability
 description: AI actors must ensure AI processes and decisions are understandable and interpretable, providing explanations appropriate to the context and the affected parties.

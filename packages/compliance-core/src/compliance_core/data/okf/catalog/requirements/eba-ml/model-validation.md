@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EBA ML — Independent Model Validation
 description: ML models used in credit risk must undergo independent validation covering conceptual soundness, data quality, performance stability, and ongoing monitoring.

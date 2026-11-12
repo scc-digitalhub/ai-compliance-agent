@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """ADK view of the core analysis definitions (typed input, typed output, one skill each)."""
 from __future__ import annotations
 

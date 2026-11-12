@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Illegal Content Amplification via AI Moderation Failure
 description: Failures or adversarial evasion of AI-based content moderation systems allow illegal content (CSAM, terrorist content, illegal hate speech) to be amplified or escape detection.

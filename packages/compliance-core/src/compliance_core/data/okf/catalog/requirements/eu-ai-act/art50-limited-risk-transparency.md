@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU AI Act Art. 50 — Transparency for Limited-Risk AI Systems
 description: Providers of AI systems interacting with natural persons (chatbots) and of AI-generated content (deepfakes) must ensure users are informed they are interacting with AI or viewing synthetic content.

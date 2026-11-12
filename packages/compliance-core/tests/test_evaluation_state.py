@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 from compliance_core.state import (
     CODES_KEY, REPORTS_KEY, ComplianceWorkspace, InMemoryStateStore,
     activate_project, scoped_get, scoped_update,

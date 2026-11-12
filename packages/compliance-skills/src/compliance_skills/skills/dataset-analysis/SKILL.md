@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: dataset-analysis
 description: Derives the structured compliance specification (scope, protected attributes, compliance objectives) for an AI dataset.
 allowed-tools: get_compliance_specification read_okf_concept get_attributes get_metrics get_requirements get_groups get_output_schema validate_dataset_compliance record_compliance_analysis

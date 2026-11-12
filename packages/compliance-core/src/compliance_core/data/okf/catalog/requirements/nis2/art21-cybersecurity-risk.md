@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: NIS2 Art. 21 — Cybersecurity Risk Management Measures
 description: Essential and important entities must implement technical, operational, and organisational cybersecurity risk management measures including supply chain security, access control, encryption, and incident handling.

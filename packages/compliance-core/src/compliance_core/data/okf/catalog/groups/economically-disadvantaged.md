@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Economically Disadvantaged Persons
 description: Persons in situations of financial hardship or socio-economic dependency, identified in EU AI Act Art. 5 as a group whose vulnerabilities must not be exploited.

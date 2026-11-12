@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Framework-neutral domain errors with transport-agnostic status metadata."""
 from __future__ import annotations
 

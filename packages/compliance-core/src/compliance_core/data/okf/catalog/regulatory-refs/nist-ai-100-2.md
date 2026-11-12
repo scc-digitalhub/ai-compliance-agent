@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: RegulatoryRef
 title: NIST AI 100-2 Adversarial ML Taxonomy
 description: NIST AI 100-2 (2024) — Adversarial Machine Learning: A Taxonomy and Terminology of Attacks and Mitigations, providing a standardised classification of AI adversarial threats.

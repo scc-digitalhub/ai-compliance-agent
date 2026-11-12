@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Dataset Completeness
 description: Fraction of required values that are present (non-null) in the dataset. A value of 1.0 means no missing values.

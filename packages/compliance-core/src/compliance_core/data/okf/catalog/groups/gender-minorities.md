@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Gender Minorities
 description: Persons whose gender identity or expression differs from the sex they were assigned at birth — protected under EU equality law and the EU Charter Art. 21.

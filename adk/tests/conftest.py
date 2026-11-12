@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Shared fixtures: a scripted LLM so agents, runners and the API run without a provider."""
 from __future__ import annotations
 

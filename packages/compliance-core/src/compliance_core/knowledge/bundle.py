@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Read-only, cached access to the Open Knowledge Format (OKF) bundle."""
 from __future__ import annotations
 

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: project-context
 description: Builds the structured AI compliance context (regulations, requirements, groups, protected attributes, misuse scenarios, risk level, human oversight) for an AI project definition.
 allowed-tools: get_compliance_specification get_regulatory_refs get_requirements get_groups get_attributes get_misuse_scenarios get_output_schema validate_project_context record_compliance_analysis

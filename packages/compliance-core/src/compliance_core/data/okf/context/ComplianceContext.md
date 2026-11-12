@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Context
 title: ComplianceContext
 description: Contextualizes an AI project's deployment with respect to regulations, risk, affected groups, and oversight.

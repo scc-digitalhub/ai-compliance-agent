@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU Charter Art. 21 — Non-discrimination
 description: Any discrimination based on 18 explicitly listed grounds (sex, race, colour, ethnic or social origin, genetic features, language, religion, political opinion, national minority membership, property, birth, disability, age, sexual orientation) is prohibited.

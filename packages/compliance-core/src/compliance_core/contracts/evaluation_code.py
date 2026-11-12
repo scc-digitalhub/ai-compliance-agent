@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contracts for generated metric-evaluator code artifacts.
 
 These are deliberately separate from measurement interchange: generated source is an artifact,

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Equalized Odds Difference
 description: Maximum absolute difference in true positive rate and false positive rate across groups. Zero means equal TPR and FPR for all groups.

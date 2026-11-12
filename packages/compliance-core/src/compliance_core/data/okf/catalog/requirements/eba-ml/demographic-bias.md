@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EBA ML — Demographic Bias Testing in Credit Scoring
 description: Institutions must test ML credit scoring models for demographic bias across protected characteristics and document bias mitigation measures taken.

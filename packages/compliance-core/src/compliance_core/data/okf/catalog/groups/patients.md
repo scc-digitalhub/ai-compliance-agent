@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Patients and Healthcare Recipients
 description: Persons receiving medical care or health services — affected by AI systems used for diagnosis, triage, treatment recommendation, and patient prioritisation.

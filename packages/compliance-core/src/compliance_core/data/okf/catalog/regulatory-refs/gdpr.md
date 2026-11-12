@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: RegulatoryRef
 title: GDPR
 description: Regulation (EU) 2016/679 — General Data Protection Regulation governing personal data processing in the EU.

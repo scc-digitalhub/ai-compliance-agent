@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Model Type
 title: InferenceSignature
 description: Input/output signature of a model's inference function, specifying tensor types, shapes, and optional inference-time parameters.

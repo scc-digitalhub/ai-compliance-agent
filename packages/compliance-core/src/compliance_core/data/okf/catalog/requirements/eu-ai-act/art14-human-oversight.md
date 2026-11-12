@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU AI Act Art. 14 — Human Oversight
 description: High-risk AI systems must be designed to allow effective human oversight to prevent or minimise risks, with measures enabling humans to monitor, intervene, halt, or override outputs.

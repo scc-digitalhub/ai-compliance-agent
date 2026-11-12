@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Provenance of analysis results: how, when and from which knowledge each result was produced."""
 from __future__ import annotations
 

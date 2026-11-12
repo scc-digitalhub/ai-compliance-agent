@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Generate, statically validate and record standalone/combined report executables.
 
 Standalone artifacts delegate to the packaged ``compliance-report`` CLI. Combined artifacts are

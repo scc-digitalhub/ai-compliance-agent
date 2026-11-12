@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Monitoring Evasion
 description: An adversary or misbehaving user detects and avoids the conditions under which an AI system is monitored, causing the monitoring system to fail to detect policy violations or performance degradation.

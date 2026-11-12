@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Deployment in Unvalidated Context
 description: An AI model validated for one domain, population, or geographic context is deployed in a different context without re-validation, producing unreliable or discriminatory outputs.

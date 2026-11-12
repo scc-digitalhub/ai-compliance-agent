@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Health / Life Insurance Risk Score
 description: AI-derived actuarial risk score used in health or life insurance pricing. High-risk under EU AI Act Annex III. May constitute indirect discrimination based on health status or disability.

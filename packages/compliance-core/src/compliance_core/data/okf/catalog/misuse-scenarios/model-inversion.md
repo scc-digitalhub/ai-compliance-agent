@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Model Inversion Attack
 description: An adversary uses model outputs to reconstruct representative or actual training samples, potentially recovering sensitive features (e.g. medical images, faces) associated with training data subjects.

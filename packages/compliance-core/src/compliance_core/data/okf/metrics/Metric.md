@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Metric
 title: Metric
 description: Quantitative or qualitative measure of a defined notion; primitive metrics compose into composite metrics via MetricComposition.

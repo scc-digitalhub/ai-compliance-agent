@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Religious Minorities
 description: Groups defined by religious or philosophical beliefs — a GDPR Art. 9 special category and protected under EU Charter Art. 10 (freedom of religion).

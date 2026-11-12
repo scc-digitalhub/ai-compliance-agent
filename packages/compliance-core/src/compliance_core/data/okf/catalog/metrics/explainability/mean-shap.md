@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Mean |SHAP| Feature Importance
 description: Mean absolute SHAP value per feature across the test set, ranking features by their average contribution to model output. Higher value = higher importance.

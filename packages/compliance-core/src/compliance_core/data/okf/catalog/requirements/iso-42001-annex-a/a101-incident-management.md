@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: ISO/IEC 42001 A.10.1 — AI Incident and Error Management
 description: The organisation must have processes to detect, report, investigate, and learn from AI system incidents, errors, and near-misses, including bias incidents and safety failures.

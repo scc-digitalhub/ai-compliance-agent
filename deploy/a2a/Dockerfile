@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # A2A compliance agent service. Build the wheel first, then the image from the repository root:
 #   uv build && docker build -f deploy/a2a/Dockerfile -t compliance-a2a .
 FROM python:3.13-slim

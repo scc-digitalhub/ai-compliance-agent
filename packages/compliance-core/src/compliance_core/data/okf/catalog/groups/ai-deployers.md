@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: AI System Deployers
 description: Organisations or natural persons that deploy an AI system in a professional context — have specific obligations under EU AI Act Art. 26 and serve as overseers under Art. 14.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Differential Privacy Budget (ε)
 description: Privacy budget parameter for (ε, δ)-differential privacy. Smaller ε means stronger privacy guarantee. ε = 0 is perfect privacy; ε ∈ [1, 10] is typical in practice.

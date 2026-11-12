@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Data Consistency Rate
 description: Fraction of records that satisfy all defined cross-field and referential integrity constraints. Inconsistent records violate logical rules within the dataset.

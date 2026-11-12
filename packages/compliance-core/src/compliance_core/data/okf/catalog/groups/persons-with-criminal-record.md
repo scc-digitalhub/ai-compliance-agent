@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Persons with a Criminal Record
 description: Persons who have been convicted of a criminal offence and have served their sentence — data concerning them is subject to GDPR Art. 10 restrictions; at risk of perpetual AI-driven exclusion.

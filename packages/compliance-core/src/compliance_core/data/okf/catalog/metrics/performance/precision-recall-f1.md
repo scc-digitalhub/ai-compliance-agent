@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Precision, Recall, and F1 Score
 description: Composite performance profile: Precision = TP/(TP+FP); Recall = TP/(TP+FN); F1 = harmonic mean of precision and recall.

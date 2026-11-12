@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Model Type
 title: ComplianceFinding
 description: A non-conformance finding produced during a compliance assessment, linking to the violated objective and the evidence report.

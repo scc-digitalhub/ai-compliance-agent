@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: RMSE and MAE (Regression Error)
 description: Root Mean Squared Error (RMSE) and Mean Absolute Error (MAE) measure prediction error magnitude for regression tasks. RMSE penalises large errors more heavily.

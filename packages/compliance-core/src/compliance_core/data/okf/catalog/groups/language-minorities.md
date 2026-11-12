@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: National Language Minorities
 description: Persons belonging to national or linguistic minorities — explicitly protected under EU Charter Art. 21(1) and Art. 22; at risk of exclusion from AI systems optimised for majority languages.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Prompt Injection Attack
 description: Malicious content in user inputs or external data sources overrides the intended instructions of a generative AI system, causing it to produce harmful, deceptive, or policy-violating outputs.

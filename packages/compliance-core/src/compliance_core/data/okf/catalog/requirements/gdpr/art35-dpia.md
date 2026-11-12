@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: GDPR Art. 35 — Data Protection Impact Assessment (DPIA)
 description: Processing that is likely to result in high risk to natural persons — especially systematic profiling, processing special categories at scale, or systematic monitoring of public areas — requires a prior DPIA.

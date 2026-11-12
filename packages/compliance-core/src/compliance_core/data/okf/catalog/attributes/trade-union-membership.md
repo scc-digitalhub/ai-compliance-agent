@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Trade Union Membership
 description: GDPR Art. 9 special category. Processing by employment AI systems carries risk of unlawful labour discrimination.

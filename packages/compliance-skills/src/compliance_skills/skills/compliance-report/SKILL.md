@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: compliance-report
 description: Generate external report executables or build and optionally attach reports from real evaluation evidence.
 allowed-tools: get_report_code_schema get_session_report_codes generate_compliance_report_code render_compliance_report_code validate_compliance_report_code record_compliance_report_code load_evaluation_results build_compliance_report validate_compliance_report record_compliance_report get_session_compliance_reports get_compliance_report save_compliance_report

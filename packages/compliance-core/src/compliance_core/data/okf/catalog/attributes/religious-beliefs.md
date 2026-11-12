@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Religious or Philosophical Beliefs
 description: GDPR Art. 9 special category. Prohibited inference target under EU AI Act Art. 5(1)(d). High risk in content moderation and social scoring AI.

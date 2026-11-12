@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Framework-neutral OKF navigation tools.
 
 Tools read lazily and return structured records (path, id, instance) so agents copy ids, uris and

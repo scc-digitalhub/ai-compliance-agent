@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Health Data
 description: GDPR Art. 9 special category. Core input/output in healthcare AI. Processing requires explicit consent or a specific Art. 9(2) exemption.

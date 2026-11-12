@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: CO₂ Equivalent Emissions
 description: Total CO₂-equivalent greenhouse gas emissions (kgCO₂e) produced by training or operating an AI model. Accounts for hardware energy consumption and regional grid carbon intensity.

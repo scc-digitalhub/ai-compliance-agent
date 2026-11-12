@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU AI Act Art. 13 — Transparency and Provision of Information to Deployers
 description: High-risk AI systems must be designed to enable deployers to understand how to operate them correctly and interpret their output, accompanied by instructions for use.

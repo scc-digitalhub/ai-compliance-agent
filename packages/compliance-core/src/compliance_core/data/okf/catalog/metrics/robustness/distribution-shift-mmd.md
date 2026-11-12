@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Distribution Shift — Maximum Mean Discrepancy (MMD)
 description: Kernel-based statistical distance between training and deployment feature distributions. Higher MMD means greater distribution shift and higher risk of performance degradation.

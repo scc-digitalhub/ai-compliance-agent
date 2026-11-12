@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: RegulatoryRef
 title: Digital Services Act (DSA)
 description: Regulation (EU) 2022/2065 establishing obligations for online platforms and search engines regarding algorithmic transparency, risk assessment, and content moderation.

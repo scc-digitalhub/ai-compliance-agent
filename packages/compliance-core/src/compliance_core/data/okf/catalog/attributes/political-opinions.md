@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Political Opinions
 description: GDPR Art. 9 special category. High risk of discriminatory use in content moderation, hiring, and law enforcement AI.

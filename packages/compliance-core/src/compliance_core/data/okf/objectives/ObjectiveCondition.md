@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Model Type
 title: ObjectiveCondition
 description: Condition envelope for a compliance objective — wraps exactly one of threshold, range, categorical, statistical, or composite conditions.

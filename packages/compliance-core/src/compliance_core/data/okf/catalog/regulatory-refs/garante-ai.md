@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: RegulatoryRef
 title: Garante Privacy — AI Guidance
 description: Italian Data Protection Authority (Garante) guidelines and enforcement decisions on AI systems processing personal data, including the ChatGPT enforcement (2023) and AI profiling guidance.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Students
 description: Persons enrolled in educational or vocational training institutions — subject to high-risk AI under EU AI Act Annex III (education and vocational training).

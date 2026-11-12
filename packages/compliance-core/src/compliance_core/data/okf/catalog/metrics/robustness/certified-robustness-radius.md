@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Certified Robustness Radius
 description: Minimum L2-norm perturbation radius within which the model is guaranteed (with high probability) to return the same prediction. Higher radius means stronger certified robustness.

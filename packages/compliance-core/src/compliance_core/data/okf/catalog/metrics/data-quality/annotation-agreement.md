@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Annotation Agreement — Cohen's κ
 description: Inter-annotator agreement coefficient corrected for chance. κ = 1 means perfect agreement; κ = 0 means agreement at chance level.

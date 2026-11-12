@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Criminal Recidivism Risk Score
 description: AI-derived risk score estimating the probability that a person will re-offend. High-risk AI under EU AI Act Annex III (law enforcement). Documented racial and socioeconomic disparities (e.g. COMPAS).

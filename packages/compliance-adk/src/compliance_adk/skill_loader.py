@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Loads skills from disk; a skill's metadata is the single source of its tool allowlist."""
 from __future__ import annotations
 

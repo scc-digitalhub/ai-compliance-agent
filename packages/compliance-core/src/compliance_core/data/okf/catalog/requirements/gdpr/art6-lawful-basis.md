@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: GDPR Art. 6 — Lawful Basis for Processing Personal Data
 description: Processing of personal data is only lawful if it rests on one of six legal bases: consent, contract, legal obligation, vital interests, public task, or legitimate interests.

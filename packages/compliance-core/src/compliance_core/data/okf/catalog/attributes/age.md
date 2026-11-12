@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Age
 description: Protected characteristic under EU AI Act Art. 5 (exploitation of age-related vulnerabilities) and GDPR Art. 8 (children's consent threshold). Proxy for protected groups in many domains.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Affected Persons (Non-users)
 description: Natural persons who are subject to decisions or outputs of an AI system without directly interacting with it — e.g. persons assessed by credit scoring or predictive policing AI.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: DSA Art. 35 — Risk Mitigation Measures
 description: VLOPs and VLOSEs must put in place reasonable, proportionate, and effective mitigation measures for systemic risks identified under Art. 34, including adapting recommender systems and content moderation.

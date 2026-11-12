@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Compliance protocol adapters
 
 These optional adapters expose the existing ADK coordinator and its packaged persona/skills:

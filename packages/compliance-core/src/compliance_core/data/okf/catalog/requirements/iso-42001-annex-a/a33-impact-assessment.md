@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: ISO/IEC 42001 A.3.3 — AI System Impact Assessment
 description: Organisations must conduct a documented impact assessment evaluating the potential harms of the AI system to individuals, groups, and society before deployment.

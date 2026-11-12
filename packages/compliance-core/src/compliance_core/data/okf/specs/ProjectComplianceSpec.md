@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Specification Container
 title: ProjectComplianceSpec
 description: Compliance extension for a project entity, adding AI-task classification, domain, deployment kind, audience, scope, and the active compliance context.

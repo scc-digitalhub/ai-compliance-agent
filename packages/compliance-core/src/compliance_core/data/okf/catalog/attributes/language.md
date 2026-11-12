@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Language / Mother Tongue
 description: EU Charter Art. 21(1) explicitly lists language as a prohibited discrimination ground. NLP AI systems may systematically underperform for minority language speakers.

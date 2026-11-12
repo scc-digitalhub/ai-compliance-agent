@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Non-agent report construction shared by tools and external executables.
 
 Reports retain supplied measurement times. External evidence is validated, not

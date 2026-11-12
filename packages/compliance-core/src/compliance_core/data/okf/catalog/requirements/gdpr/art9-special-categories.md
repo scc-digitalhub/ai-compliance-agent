@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: GDPR Art. 9 — Processing of Special Categories of Personal Data
 description: Processing of racial/ethnic origin, political opinions, religious beliefs, trade union membership, genetic/biometric data, health data, sex life, or sexual orientation data is prohibited unless an explicit exemption applies.

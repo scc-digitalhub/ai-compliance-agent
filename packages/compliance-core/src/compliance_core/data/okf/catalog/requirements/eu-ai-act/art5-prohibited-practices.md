@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU AI Act Art. 5 — Prohibited AI Practices
 description: Prohibition on AI systems using subliminal techniques, exploiting vulnerabilities, social scoring, real-time biometric identification, and emotion recognition in workplaces/schools.

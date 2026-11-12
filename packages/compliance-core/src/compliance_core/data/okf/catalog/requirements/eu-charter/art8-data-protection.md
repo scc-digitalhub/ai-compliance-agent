@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU Charter Art. 8 — Data Protection as Fundamental Right
 description: Everyone has the right to protection of their personal data, to access and rectification, and to independent supervisory control — establishing data protection as a fundamental right underpinning GDPR.

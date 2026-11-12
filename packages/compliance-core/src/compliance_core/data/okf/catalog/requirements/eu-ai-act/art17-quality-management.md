@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU AI Act Art. 17 — Quality Management System
 description: Providers must establish a quality management system ensuring compliance with the AI Act, covering design, development, deployment, monitoring, and post-market processes.

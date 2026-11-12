@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU AI Act Art. 15 — Accuracy, Robustness, and Cybersecurity
 description: High-risk AI systems must achieve appropriate levels of accuracy and be resilient to errors, faults, inconsistencies, and adversarial inputs throughout their lifecycle.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: RegulatoryRef
 title: NIS2 Directive
 description: Directive (EU) 2022/2555 on measures for a high common level of cybersecurity across the Union, establishing risk management and incident reporting obligations.

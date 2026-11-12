@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Membership Inference Attack AUC
 description: AUC of a membership inference attack classifier distinguishing training members from non-members. AUC = 0.5 means no privacy leakage; higher means model memorises training data.

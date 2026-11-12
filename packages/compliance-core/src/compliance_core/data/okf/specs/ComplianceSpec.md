@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Specification
 title: ComplianceSpec
 description: Top-level compliance extension attached to any first-class entity (data, model, model service, project), carrying objectives, status, and documentation.

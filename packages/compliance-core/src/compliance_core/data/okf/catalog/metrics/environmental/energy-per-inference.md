@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Energy per Inference
 description: Average energy (in Wh or mWh) consumed by the model to process a single inference request. Lower is better for sustainable deployment.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Membership Inference Attack
 description: An adversary queries a trained model to determine whether a specific data record was used in training, violating data subjects' right not to have their inclusion in a training dataset revealed.

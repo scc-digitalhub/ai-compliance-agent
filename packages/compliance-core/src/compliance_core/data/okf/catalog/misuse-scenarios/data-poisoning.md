@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Training Data Poisoning
 description: An adversary injects malicious samples into the training dataset, causing the trained model to produce systematically biased, incorrect, or backdoored outputs for specific inputs.

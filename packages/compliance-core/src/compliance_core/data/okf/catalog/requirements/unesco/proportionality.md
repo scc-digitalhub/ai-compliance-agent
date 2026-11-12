@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: UNESCO AI Ethics — Proportionality and Do No Harm
 description: AI systems must not exceed what is necessary to achieve their legitimate aim and must not cause harm to individuals, communities, or the environment.

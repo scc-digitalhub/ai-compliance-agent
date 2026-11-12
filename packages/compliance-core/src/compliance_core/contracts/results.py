@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Results of the structured agents.
 
 Each agent returns an OKB-aligned `result` plus the assumptions it made; the API moves

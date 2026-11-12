@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU Charter Art. 47 — Right to Effective Remedy and Fair Trial
 description: Everyone has the right to an effective remedy before a tribunal for violations of EU law, including from AI system decisions — requiring contestability, explainability, and access to redress.

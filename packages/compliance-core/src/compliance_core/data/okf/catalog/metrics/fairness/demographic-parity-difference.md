@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Demographic Parity Difference
 description: Difference in positive prediction rates between the most and least favoured group. Zero indicates equal positive prediction rates across all groups.

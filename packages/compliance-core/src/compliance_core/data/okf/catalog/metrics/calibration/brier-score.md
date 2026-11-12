@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Brier Score
 description: Mean squared difference between predicted probability and true binary outcome. Combines discrimination and calibration. Perfect score = 0; random binary classifier = 0.25.

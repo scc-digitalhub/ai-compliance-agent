@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Automation Bias in High-stakes Decisions
 description: Human operators defer uncritically to AI recommendations in high-stakes contexts (medical, judicial, credit) without applying independent judgment, effectively bypassing the human oversight requirement.

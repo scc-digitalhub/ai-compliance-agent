@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: End Users
 description: Natural persons who directly interact with an AI system's output in their personal capacity — not to be confused with deployers (professional users).

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU AI Act Art. 12 — Record-keeping and Automatic Logging
 description: High-risk AI systems must automatically log events throughout operation to enable post-hoc auditing, incident investigation, and regulatory review.

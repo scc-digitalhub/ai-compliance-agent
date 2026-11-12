@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Minors / Children
 description: Persons under 18 years of age — explicitly identified as a vulnerable group in EU AI Act Art. 5 (exploitation of vulnerabilities) and Art. 9(1) of GDPR (children's consent).

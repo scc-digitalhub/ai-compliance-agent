@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Individual Fairness — Consistency Score
 description: Fraction of individuals whose predicted label matches the majority label of their k-nearest neighbours. High consistency means similar individuals receive similar outcomes.

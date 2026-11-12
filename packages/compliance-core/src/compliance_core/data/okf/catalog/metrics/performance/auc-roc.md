@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: AUC-ROC (Area Under ROC Curve)
 description: Area under the Receiver Operating Characteristic curve. Measures the model's ability to discriminate between classes across all decision thresholds.

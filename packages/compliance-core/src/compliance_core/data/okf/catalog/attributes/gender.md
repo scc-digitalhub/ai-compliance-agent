@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Gender
 description: Protected characteristic under EU Directive 2006/54/EC. High fairness risk in hiring, credit, and healthcare AI. Distinct from sex life/sexual orientation but often conflated.

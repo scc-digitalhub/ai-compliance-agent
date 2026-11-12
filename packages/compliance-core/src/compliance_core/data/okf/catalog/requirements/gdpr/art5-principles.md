@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: GDPR Art. 5 — Data Processing Principles
 description: Personal data must be processed lawfully, fairly, transparently, for specified purposes, minimally, accurately, with storage limitation, and with integrity and confidentiality.

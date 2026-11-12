@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Environmental and Sustainability Metrics
 
 Metrics measuring the environmental impact of AI system training and inference.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Label Balance Ratio
 description: Ratio of the minority class count to the majority class count in a classification dataset. A value of 1.0 is perfectly balanced.

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Authenticated single-tenant A2A 1.0 JSON-RPC service backed by the shared runtime."""
 from __future__ import annotations
 

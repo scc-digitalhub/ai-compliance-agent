@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Objective
 title: ComplianceObjective
 description: Normative constraint binding a Metric to a target acceptance condition, with priority, severity, and links to requirements.

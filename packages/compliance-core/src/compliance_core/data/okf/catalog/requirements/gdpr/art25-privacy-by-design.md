@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: GDPR Art. 25 — Data Protection by Design and by Default
 description: Controllers must implement data-minimising technical and organisational measures at the design stage and ensure that, by default, only personal data necessary for each specific purpose is processed.

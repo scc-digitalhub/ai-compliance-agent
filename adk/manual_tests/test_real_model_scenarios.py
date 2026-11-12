@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Opt-in live-provider scenarios. Run from adk/ with:
 
     python -m pytest manual_tests/test_real_model_scenarios.py -q -s

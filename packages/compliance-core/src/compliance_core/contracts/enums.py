@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Enumerations mirrored from okb/schemas (kept in sync by tests/test_contracts.py)."""
 from typing import Literal
 

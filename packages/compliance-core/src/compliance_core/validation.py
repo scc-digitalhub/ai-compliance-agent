@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Framework-neutral semantic validation for structured compliance results.
 
 The validators use the small attribute surface of the request, result, and OKF bundle objects.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Platform / Gig Economy Workers
 description: Persons engaged through digital labour platforms as independent contractors — subject to algorithmic management and covered by the EU Platform Work Directive (2024).

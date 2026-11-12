@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Employee Performance Score
 description: AI-derived performance or productivity score used in HR decisions (promotion, termination, task allocation). High-risk under EU AI Act Annex III. Covered by EU Platform Work Directive for gig workers.

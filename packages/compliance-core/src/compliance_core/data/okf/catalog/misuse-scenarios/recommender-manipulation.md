@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Recommender System Manipulation
 description: Coordinated actors exploit recommendation algorithms to artificially amplify disinformation, extremist content, or commercially motivated content, subverting the information environment.

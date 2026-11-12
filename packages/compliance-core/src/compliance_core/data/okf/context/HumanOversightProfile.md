@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Model Type
 title: HumanOversightProfile
 description: Profile describing the human oversight mode, authority, intervention points, and escalation channels for an AI deployment.

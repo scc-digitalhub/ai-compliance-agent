@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Compliance Status & Documentation
 
 Types tracking the compliance verdict, findings, mitigations, and documentation

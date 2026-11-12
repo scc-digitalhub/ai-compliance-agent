@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Racial and Ethnic Minorities
 description: Groups defined by racial or ethnic origin — a GDPR Art. 9 special category and a protected characteristic under EU law subject to non-discrimination requirements.

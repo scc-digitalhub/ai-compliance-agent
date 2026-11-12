@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Adversarial Input Attack
 description: Carefully crafted perturbations to inputs cause an AI system to misclassify or produce attacker-controlled outputs, potentially evading safety classifiers or fraud detectors.

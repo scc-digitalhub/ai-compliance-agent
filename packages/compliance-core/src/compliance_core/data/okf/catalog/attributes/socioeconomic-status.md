@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Socioeconomic Status
 description: Proxy for multiple protected characteristics. EU AI Act Art. 5 prohibits exploiting socioeconomic vulnerability. High fairness risk in credit, benefits, and employment AI.

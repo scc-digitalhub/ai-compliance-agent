@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: compliance-specifications
 description: Stores and retrieves the structured compliance specifications of project, dataset and model entities on the DH platform.
 allowed-tools: get_compliance_specification save_compliance_specification

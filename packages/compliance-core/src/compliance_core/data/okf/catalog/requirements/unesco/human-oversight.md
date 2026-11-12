@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: UNESCO AI Ethics — Human Oversight and Determination
 description: Humans must retain the right to oversee, correct, and override AI systems, with the degree of oversight calibrated to the risk and impact of the AI application.

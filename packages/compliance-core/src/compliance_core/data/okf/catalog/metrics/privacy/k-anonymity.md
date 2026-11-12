@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: k-Anonymity
 description: Minimum number of records that share the same quasi-identifier combination. k = 1 means a record is uniquely identifiable; higher k means lower re-identification risk.

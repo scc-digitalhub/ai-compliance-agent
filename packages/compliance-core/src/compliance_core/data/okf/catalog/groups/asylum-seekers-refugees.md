@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Asylum Seekers and Refugees
 description: Persons seeking international protection or who have been granted refugee status — subject to specific high-risk AI applications under EU AI Act Annex III (migration, asylum, border control).

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # compliance_api
 
 Standalone FastAPI service for project, dataset, and model compliance analysis. It uses the

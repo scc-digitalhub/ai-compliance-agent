@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # compliance_mcp
 
 An MCP stdio server exposing the compliance tool catalog, OKF resources, and the

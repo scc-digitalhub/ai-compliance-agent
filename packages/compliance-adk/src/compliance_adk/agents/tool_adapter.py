@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Bridge ADK invocation context to the runtime-neutral ToolEnv."""
 from __future__ import annotations
 

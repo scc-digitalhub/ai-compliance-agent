@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU AI Act Art. 53 — GPAI Model Obligations
 description: All GPAI model providers must maintain technical documentation, supply downstream providers with information, comply with copyright law, and publish a training data summary.

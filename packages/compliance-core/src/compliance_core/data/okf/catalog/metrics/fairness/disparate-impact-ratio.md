@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Disparate Impact Ratio
 description: Ratio of positive prediction rates between the least and most favoured group. US EEOC 80% rule: ratio < 0.8 signals adverse impact.

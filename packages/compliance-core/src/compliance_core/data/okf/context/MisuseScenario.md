@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Model Type
 title: MisuseScenario
 description: A foreseeable misuse scenario for an AI system, with intentionality, likelihood, and impact assessment.

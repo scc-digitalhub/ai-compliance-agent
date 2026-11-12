@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU AI Act Art. 10 — Data Governance and Management
 description: Data governance requirements for training, validation, and test datasets: relevance, representativeness, absence of errors, completeness, and examination for biases.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: RegulatoryRef
 title: EBA/ECB Guidelines on ML in Credit Risk
 description: EBA/ECB supervisory expectations and guidelines on the use of machine learning models in credit risk modelling and banking supervision (2021–2024).

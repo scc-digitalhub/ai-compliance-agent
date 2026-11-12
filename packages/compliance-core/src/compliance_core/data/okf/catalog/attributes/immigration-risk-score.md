@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Immigration / Border Risk Score
 description: AI-derived risk classification used in visa, asylum, or border control decisions. High-risk under EU AI Act Annex III. Particular fairness risk for asylum seekers and refugees.

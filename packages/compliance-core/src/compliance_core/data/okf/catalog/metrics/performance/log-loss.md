@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Log-Loss (Cross-Entropy Loss)
 description: Negative log-likelihood of predicted probabilities given true labels. Lower is better; 0 is perfect. Measures both discrimination and calibration jointly.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Specification Container
 title: ReportSpec
 description: Compliance extension for a report entity, carrying the report kind, content payload, lineage, and the set of compliance objective identifiers the report addresses.

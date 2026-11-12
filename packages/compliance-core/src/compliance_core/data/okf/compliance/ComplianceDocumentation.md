@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Documentation
 title: ComplianceDocumentation
 description: Lightweight structured documentation artifact scoped to the compliance dimension of an entity, composed of titled sections.

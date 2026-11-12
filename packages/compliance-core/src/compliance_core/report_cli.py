@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """External CLI/runtime for deterministic report preview and publication.
 
 This module consumes canonical result JSON and known evaluator outputs. It never loads or executes

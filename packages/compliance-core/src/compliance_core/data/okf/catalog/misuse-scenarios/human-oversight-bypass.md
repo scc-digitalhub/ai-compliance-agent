@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Human Oversight Bypass
 description: Workflow or process changes cause a high-risk AI system to be used for final decisions without the human review step that was required for compliance, effectively nullifying the human oversight control.

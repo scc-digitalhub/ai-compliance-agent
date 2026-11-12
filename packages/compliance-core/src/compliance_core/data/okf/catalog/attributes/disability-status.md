@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: Disability Status
 description: Protected characteristic under EU Charter Art. 21 and the UNCRPD. EU AI Act Art. 5 prohibits exploiting disability-related vulnerability. High-stakes fairness attribute in employment and benefits AI.

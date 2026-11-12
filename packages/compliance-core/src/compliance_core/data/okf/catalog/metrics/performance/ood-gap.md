@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Out-of-Distribution (OOD) Performance Gap
 description: Absolute difference in a chosen performance metric (e.g. F1) between in-distribution (IID) test set and out-of-distribution (OOD) test set. Measures robustness to distribution shift.

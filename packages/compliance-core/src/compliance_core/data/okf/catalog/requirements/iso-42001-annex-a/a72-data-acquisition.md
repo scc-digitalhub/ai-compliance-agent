@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: ISO/IEC 42001 A.7.2 — Data Acquisition and Data Quality
 description: Data used for AI system development and operation must be acquired through defined and governed processes ensuring fitness for purpose, quality, and appropriate rights.

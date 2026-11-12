@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Compliance Specification Container
 title: DataComplianceSpec
 description: Compliance extension for a data item or artifact entity, adding dataset scope, governance metadata, and attribute descriptors.

@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Demographic Representativeness Gap
 description: Maximum absolute difference between the proportion of a demographic group in the dataset and its proportion in the target deployment population.

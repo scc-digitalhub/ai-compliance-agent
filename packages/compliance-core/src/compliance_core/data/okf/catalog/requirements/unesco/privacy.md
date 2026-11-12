@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: UNESCO AI Ethics — Right to Privacy and Data Protection
 description: Personal data used by AI systems must be protected throughout the lifecycle; privacy by design must be applied; individuals must retain control over their data.

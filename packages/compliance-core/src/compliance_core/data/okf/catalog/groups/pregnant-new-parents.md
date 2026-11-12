@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: GroupSpec
 title: Pregnant Women and New Parents
 description: Persons who are pregnant or in the parental period — protected under EU Directive 92/85/EEC and Directive 2019/1158; at risk from employment AI that treats pregnancy as a negative signal.

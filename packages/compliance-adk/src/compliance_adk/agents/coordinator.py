@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Interactive coordinator: reasons about compliance and runs the structured analyses on request."""
 from __future__ import annotations
 

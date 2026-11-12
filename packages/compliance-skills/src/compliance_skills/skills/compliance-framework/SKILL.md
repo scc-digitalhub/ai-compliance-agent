@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: compliance-framework
 description: Explains the AI compliance framework, its concepts, elements and catalog examples using the OKF bundle.
 allowed-tools: list_all_concepts list_okf_directory search_catalog read_okf_concept get_regulatory_refs get_requirements get_groups get_attributes get_metrics get_misuse_scenarios

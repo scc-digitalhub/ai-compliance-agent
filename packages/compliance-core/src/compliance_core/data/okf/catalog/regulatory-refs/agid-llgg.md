@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: RegulatoryRef
 title: AgID LLGG Sviluppo IA
 description: Italian AgID Guidelines for the development of AI-based software systems (LLGG Sviluppo, 2026 public consultation draft).

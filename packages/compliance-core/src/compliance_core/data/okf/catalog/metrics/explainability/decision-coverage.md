@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Decision Coverage (Traceable Predictions)
 description: Fraction of model predictions for which a traceable decision path or rule-based explanation can be generated. Measures explainability completeness across the prediction space.

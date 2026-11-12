@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Data Accuracy / Correctness Rate
 description: Fraction of data values that correctly represent the real-world entity they describe, measured against a reference or through validation rules.

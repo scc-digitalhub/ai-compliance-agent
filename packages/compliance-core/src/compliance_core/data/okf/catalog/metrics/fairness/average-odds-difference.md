@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Metric
 title: Average Odds Difference
 description: Average of the absolute differences in TPR and FPR between unprivileged and privileged group. Zero indicates equal error rates.

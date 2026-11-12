@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: compliance-assistant
 description: "Use when explaining AI compliance frameworks or assessing and documenting AI projects, datasets and models using the OKF."
 skills:

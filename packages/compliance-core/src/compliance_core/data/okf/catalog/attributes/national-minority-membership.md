@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: AttributeRef
 title: National Minority Membership
 description: EU Charter Art. 21(1) explicitly prohibits discrimination on the ground of membership of a national minority — a protected characteristic not listed in GDPR Art. 9.

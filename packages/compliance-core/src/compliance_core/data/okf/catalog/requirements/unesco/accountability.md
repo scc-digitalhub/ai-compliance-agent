@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: UNESCO AI Ethics — Accountability and Responsibility
 description: Clear accountability frameworks must exist for all AI actors across the lifecycle, with mechanisms for redress and remedy when AI causes harm.

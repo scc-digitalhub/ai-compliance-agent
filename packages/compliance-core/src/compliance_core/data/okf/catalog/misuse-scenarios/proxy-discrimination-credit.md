@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: MisuseScenario
 title: Proxy Discrimination in Credit Scoring
 description: A credit scoring model uses features (postcode, shopping patterns, device type) that are highly correlated with protected characteristics, producing discriminatory credit decisions without explicitly using the protected attribute.

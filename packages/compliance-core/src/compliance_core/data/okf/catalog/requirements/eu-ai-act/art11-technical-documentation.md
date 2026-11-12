@@ -1,4 +1,8 @@
 ---
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 type: Requirement
 title: EU AI Act Art. 11 — Technical Documentation
 description: Requirement to draw up and keep up-to-date technical documentation demonstrating compliance before placing the high-risk AI system on the market.

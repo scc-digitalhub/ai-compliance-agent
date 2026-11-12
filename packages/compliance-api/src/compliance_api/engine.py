@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: © 2026 DSLab - Fondazione Bruno Kessler
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """LiteLLM-backed implementation of the framework-neutral analysis engine port."""
 from __future__ import annotations
 
